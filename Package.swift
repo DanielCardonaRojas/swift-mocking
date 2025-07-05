@@ -2,6 +2,7 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import CompilerPluginSupport
 
 let package = Package(
     name: "Mockable",
@@ -18,11 +19,19 @@ let package = Package(
             name: "Mockable",
             targets: ["Mockable"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-syntax.git", from: "600.0.1"),
+        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.5.2")
+    ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .target(
-            name: "Mockable"),
+        .target(name: "Mockable", dependencies: ["MockableMacro"]),
+        .macro(
+            name: "MockableMacro",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+            ]
+        ),
         .testTarget(
             name: "MockableTests",
             dependencies: ["Mockable"]
