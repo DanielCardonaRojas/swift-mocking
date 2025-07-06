@@ -82,6 +82,17 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(spy.invocations.count, 2)
     }
 
+    func test_spy_throwing_verification() throws {
+        let spy = Spy<String, Throws, Int>()
+        spy.when(calledWith: .any()).thenThrow(TestError.example)
+        do {
+            try spy.call("something")
+        } catch {
+
+        }
+        XCTAssert(spy.verifyThrows())
+    }
+
     func testMock() {
         let spy = PricingServiceSpy()
         spy.price.when(calledWith:.equal("apple")).thenReturn(100)
@@ -93,6 +104,10 @@ final class SpyTests: XCTestCase {
         when(spy.price(.any())).thenReturn(100)
         XCTAssert(spy.price.verify(calledWith: .any(), count: .equal(2)))
     }
+}
+
+enum TestError: Error {
+    case example
 }
 
 class Store {
