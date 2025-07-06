@@ -17,26 +17,23 @@ public class Spy<each Input, Effects: Effect, Output> {
 
     public init() { }
 
-    @discardableResult
-    public func call(_ input: repeat each Input) -> Output {
+    func invoke(_ input: repeat each Input) throws -> Return<Output> {
         invocations.append((repeat each input))
 
         // search through stub for a return value
+        var matchingStub: Stub<repeat each Input, Effects, Output>?
+
         for stub in stubs {
             if stub.invocationMatcher.isMatchedBy((repeat each input)) {
-                do {
-                    return try stub.get()
-                } catch {
-                    fatalError(String(describing: error))
-                }
+                matchingStub = stub
+                break
             }
         }
+        guard let returnValue = matchingStub?.output else {
+            throw MockingError.unStubbed
+        }
 
-        fatalError("Unstubbed")
-    }
-
-    public func callAsFunction(_ input: repeat each Input) -> Output {
-        call(repeat each input)
+        return returnValue
     }
 
     public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Stub<repeat each Input, Effects, Output> {
@@ -63,5 +60,51 @@ public class Spy<each Input, Effects: Effect, Output> {
             }
         }
         return countMatcher(count)
+    }
+
+    public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool {
+        var doesThrow = false
+        for invocation in invocations {
+            for stub in stubs {
+                if stub.invocationMatcher.isMatchedBy((repeat each invocation)) {
+                    if let stubbedReturn = stub.output {
+                        do {
+                            try stubbedReturn.get()
+                        }
+                        catch {
+                            doesThrow = errorMatcher(error)
+                        }
+                    }
+                }
+            }
+        }
+        return doesThrow
+    }
+
+    public func verifyThrows() -> Bool {
+        verifyThrows(.anyError())
+
+    }
+}
+
+// MARK: Throwing
+extension Spy where Effects == Throws {
+    @discardableResult
+    public func call(_ input: repeat each Input) throws -> Output {
+        try invoke(repeat each input).get()
+    }
+}
+
+// MARK: None throwing
+extension Spy where Effects == None {
+    @discardableResult
+    public func call(_ input: repeat each Input) -> Output {
+        do {
+            return try invoke(repeat each input).get()
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
     }
 }
