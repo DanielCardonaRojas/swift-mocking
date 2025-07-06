@@ -46,5 +46,14 @@ extension ArgMatcher {
     static func `nil`<T>() -> Self where Argument == Optional<T> {
         .init { $0 == nil }
     }
+
+    static func anyError() -> Self {
+        .init { $0 as? Error != nil }
+    }
+
+}
+
+extension ArgMatcher where Argument == Any {
+
 }
 
