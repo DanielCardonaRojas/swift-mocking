@@ -8,7 +8,7 @@
 public class Stub<each I, O> {
     let spy: Spy<repeat each I, O>
     let invocationMatcher: InvocationMatcher<repeat each I>
-    var output: O?
+    var output: Return<O>?
 
     init(spy: Spy<repeat each I, O>, invocationMatcher: InvocationMatcher<repeat each I>) {
         self.invocationMatcher = invocationMatcher
@@ -19,10 +19,10 @@ public class Stub<each I, O> {
         guard let output else {
             throw MockingError(message: "Unstubbed")
         }
-        return output
+        return try output.get()
     }
 
     public func thenReturn(_ output: O) {
-        self.output = output
+        self.output = Return.value(output)
     }
 }
