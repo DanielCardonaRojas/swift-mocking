@@ -5,7 +5,10 @@
 //  Created by Daniel Cardona on 4/07/25.
 //
 
-
+/// A ``Stub`` is a test double that provides pre-canned answers to method calls.
+///
+/// You use stubs to control the behavior of a dependency during a test. For example, you can stub a method to return a specific value, or to throw an error.
+/// Stubs are created by calling the `when(calledWith:)` method on a ``Spy``.
 public class Stub<each I, Effects: Effect, O> {
     let spy: Spy<repeat each I, Effects, O>
     let invocationMatcher: InvocationMatcher<repeat each I>

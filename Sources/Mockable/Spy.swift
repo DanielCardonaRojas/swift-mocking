@@ -4,6 +4,13 @@
 //
 //  Created by Daniel Cardona on 3/07/25.
 //
+
+/// A ``Spy`` is a type of test double that captures calls to its methods, allowing you to inspect them later.
+///
+/// You can use a ``Spy`` to verify that a method was called with specific arguments, or to check how many times it was called.
+/// Spies are useful for testing interactions between objects.
+///
+/// You don't create spies manually. Instead, you use the ``@Mockable`` macro to generate a spy for a protocol.
 public class Spy<each Input, Effects: Effect, Output> {
     private(set) var invocations: [(repeat each Input)] = []
     private var stubs: [Stub<repeat each Input, Effects, Output>] = []
