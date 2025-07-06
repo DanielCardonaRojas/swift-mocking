@@ -7,4 +7,6 @@
 
 public struct MockingError: Error {
     public let message: String
+
+    public static let unStubbed = MockingError(message: "Unstubbed method")
 }
