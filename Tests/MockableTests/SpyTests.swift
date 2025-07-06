@@ -7,7 +7,7 @@ final class SpyTests: XCTestCase {
     // MARK: - Basic Stubbing and Invocation Recording
 
     func test_spy_recordsInvocations_andReturnsStubbedValue() {
-        let spy = Spy<String, Int>()
+        let spy = Spy<String, None, Int>()
         spy.when(calledWith:.any()).thenReturn(10)
 
         XCTAssertEqual(spy.call("hello"), 10)
@@ -20,7 +20,7 @@ final class SpyTests: XCTestCase {
     }
 
     func test_spy_recordsInvocations_verify_counts() {
-        let spy = Spy<String, Int>()
+        let spy = Spy<String, None, Int>()
         spy.when(calledWith:.any()).thenReturn(10)
         spy.call( "hello" )
         spy.call( "hello" )
@@ -28,7 +28,7 @@ final class SpyTests: XCTestCase {
     }
 
     func test_spy_withVoidInput_recordsInvocations_andReturnsStubbedValue() {
-        let spy = Spy<Void, String>()
+        let spy = Spy<Void, None, String>()
         spy.when(calledWith:.any()).thenReturn("success")
 
         XCTAssertEqual(spy.call(()), "success")
@@ -38,7 +38,7 @@ final class SpyTests: XCTestCase {
     }
 
     func test_spy_withVoidOutput_recordsInvocations() {
-        let spy = Spy<String, Void>()
+        let spy = Spy<String, None, Void>()
         spy.when(calledWith:.any()).thenReturn(())
 
         spy.call("action1")
@@ -52,7 +52,7 @@ final class SpyTests: XCTestCase {
 //    // MARK: - Conditional Stubbing
 
     func test_spy_conditionalStubbing_matchesCorrectly() {
-        let spy = Spy<String, Int>()
+        let spy = Spy<String, None, Int>()
 
         spy.when(calledWith:.equal("apple")).thenReturn(1)
         spy.when(calledWith:.any()).thenReturn(7)
@@ -63,7 +63,7 @@ final class SpyTests: XCTestCase {
     }
 
     func test_spy_any() {
-        let spy = Spy<String, Int>()
+        let spy = Spy<String, None, Int>()
         spy.when(calledWith:.equal("Hola")).thenReturn(2)
         spy.when(calledWith:.equal("Hello")).thenReturn(3)
         spy.when(calledWith:.any()).thenReturn(7)
@@ -74,7 +74,7 @@ final class SpyTests: XCTestCase {
     }
 
     func test_spy_conditionalStubbing_withMultipleArguments() {
-        let spy = Spy<String, Int, String>()
+        let spy = Spy<String, Int, None, String>()
         spy.when(calledWith:.equal("itemA"), .lessThan(15)).thenReturn("A10")
         spy.when(calledWith:.equal("itemB"), .equal(23)).thenReturn("B23")
         XCTAssertEqual(spy.call("itemA", 10), "A10", "Should match itemA and 10")
@@ -127,15 +127,15 @@ struct PricingServiceWitness<A> {
 }
 
 struct PricingServiceSpy {
-    let price = Spy<String, Int>()
+    let price = Spy<String, None, Int>()
 
-    func price(_ item: ArgMatcher<String>) -> Stub<String, Int> {
+    func price(_ item: ArgMatcher<String>) -> Stub<String, None, Int> {
         price.when(calledWith: item)
     }
 }
 
 extension XCTestCase {
-    func when<each Input, Output>(_ stub: Stub<repeat each Input, Output>) -> Stub<repeat each Input, Output> {
+    func when<each Input, Eff: Effect, Output>(_ stub: Stub<repeat each Input, Eff, Output>) -> Stub<repeat each Input, Eff, Output> {
         stub
     }
 }

@@ -4,9 +4,9 @@
 //
 //  Created by Daniel Cardona on 3/07/25.
 //
-public class Spy<each Input, Output> {
+public class Spy<each Input, Effects: Effect, Output> {
     private(set) var invocations: [(repeat each Input)] = []
-    private var stubs: [Stub<repeat each Input, Output>] = []
+    private var stubs: [Stub<repeat each Input, Effects, Output>] = []
 
     public init() { }
 
@@ -32,9 +32,9 @@ public class Spy<each Input, Output> {
         call(repeat each input)
     }
 
-    public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Stub<repeat each Input, Output> {
+    public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Stub<repeat each Input, Effects, Output> {
         let invocationMatcher = InvocationMatcher(matchers: repeat each matchingInput)
-        let stub = Stub(spy: self, invocationMatcher: invocationMatcher)
+        let stub = Stub<repeat each Input, Effects, Output>(spy: self, invocationMatcher: invocationMatcher)
         stubs.append(stub)
         return stub
     }
