@@ -34,7 +34,14 @@ let package = Package(
         ),
         .testTarget(
             name: "MockableTests",
-            dependencies: ["Mockable"]
+            dependencies: [
+                "Mockable",
+            ]
         ),
+        .testTarget(name: "MockableMacroTests", dependencies: [
+            "MockableMacro",
+            .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+            .product(name: "MacroTesting", package: "swift-macro-testing")
+        ])
     ]
 )
