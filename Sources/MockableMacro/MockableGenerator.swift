@@ -18,6 +18,7 @@ public enum MockableGenerator {
     /// }
     /// ```
     /// This function will generate the following struct:
+
     /// ```swift
     /// public struct MyServiceSpy {
     ///     public let doSomething = Spy<String, None, Int>()
@@ -57,7 +58,7 @@ public enum MockableGenerator {
         functionNames[funcName] = count + 1
         let spyPropertyName = count > 0 ? "\(funcName)_\(count)" : funcName
 
-        let (inputTypes, parameterNames) = getFunctionParameters(funcDecl)
+        let (inputTypes, parameterNames, parameterLabels) = getFunctionParameters(funcDecl)
         let outputType = getFunctionReturnType(funcDecl)
         let effectType = getFunctionEffectType(funcDecl)
 
@@ -74,18 +75,20 @@ public enum MockableGenerator {
             inputTypes: inputTypes,
             outputType: outputType,
             effectType: effectType,
-            parameterNames: parameterNames
+            parameterNames: parameterNames,
+            parameterLabels: parameterLabels
         )
 
         return (DeclSyntax(spyProperty), DeclSyntax(stubFunction))
     }
 
     /// Extracts the parameter types and names from a function declaration.
-    private static func getFunctionParameters(_ funcDecl: FunctionDeclSyntax) -> ([TypeSyntax], [TokenSyntax]) {
+    private static func getFunctionParameters(_ funcDecl: FunctionDeclSyntax) -> ([TypeSyntax], [TokenSyntax], [TokenSyntax?]) {
         let parameters = funcDecl.signature.parameterClause.parameters
         let inputTypes = parameters.map { $0.type }
-        let parameterNames = parameters.map { $0.firstName }
-        return (inputTypes, parameterNames)
+        let parameterNames = parameters.map { $0.secondName ?? $0.firstName }
+        let parameterLabels = parameters.map { $0.firstName }
+        return (inputTypes, parameterNames, parameterLabels)
     }
 
     /// Extracts the return type from a function declaration.
@@ -114,7 +117,7 @@ public enum MockableGenerator {
     /// public let doSomething = Spy<String, None, Int>()
     /// ```
     private static func createSpyProperty(name: String, inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String) throws -> VariableDeclSyntax {
-        var genericArgs = GenericArgumentListSyntax()
+        var genericArgs = [GenericArgumentSyntax]()
         for inputType in inputTypes {
             genericArgs.append(GenericArgumentSyntax(argument: inputType))
         }
@@ -123,12 +126,27 @@ public enum MockableGenerator {
 
         let genericSpy = GenericSpecializationExprSyntax(
             expression: DeclReferenceExprSyntax(baseName: .identifier("Spy")),
-            genericArgumentClause: GenericArgumentClauseSyntax(arguments: genericArgs)
+            genericArgumentClause: GenericArgumentClauseSyntax(
+                leftAngle: .leftAngleToken(),
+                arguments: GenericArgumentListSyntax(
+                    genericArgs.enumerated().map { (index, arg) in
+                        if index < genericArgs.count - 1 {
+                            return arg.with(\.trailingComma, .commaToken())
+                        }
+                        return arg
+                    }
+                ),
+                rightAngle: .rightAngleToken()
+            )
         )
 
         let initializer = InitializerClauseSyntax(value: FunctionCallExprSyntax(callee: genericSpy) { LabeledExprListSyntax() })
         let binding = PatternBindingSyntax(pattern: IdentifierPatternSyntax(identifier: .identifier(name)), initializer: initializer)
-        return VariableDeclSyntax(modifiers: [DeclModifierSyntax(name: .keyword(.public, trailingTrivia: .space))], bindingSpecifier: .keyword(.let, trailingTrivia: .space), bindings: [binding])
+        return VariableDeclSyntax(
+            modifiers: [DeclModifierSyntax(name: .keyword(.public, trailingTrivia: .space))],
+            bindingSpecifier: .keyword(.let, trailingTrivia: .space),
+            bindings: [binding]
+        )
     }
 
     /// Creates a stubbing function declaration.
@@ -139,8 +157,8 @@ public enum MockableGenerator {
     ///    doSomething.when(calledWith: value)
     /// }
     /// ```
-    private static func createStubFunction(name: String, spyPropertyName: String, inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String, parameterNames: [TokenSyntax]) throws -> FunctionDeclSyntax {
-        let parameterList = createParameterList(inputTypes: inputTypes, parameterNames: parameterNames)
+    private static func createStubFunction(name: String, spyPropertyName: String, inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String, parameterNames: [TokenSyntax], parameterLabels: [TokenSyntax?]) throws -> FunctionDeclSyntax {
+        let parameterList = createParameterList(inputTypes: inputTypes, parameterNames: parameterNames, parameterLabels: parameterLabels)
         let returnType = createStubReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType)
         let body = createFunctionBody(spyPropertyName: spyPropertyName, parameterNames: parameterNames)
 
@@ -161,12 +179,24 @@ public enum MockableGenerator {
     /// ```swift
     /// with value: ArgMatcher<String>
     /// ```
-    private static func createParameterList(inputTypes: [TypeSyntax], parameterNames: [TokenSyntax]) -> FunctionParameterListSyntax {
+    private static func createParameterList(inputTypes: [TypeSyntax], parameterNames: [TokenSyntax], parameterLabels: [TokenSyntax?]) -> FunctionParameterListSyntax {
         var parameters = [FunctionParameterSyntax]()
         for (index, type) in inputTypes.enumerated() {
             let parameterName = parameterNames[index]
+            let parameterLabel = parameterLabels[index]
+
+            let secondName: TokenSyntax?
+            if parameterLabel?.text == "_" && parameterName.text != "_" {
+                secondName = parameterName
+            } else if parameterLabel?.text == parameterName.text {
+                secondName = nil
+            } else {
+                secondName = parameterName
+            }
+
             let param = FunctionParameterSyntax(
-                firstName: parameterName,
+                firstName: parameterLabel ?? .wildcardToken(),
+                secondName: secondName,
                 colon: .colonToken(trailingTrivia: .space),
                 type: TypeSyntax(
                     IdentifierTypeSyntax(
@@ -187,7 +217,7 @@ public enum MockableGenerator {
     /// -> Stub<String, None, Int>
     /// ```
     private static func createStubReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String) -> ReturnClauseSyntax {
-        var genericArgs = GenericArgumentListSyntax()
+        var genericArgs = [GenericArgumentSyntax]()
         for inputType in inputTypes {
             genericArgs.append(GenericArgumentSyntax(argument: inputType))
         }
@@ -196,7 +226,18 @@ public enum MockableGenerator {
 
         let genericStubType = IdentifierTypeSyntax(
             name: .identifier("Stub"),
-            genericArgumentClause: GenericArgumentClauseSyntax(arguments: genericArgs)
+            genericArgumentClause: GenericArgumentClauseSyntax(
+                leftAngle: .leftAngleToken(),
+                arguments: GenericArgumentListSyntax(
+                    genericArgs.enumerated().map { (index, arg) in
+                        if index < genericArgs.count - 1 {
+                            return arg.with(\.trailingComma, .commaToken())
+                        }
+                        return arg
+                    }
+                ),
+                rightAngle: .rightAngleToken()
+            )
         )
 
         return ReturnClauseSyntax(
@@ -209,18 +250,22 @@ public enum MockableGenerator {
     ///
     /// For example, for a function `doSomething(with value: String)`, this will generate:
     /// ```swift
-    /// {
-    ///     doSomething.when(calledWith: value)
+    /// {n///     doSomething.when(calledWith: value)
     /// }
     /// ```
     private static func createFunctionBody(spyPropertyName: String, parameterNames: [TokenSyntax]) -> CodeBlockSyntax {
-        let whenCall = FunctionCallExprSyntax(callee: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: .identifier(spyPropertyName)),
-            dot: .periodToken(),
-            name: .identifier("when")
-        )) { 
+        let whenCall = FunctionCallExprSyntax(
+            callee: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: .identifier(spyPropertyName)),
+                declName: DeclReferenceExprSyntax(baseName: .identifier("when"))
+            )
+        ) {
             for (index, name) in parameterNames.enumerated() {
-                LabeledExprSyntax(label: index == 0 ? "calledWith" : nil, expression: DeclReferenceExprSyntax(baseName: name))
+                LabeledExprSyntax(
+                    label: index == 0 ? "calledWith" : nil,
+                    colon: index == 0 ? .colonToken(trailingTrivia: .space) : nil,
+                    expression: DeclReferenceExprSyntax(baseName: name)
+                )
             }
         }
 

@@ -1,0 +1,47 @@
+//
+//  MockableMacroTests.swift
+//  Mockable
+//
+//  Created by Daniel Cardona on 6/07/25.
+//
+
+import XCTest
+import MacroTesting
+import MockableMacro
+
+final class MockableMacroTests: XCTestCase {
+    override func invokeTest() {
+      withMacroTesting(
+        record: false,
+        macros: ["Mockable": MockableMacro.self]
+      ) {
+        super.invokeTest()
+      }
+    }
+
+    func testSingleMethodNoEffects() {
+        assertMacro {
+           """
+            @Mockable()
+            protocol PricingService {
+                func price(_ item: String) -> Int
+            }
+            """
+        } expansion: {
+            """
+            protocol PricingService {
+                func price(_ item: String) -> Int
+            }
+
+            public struct PricingServiceSpy {
+                public let price = Spy<String, None, Int>()
+                public func price(_ item: ArgMatcher<String>) -> Stub<String, None, Int> {
+                    price.when(calledWith: item)
+                }
+            }
+            """
+        }
+
+    }
+
+}
