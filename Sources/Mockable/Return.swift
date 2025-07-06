@@ -25,6 +25,7 @@ struct Return<R> {
         Return(value: { .success(value) })
     }
 
+    @discardableResult
     func get() throws -> R {
         try value().get()
     }
