@@ -33,15 +33,16 @@ final class MockableMacroTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            public struct PricingServiceSpy {
-                public let price = Spy<String, None, Int>()
-                public func price(_ item: ArgMatcher<String>) -> Stub<String, None, Int> {
-                    price.when(calledWith: item)
+            struct PricingServiceMock {
+                struct Spying {
+                    let price = Spy<String, None, Int>()
+                    func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
+                        Interaction.init(item, spy: price)
+                    }
                 }
             }
             """
         }
-
     }
 
 }
