@@ -34,6 +34,7 @@ final class MockableMacroTests: XCTestCase {
             }
 
             struct PricingServiceMock {
+                typealias PricingServiceMockWitness = PricingServiceWitness<Spying>
                 struct Spying {
                     let price = Spy<String, None, Int>()
                     func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {

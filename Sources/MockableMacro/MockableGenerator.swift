@@ -33,12 +33,14 @@ public enum MockableGenerator {
 
         // Generate the inner Spying struct content using SpyGenerator
         let spyingStruct = try SpyGenerator.processProtocol(protocolDecl: protocolDecl, structName: spyingName)
+        let typealiasDecl = makeTypealiasDecl(protocolName: protocolName, spyingName: spyingName)
 
         // Create the outer Mock struct
         let mockStruct = StructDeclSyntax(
             name: TokenSyntax.identifier(mockName),
             memberBlock: MemberBlockSyntax {
                 MemberBlockItemListSyntax {
+                    MemberBlockItemSyntax(decl: typealiasDecl)
                     MemberBlockItemSyntax(decl: spyingStruct)
                 }
             }
