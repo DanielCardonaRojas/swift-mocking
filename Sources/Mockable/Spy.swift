@@ -110,4 +110,25 @@ extension Spy where Effects == None {
             fatalError("\(error.localizedDescription)")
         }
     }
+
+}
+
+// MARK: Adapters
+
+/// A helper that converts a spy into a closure that is easily assignable to a protocol witness closure property.
+public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, None, O>>) -> (Context, repeat each I) -> O {
+    { (context, input: repeat each I) -> O  in
+        let spy = context[keyPath: keyPath]
+        let result = spy.call(repeat each input)
+        return result
+    }
+}
+
+/// A helper that converts a spy into a closure that is easily assignable to a protocol witness closure property.
+public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, Throws, O>>) -> (Context, repeat each I) throws -> O {
+    { (context, input: repeat each I) -> O  in
+        let spy = context[keyPath: keyPath]
+        let result = try spy.call(repeat each input)
+        return result
+    }
 }
