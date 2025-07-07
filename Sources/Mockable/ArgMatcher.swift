@@ -62,3 +62,41 @@ public extension ArgMatcher where Argument: Error {
         .init { $0 as? E != nil }
     }
 }
+
+// MARK: -  Expressible by literal
+
+extension ArgMatcher: ExpressibleByIntegerLiteral where Argument == IntegerLiteralType {
+    public init(integerLiteral value: IntegerLiteralType) {
+      self = .equal(value)
+  }
+}
+
+extension ArgMatcher: ExpressibleByFloatLiteral where Argument == FloatLiteralType {
+  public init(floatLiteral value: FloatLiteralType) {
+      self = .equal(value)
+  }
+}
+
+extension ArgMatcher: ExpressibleByBooleanLiteral where Argument == BooleanLiteralType {
+  public init(booleanLiteral value: BooleanLiteralType) {
+      self = .equal(value)
+  }
+}
+
+extension ArgMatcher: ExpressibleByUnicodeScalarLiteral where Argument == String {
+  public init(unicodeScalarLiteral value: Argument) {
+      self = .equal(value)
+  }
+}
+
+extension ArgMatcher: ExpressibleByExtendedGraphemeClusterLiteral where Argument == String {
+  public init(extendedGraphemeClusterLiteral value: Argument) {
+      self = .equal(value)
+  }
+}
+
+extension ArgMatcher: ExpressibleByStringLiteral where Argument == String {
+  public init(stringLiteral value: Argument) {
+      self = .equal(value)
+  }
+}
