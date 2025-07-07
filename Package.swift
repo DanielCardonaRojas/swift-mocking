@@ -8,7 +8,7 @@ let package = Package(
     name: "Mockable",
     platforms: [
         .macOS(.v14),
-        .iOS(.v13),
+        .iOS(.v17),
         .tvOS(.v13),
         .watchOS(.v6),
         .macCatalyst(.v13)
