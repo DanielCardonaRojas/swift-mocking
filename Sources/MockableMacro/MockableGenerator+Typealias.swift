@@ -9,13 +9,13 @@ extension MockableGenerator {
         let typealiasDecl = TypeAliasDeclSyntax(
             name: .identifier(typealiasName),
             initializer: TypeInitializerClauseSyntax(
-                value: SimpleTypeIdentifierSyntax(
+                value: IdentifierTypeSyntax(
                     name: .identifier(witnessTypeName),
                     genericArgumentClause: GenericArgumentClauseSyntax(
                         arguments: GenericArgumentListSyntax(
                             [
                                 GenericArgumentSyntax(
-                                    argument: SimpleTypeIdentifierSyntax(name: .identifier(spyingName))
+                                    argument: IdentifierTypeSyntax(name: .identifier(spyingName))
                                 )
                             ]
                         )
