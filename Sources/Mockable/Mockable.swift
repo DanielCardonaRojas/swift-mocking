@@ -9,5 +9,5 @@ import Foundation
 
 public enum MockableOptions { }
 
-@attached(peer, names: suffixed(Spy))
+@attached(peer, names: suffixed(Mock))
 public macro Mockable(_ options: [MockableOptions] = []) = #externalMacro(module: "MockableMacro", type: "MockableMacro")
