@@ -28,13 +28,16 @@ final class MockableMacroTests: XCTestCase {
             }
             """
         } expansion: {
-            """
+            #"""
             protocol PricingService {
                 func price(_ item: String) -> Int
             }
 
             struct PricingServiceMock {
                 typealias PricingServiceMockWitness = PricingServiceWitness<Spying>
+                static func new() -> PricingServiceMockWitness.Synthesized {
+                    .init(context: .init(), witness: .init(price: adapt(\.price)))
+                }
                 struct Spying {
                     let price = Spy<String, None, Int>()
                     func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
@@ -42,7 +45,7 @@ final class MockableMacroTests: XCTestCase {
                     }
                 }
             }
-            """
+            """#
         }
     }
 
