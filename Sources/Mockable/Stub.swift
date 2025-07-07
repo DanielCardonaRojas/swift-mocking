@@ -10,18 +10,16 @@
 /// You use stubs to control the behavior of a dependency during a test. For example, you can stub a method to return a specific value, or to throw an error.
 /// Stubs are created by calling the `when(calledWith:)` method on a ``Spy``.
 public class Stub<each I, Effects: Effect, O> {
-    let spy: Spy<repeat each I, Effects, O>
-    let invocationMatcher: InvocationMatcher<repeat each I>
+    public let invocationMatcher: InvocationMatcher<repeat each I>
     var output: Return<O>?
 
-    init(spy: Spy<repeat each I, Effects, O>, invocationMatcher: InvocationMatcher<repeat each I>) {
+    init( invocationMatcher: InvocationMatcher<repeat each I>) {
         self.invocationMatcher = invocationMatcher
-        self.spy = spy
     }
 
     func get() throws -> O {
         guard let output else {
-            throw MockingError(message: "Unstubbed")
+            throw MockingError.unStubbed
         }
         return try output.get()
     }
