@@ -37,14 +37,18 @@ public class Spy<each Input, Effects: Effect, Output> {
     }
 
     public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Stub<repeat each Input, Effects, Output> {
-        let invocationMatcher = InvocationMatcher(matchers: repeat each matchingInput)
-        let stub = Stub<repeat each Input, Effects, Output>(spy: self, invocationMatcher: invocationMatcher)
+        when(calledWith: InvocationMatcher(matchers: repeat each matchingInput))
+    }
+
+    public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
+        let stub = Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
         stubs.append(stub)
         return stub
     }
 
-    public func verifyCalled(_ countMatcher: ArgMatcher<Int>) -> Bool {
-        countMatcher(invocations.count)
+    public func verifyCalled(_ countMatcher: ArgMatcher<Int>? = nil) -> Bool {
+        let matcher = countMatcher ?? .greaterThan(.zero)
+        return matcher(invocations.count)
     }
 
     public func verify(calledWith arguments: repeat ArgMatcher<each Input>, count countMatcher: ArgMatcher<Int>) -> Bool {
@@ -83,7 +87,6 @@ public class Spy<each Input, Effects: Effect, Output> {
 
     public func verifyThrows() -> Bool {
         verifyThrows(.anyError())
-
     }
 }
 
