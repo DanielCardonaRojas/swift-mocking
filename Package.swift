@@ -10,7 +10,7 @@ let package = Package(
         .macOS(.v14),
         .iOS(.v17),
         .tvOS(.v13),
-        .watchOS(.v6),
+        .watchOS(.v10),
         .macCatalyst(.v13)
     ],
     products: [
@@ -21,7 +21,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-syntax.git", from: "600.0.1"),
-        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.5.2")
+        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3")
     ],
     targets: [
         .target(name: "Mockable", dependencies: ["MockableMacro"]),
