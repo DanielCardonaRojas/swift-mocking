@@ -34,8 +34,8 @@ final class MockableMacroTests: XCTestCase {
             }
 
             struct PricingServiceMock {
-                typealias PricingServiceMockWitness = PricingServiceWitness<Spying>
-                static func new() -> PricingServiceMockWitness.Synthesized {
+                typealias Witness = PricingServiceWitness<Spying>
+                static func new() -> Witness.Synthesized {
                     .init(context: .init(), witness: .init(price: adapt(\.price)))
                 }
                 struct Spying {

@@ -4,7 +4,7 @@ import SwiftSyntaxBuilder
 extension MockableGenerator {
     static func makeTypealiasDecl(protocolName: String, spyingName: String) -> DeclSyntax {
         let witnessTypeName = protocolName + "Witness"
-        let typealiasName = protocolName + "MockWitness"
+        let typealiasName = "Witness"
 
         let typealiasDecl = TypeAliasDeclSyntax(
             name: .identifier(typealiasName),
