@@ -9,6 +9,7 @@ import SwiftCompilerPlugin
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
+import MockableGenerator
 
 @main
 struct MockablePlugin: CompilerPlugin {

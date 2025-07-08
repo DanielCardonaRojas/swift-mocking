@@ -21,15 +21,28 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-syntax.git", from: "600.0.1"),
-        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3")
+        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3"),
+        .package(url: "https://github.com/DanielCardonaRojas/ProtocolWitnessMacro", branch: "main")
+//        .package(path: "/Users/danielcardona/development/ProtocolWitnessMacro")
     ],
     targets: [
-        .target(name: "Mockable", dependencies: ["MockableMacro"]),
+        .target(
+            name: "Mockable",
+            dependencies: [
+                "MockableMacro",
+            ]),
+        .target(
+            name: "MockableGenerator",
+            dependencies: [
+                .product(name: "WitnessGenerator", package: "ProtocolWitnessMacro"),
+            ]
+        ),
         .macro(
             name: "MockableMacro",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-                .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+                "MockableGenerator"
             ]
         ),
         .testTarget(
