@@ -18,6 +18,10 @@ struct MockablePlugin: CompilerPlugin {
     ]
 }
 
+struct MacroError: Error {
+    let message: String
+}
+
 public enum MockableMacro: PeerMacro {
 
   public static func expansion(

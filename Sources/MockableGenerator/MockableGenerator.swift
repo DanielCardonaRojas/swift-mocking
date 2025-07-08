@@ -1,10 +1,6 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-struct MacroError: Error {
-    let message: String
-}
-
 public enum MockableGenerator {
     /// Processes a protocol declaration to generate a nested mock struct.
     ///

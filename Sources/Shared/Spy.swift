@@ -4,6 +4,7 @@
 //
 //  Created by Daniel Cardona on 3/07/25.
 //
+import Foundation
 
 /// A ``Spy`` is a type of test double that captures calls to its methods, allowing you to inspect them later.
 ///
@@ -12,7 +13,7 @@
 ///
 /// You don't create spies manually. Instead, you use the ``@Mockable`` macro to generate a spy for a protocol.
 public class Spy<each Input, Effects: Effect, Output> {
-    private(set) var invocations: [Invocation<repeat each Input>] = []
+    public private(set) var invocations: [Invocation<repeat each Input>] = []
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
 
     public init() { }

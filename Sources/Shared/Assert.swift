@@ -16,7 +16,7 @@ public class Assert<each Input, Eff: Effect, Output> {
         self.spy = spy
     }
 
-    func assert(_ matcher: ArgMatcher<Int>?) throws {
+    public func assert(_ matcher: ArgMatcher<Int>?) throws {
         let countMatcher = matcher ?? .greaterThan(.zero)
         let count = if let invocationMatcher { spy.invocationCount(matching: invocationMatcher) } else { spy.invocations.count }
         if !countMatcher(count) {

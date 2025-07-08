@@ -1,5 +1,6 @@
 
 import XCTest
+import Shared
 @testable import Mockable
 
 final class SpyTests: XCTestCase {

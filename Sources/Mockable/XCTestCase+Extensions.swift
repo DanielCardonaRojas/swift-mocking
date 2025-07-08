@@ -5,6 +5,7 @@
 //  Created by Daniel Cardona on 6/07/25.
 //
 
+import Shared
 #if canImport(XCTest)
 import XCTest
 
@@ -43,7 +44,7 @@ public extension Assert {
         line: UInt = #line
     ) {
         do {
-            try assert(countMatcher)
+            try self.assert(countMatcher)
         } catch let error as MockingError {
             XCTFail("\(error.message)", file: file, line: line)
         } catch {

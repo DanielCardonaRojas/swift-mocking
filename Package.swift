@@ -31,16 +31,17 @@ let package = Package(
             dependencies: [
                 "MockableMacro",
             ]),
+        .target(name: "Shared"),
         .target(
             name: "MockableGenerator",
             dependencies: [
-                .product(name: "WitnessGenerator", package: "ProtocolWitnessMacro"),
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                "Shared"
             ]
         ),
         .macro(
             name: "MockableMacro",
             dependencies: [
-                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
                 "MockableGenerator"
             ]
@@ -48,11 +49,15 @@ let package = Package(
         .testTarget(
             name: "MockableTests",
             dependencies: [
+                "MockableGenerator",
                 "Mockable",
+                "Shared"
             ]
         ),
         .testTarget(name: "MockableMacroTests", dependencies: [
-            "MockableMacro",
+            "MockableGenerator",
+            "Mockable",
+            "Shared",
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             .product(name: "MacroTesting", package: "swift-macro-testing")
         ])
