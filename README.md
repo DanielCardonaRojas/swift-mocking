@@ -1,20 +1,32 @@
-# Mockable
 
-Mockable is a modern, type-safe mocking library for Swift that leverages the power of parameter packs and protocol witnesses to provide a clean, readable, and efficient mocking experience.
+# Mockable 🐦
+
+[![swift-version](https://img.shields.io/badge/swift-5.9-orange.svg)](https://img.shields.io/badge/swift-5.9-orange.svg)
+[![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)
+[![license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://img.shields.io/badge/license-MIT-lightgrey.svg)
+
+`Mockable` is a modern, type-safe mocking library for Swift that uses macros to provide a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of parameter packs and protocol witness structs.
+
+---
+
+## ✨ Features
 
 | Feature | Description |
 | --- | --- |
-| **Type-Safe Mocking** | Utilizes parameter packs to keep mocks perfectly synchronized with protocol definitions, preventing runtime errors. |
-| **Clean, Readable API** | Offers a Mockito-style API that makes tests expressive and easy to maintain. |
-| **No Preprocessor Macros** | Avoids `#if DEBUG` by using macros to generate code only where needed, resulting in a cleaner and more reliable build process. |
-| **Target-Specific Generation**| Generates protocol witnesses for your main target and synthesizes mock conformances for your test target, ensuring only useful code is added to each. |
-| **Flexible Argument Matching**| Provides powerful argument matchers like `.any` and `.equal`. Conformance to `ExpressibleBy...Literal` protocols allows for cleaner syntax, such as using `called(2)` instead of `called(.equal(2))`. |
-| **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring that you can only stub throwing functions with throwing implementations, for example. |
-| **Compact Code Generation** | A key goal of this library is to keep the generated code as small and compact as possible, minimizing the impact on your project's binary size. |
+| **Type-Safe Mocking** | Uses parameter packs to keep mocks synchronized with protocol definitions, preventing runtime errors. |
+| **Clean, Readable API** | Provides a Mockito-style API that makes tests expressive and easy to maintain. |
+| **No Preprocessor Macros** | Avoids `#if DEBUG` by using macros to generate code only where needed, resulting in a cleaner build process. |
+| **Target-Specific Generation**| Generates protocol witnesses for your main target and synthesizes mock conformances for your test target. |
+| **Flexible Argument Matching**| Offers powerful argument matchers like `.any` and `.equal`, with `ExpressibleBy...Literal` conformance for cleaner syntax. |
+| **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. |
+| **Compact Code Generation** | Keeps the generated code as small and compact as possible to minimize binary size. |
+| **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
 
-## How it Works
+---
 
-Mockable builds upon the powerful [ProtocolWitnessMacro](https://github.com/DanielCardonaRojas/ProtocolWitnessMacro) library to do the heavy lifting.
+## ⚙️ How it Works
+
+`Mockable` builds upon the powerful `ProtocolWitnessMacro` library to do the heavy lifting.
 
 1.  **Protocol Analysis with `@Witnessed`**: The `@Witnessed` macro from the dependency package is responsible for analyzing the protocol. It supports a wide variety of requirements, including functions with different effects (`async`, `throws`), properties, and subscripts. It generates a generic `protocol witness` struct for the protocol.
 
@@ -25,9 +37,29 @@ Mockable builds upon the powerful [ProtocolWitnessMacro](https://github.com/Dani
 
 This two-step process ensures that the core logic of protocol analysis is separate from the mock generation, and that your project only contains the code it needs for each specific target.
 
-## Example
+For a deeper understanding of protocol witnesses, please refer to the [ProtocolWitnessMacro documentation](https://github.com/DanielCardonaRojas/ProtocolWitnessMacro?tab=readme-ov-file#-what-is-a-protocol-witness).
 
-Here's an example of how to use Mockable to mock a `PricingService` protocol:
+---
+
+## 📦 Installation
+
+To add `Mockable` to your Swift package, add it as a dependency in your `Package.swift` file:
+
+```swift
+.package(url: "https://github.com/DanielCardonaRojas/swift-mockito.git", from: "1.0.0"),
+```
+
+Then, add `Mockable` to your target's dependencies:
+
+```swift
+.target(name: "MyTarget", dependencies: ["Mockable"]),
+```
+
+---
+
+## 🚀 Example
+
+Here's an example of how to use `Mockable` to mock a `PricingService` protocol:
 
 ```swift
 @Mockable
@@ -125,3 +157,54 @@ final class MockitoTests: XCTestCase {
     }
 }
 ```
+
+---
+
+## ⚡️ Advanced Usage
+
+### Async and Throws
+
+`Mockable` seamlessly handles `async` and `throws` functions.
+
+```swift
+@Mockable
+protocol DataService {
+    func fetchData() async throws -> Data
+}
+```
+
+In your tests, you can stub throwing functions with `thenThrow` and `async` functions with `thenReturn`.
+
+```swift
+func testAsyncThrows() async throws {
+    let mock = DataServiceMock.new()
+    let spy = mock.context
+
+    // Stub a successful result
+    when(spy.fetchData()).thenReturn(Data())
+
+    // Stub an error
+    when(spy.fetchData()).thenThrow(URLError(.badURL))
+}
+```
+
+### Descriptive Error Reporting
+
+`Mockable` provides detailed error messages when a test assertion fails. For example, if you expect a function to be called 4 times but it was only called twice, you'll get a clear message indicating the discrepancy.
+
+```swift
+// Example of a failing test
+verify(spy.price(for: .any)).called(4)
+```
+
+This will produce the following error:
+
+```
+error: Unfulfilled call count. Actual: 2
+```
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
