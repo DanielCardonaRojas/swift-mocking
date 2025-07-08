@@ -20,7 +20,6 @@ extension MockableGenerator {
     /// - Parameter protocolDecl: The `ProtocolDeclSyntax` to generate the function for.
     /// - Returns: A `DeclSyntax` representing the static `new()` function.
     static func makeNewFunction(protocolDecl: ProtocolDeclSyntax) -> DeclSyntax {
-        let protocolName = protocolDecl.name.text
         let mockWitnessTypeName = "Witness"
 
         let returnType = MemberTypeSyntax(

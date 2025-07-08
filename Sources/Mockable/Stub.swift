@@ -17,6 +17,7 @@ public class Stub<each I, Effects: Effect, O> {
         self.invocationMatcher = invocationMatcher
     }
 
+    @discardableResult
     func get() throws -> O {
         guard let output else {
             throw MockingError.unStubbed
