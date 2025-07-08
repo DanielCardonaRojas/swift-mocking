@@ -62,6 +62,25 @@ final class SpyTests: XCTestCase {
         XCTAssert(spy.verifyCalled(.equal(2)))
     }
 
+    func test_spy_verifyInOrder() {
+        let spy = Spy<String, None, Int>()
+
+        spy.when(calledWith:.any).thenReturn(1)
+        spy.call("apple")
+        spy.call("lemon")
+        spy.call("banana")
+
+        XCTAssert(spy.verifyInOrder([
+            InvocationMatcher(matchers: "apple"),
+            InvocationMatcher(matchers: "banana")
+        ]))
+
+        XCTAssertFalse(spy.verifyInOrder([
+            InvocationMatcher(matchers: "banana"),
+            InvocationMatcher(matchers: "apple")
+        ]))
+    }
+
     func test_spy_any() {
         let spy = Spy<String, None, Int>()
         spy.when(calledWith:.equal("Hola")).thenReturn(2)

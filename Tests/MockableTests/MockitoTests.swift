@@ -34,6 +34,20 @@ final class MockitoTests: XCTestCase {
         XCTAssertEqual(store.prices["apple"], 13)
         XCTAssertEqual(store.prices["banana"], 17)
     }
+
+    func test_verifyInOrder() {
+        let mock = PricingServiceMock.new()
+        let spy = mock.context
+        let store = Store(pricingService: mock)
+        when(spy.price(.any)).thenReturn(13)
+
+        store.register("apple")
+        store.register("banana")
+        verifyInOrder([
+            spy.price("apple"),
+            spy.price("banana")
+        ])
+    }
 }
 
 class Store {

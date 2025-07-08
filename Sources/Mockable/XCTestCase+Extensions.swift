@@ -18,6 +18,22 @@ public extension XCTestCase {
     ) -> Assert<repeat each Input, Eff, Output>  {
         Assert(invocationMatcher: interaction.invocationMatcher, spy: interaction.spy)
     }
+
+    func verifyInOrder<each Input, Eff: Effect, Output>(
+    _ interactions: [Interaction<repeat each Input, Eff, Output>],
+    file: StaticString = #filePath,
+    line: UInt = #line
+    ) {
+        let spy = interactions[0].spy
+        var matchers = [InvocationMatcher<repeat each Input>]()
+        for interaction in interactions {
+            matchers.append(interaction.invocationMatcher)
+        }
+
+        if !spy.verifyInOrder(matchers) {
+            XCTFail("Did not find sequence of interactions", file: file, line: line)
+        }
+    }
 }
 
 public extension Assert {
@@ -30,6 +46,5 @@ public extension Assert {
             XCTFail("Unfulfilled method call count", file: file, line: line)
         }
     }
-
 }
 #endif

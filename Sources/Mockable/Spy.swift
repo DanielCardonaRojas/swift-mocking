@@ -66,6 +66,23 @@ public class Spy<each Input, Effects: Effect, Output> {
         return countMatcher(count)
     }
 
+    public func verifyInOrder(_ invocationMatchers: [InvocationMatcher<repeat each Input>]) -> Bool {
+        var index = 0
+        var count = 0
+        for invocation in invocations {
+            if index >= invocationMatchers.count {
+                return false 
+            }
+            let invocationMatcher = invocationMatchers[index]
+            if invocationMatcher.isMatchedBy((repeat each invocation)) {
+                index += 1
+                count += 1
+            }
+        }
+
+        return count == invocationMatchers.count
+    }
+
     public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool {
         var doesThrow = false
         for invocation in invocations {
