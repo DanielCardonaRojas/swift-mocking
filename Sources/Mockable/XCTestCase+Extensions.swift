@@ -42,8 +42,12 @@ public extension Assert {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        if !inspect(countMatcher) {
-            XCTFail("Unfulfilled method call count", file: file, line: line)
+        do {
+            try assert(countMatcher)
+        } catch let error as MockingError {
+            XCTFail("\(error.message)", file: file, line: line)
+        } catch {
+            XCTFail("\(error.localizedDescription)", file: file, line: line)
         }
     }
 }

@@ -16,12 +16,11 @@ public class Assert<each Input, Eff: Effect, Output> {
         self.spy = spy
     }
 
-    func inspect(_ matcher: ArgMatcher<Int>?) -> Bool {
+    func assert(_ matcher: ArgMatcher<Int>?) throws {
         let countMatcher = matcher ?? .greaterThan(.zero)
-        if let invocationMatcher {
-            return spy.verify(calledWith: invocationMatcher, count: countMatcher)
-        } else {
-            return spy.verifyCalled(countMatcher)
+        let count = if let invocationMatcher { spy.invocationCount(matching: invocationMatcher) } else { spy.invocations.count }
+        if !countMatcher(count) {
+            throw MockingError.unfulfilledCallCount(count)
         }
     }
 }
