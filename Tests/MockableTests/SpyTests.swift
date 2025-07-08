@@ -15,8 +15,8 @@ final class SpyTests: XCTestCase {
 
 
         XCTAssertEqual(spy.invocations.count, 2)
-        XCTAssertEqual(spy.invocations[0], "hello")
-        XCTAssertEqual(spy.invocations[1], "world")
+        XCTAssertEqual(spy.invocations[0].arguments, "hello")
+        XCTAssertEqual(spy.invocations[1].arguments, "world")
     }
 
     func test_spy_recordsInvocations_verify_counts() {
@@ -45,8 +45,8 @@ final class SpyTests: XCTestCase {
         spy.call("action2")
 
         XCTAssertEqual(spy.invocations.count, 2)
-        XCTAssertEqual(spy.invocations[0], "action1")
-        XCTAssertEqual(spy.invocations[1], "action2")
+        XCTAssertEqual(spy.invocations[0].arguments, "action1")
+        XCTAssertEqual(spy.invocations[1].arguments, "action2")
     }
 
 //    // MARK: - Conditional Stubbing

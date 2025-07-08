@@ -12,19 +12,19 @@
 ///
 /// You don't create spies manually. Instead, you use the ``@Mockable`` macro to generate a spy for a protocol.
 public class Spy<each Input, Effects: Effect, Output> {
-    private(set) var invocations: [(repeat each Input)] = []
-    private var stubs: [Stub<repeat each Input, Effects, Output>] = []
+    private(set) var invocations: [Invocation<repeat each Input>] = []
+    private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
 
     public init() { }
 
     func invoke(_ input: repeat each Input) throws -> Return<Output> {
-        invocations.append((repeat each input))
+        invocations.append(Invocation(arguments: repeat each input))
 
         // search through stub for a return value
         var matchingStub: Stub<repeat each Input, Effects, Output>?
 
         for stub in stubs {
-            if stub.invocationMatcher.isMatchedBy((repeat each input)) {
+            if stub.invocationMatcher.isMatchedBy(Invocation(arguments: repeat each input)) {
                 matchingStub = stub
                 break
             }
@@ -64,7 +64,7 @@ public class Spy<each Input, Effects: Effect, Output> {
     func invocationCount(matching invocationMatcher: InvocationMatcher<repeat each Input>) -> Int {
         var count = 0
         for invocation in invocations {
-            if invocationMatcher.isMatchedBy((repeat each invocation)) {
+            if invocationMatcher.isMatchedBy(invocation) {
                 count += 1
             }
         }
@@ -79,7 +79,7 @@ public class Spy<each Input, Effects: Effect, Output> {
                 return false 
             }
             let invocationMatcher = invocationMatchers[index]
-            if invocationMatcher.isMatchedBy((repeat each invocation)) {
+            if invocationMatcher.isMatchedBy(invocation) {
                 index += 1
                 count += 1
             }
@@ -92,7 +92,7 @@ public class Spy<each Input, Effects: Effect, Output> {
         var doesThrow = false
         for invocation in invocations {
             for stub in stubs {
-                if stub.invocationMatcher.isMatchedBy((repeat each invocation)) {
+                if stub.invocationMatcher.isMatchedBy(invocation) {
                     if let stubbedReturn = stub.output {
                         do {
                             try stubbedReturn.get()
