@@ -50,5 +50,19 @@ public extension Assert {
             XCTFail("\(error.localizedDescription)", file: file, line: line)
         }
     }
+
+    func `throws`(
+        _ errorMatcher: ArgMatcher<any Error>? = nil,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        do {
+            try doesThrow(errorMatcher)
+        } catch let error as MockingError {
+            XCTFail("\(error.message)", file: file, line: line)
+        } catch {
+            XCTFail("\(error.localizedDescription)", file: file, line: line)
+        }
+    }
 }
 #endif
