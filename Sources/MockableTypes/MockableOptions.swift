@@ -7,7 +7,10 @@
 
 public struct MockableOptions: OptionSet {
     public let rawValue: Int
+    public static var `default`: MockableOptions = [.includeWitness, .prefixMock]
     public static let includeWitness = MockableOptions(rawValue: 1 << 0)
+    public static let suffixMock = MockableOptions(rawValue: 1 << 1)
+    public static let prefixMock = MockableOptions(rawValue: 1 << 2)
 
     public init(rawValue: Int) {
         self.rawValue = rawValue
@@ -22,6 +25,10 @@ public struct MockableOptions: OptionSet {
             switch component {
             case "includeWitness":
                 combinedOptions.formUnion(.includeWitness)
+            case "suffixMock":
+                combinedOptions.formUnion(.suffixMock)
+            case "prefixMock":
+                combinedOptions.formUnion(.prefixMock)
             case "": // Handle empty string if there are trailing commas or empty array
                 continue
             default:
@@ -35,6 +42,8 @@ public struct MockableOptions: OptionSet {
     public var identifiers: [String] {
         var names: [String] = []
         if contains(.includeWitness) { names.append("includeWitness") }
+        if contains(.prefixMock) { names.append("prefixMock") }
+        if contains(.suffixMock) { names.append("suffixMock") }
         return names
     }
 }

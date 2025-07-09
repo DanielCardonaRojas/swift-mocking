@@ -11,7 +11,7 @@ import XCTest
 
 final class MockitoTests: XCTestCase {
     func testMock() {
-        let mock = PricingServiceMock.new()
+        let mock = MockPricingService.new()
         let spy = mock.context
         let store = Store(pricingService: mock)
         spy.price.when(calledWith:.equal("apple")).thenReturn(100)
@@ -23,7 +23,7 @@ final class MockitoTests: XCTestCase {
     }
 
     func testMockitoBuilder() {
-        let mock = PricingServiceMock.new()
+        let mock = MockPricingService.new()
         let spy = mock.context
         let store = Store(pricingService: mock)
         when(spy.price("apple")).thenReturn(13)
@@ -37,7 +37,7 @@ final class MockitoTests: XCTestCase {
     }
 
     func test_verifyInOrder() {
-        let mock = PricingServiceMock.new()
+        let mock = MockPricingService.new()
         let spy = mock.context
         let store = Store(pricingService: mock)
         when(spy.price(.any)).thenReturn(13)
@@ -51,7 +51,7 @@ final class MockitoTests: XCTestCase {
     }
 
     func test_verifyThrows() {
-        let mock = PricingServiceMock.new()
+        let mock = MockPricingService.new()
         let spy = mock.context
         let store = Store(pricingService: mock)
         when(spy.price(.any)).thenReturn(13)
@@ -90,7 +90,7 @@ class Store {
     }
 }
 
-@Mockable([.includeWitness])
+@Mockable([.includeWitness, .prefixMock])
 protocol PricingService {
     func price(_ item: String) throws -> Int
 }

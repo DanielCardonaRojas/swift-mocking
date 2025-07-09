@@ -25,7 +25,16 @@ public enum MockableGenerator {
     /// ```
     public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
         let protocolName = protocolDecl.name.text
-        let mockName = protocolName + "Mock"
+        let codeGenOptions = MockableGenerator.codeGenOptions(protocolDecl: protocolDecl)
+        let mockName: String
+        if codeGenOptions.contains(.prefixMock) {
+            mockName = "Mock" + protocolName
+        } else if codeGenOptions.contains(.suffixMock) {
+            mockName = protocolName + "Mock"
+        } else {
+            // Default behavior if no specific option is provided
+            mockName = protocolName + "Mock"
+        }
         let spyingName = "Spying"
 
         // Generate the inner Spying struct content using SpyGenerator
