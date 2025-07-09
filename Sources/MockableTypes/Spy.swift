@@ -201,7 +201,36 @@ extension Spy where Effects == None {
             fatalError("\(error.localizedDescription)")
         }
     }
+}
 
+// MARK: Async
+extension Spy where Effects == Async {
+    /// Calls the spy's method asynchronously.
+    /// - Parameter input: The arguments for the method call.
+    /// - Returns: The output of the method.
+    /// - FatalError: If the method throws an error, as `Async` effects are not expected to throw.
+    @discardableResult
+    public func call(_ input: repeat each Input) async -> Output {
+        do {
+            return try invoke(repeat each input).get()
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: AsyncThrows
+extension Spy where Effects == AsyncThrows {
+    /// Calls the spy's method asynchronously, allowing it to throw an error.
+    /// - Parameter input: The arguments for the method call.
+    /// - Returns: The output of the method if it doesn't throw.
+    /// - Throws: The error thrown by the method.
+    @discardableResult
+    public func call(_ input: repeat each Input) async throws -> Output {
+        try invoke(repeat each input).get()
+    }
 }
 
 // MARK: Adapters
@@ -223,3 +252,22 @@ public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat eac
         return result
     }
 }
+
+/// A helper that converts an `async` spy into a closure that is easily assignable to a protocol witness closure property.
+public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, Async, O>>) -> (Context, repeat each I) async -> O {
+    { (context, input: repeat each I) async -> O  in
+        let spy = context[keyPath: keyPath]
+        let result = await spy.call(repeat each input)
+        return result
+    }
+}
+
+/// A helper that converts an `async throws` spy into a closure that is easily assignable to a protocol witness closure property.
+public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, AsyncThrows, O>>) -> (Context, repeat each I) async throws -> O {
+    { (context, input: repeat each I) async throws -> O  in
+        let spy = context[keyPath: keyPath]
+        let result = try await spy.call(repeat each input)
+        return result
+    }
+}
+
