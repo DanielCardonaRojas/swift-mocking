@@ -8,7 +8,7 @@
 import XCTest
 import MacroTesting
 import MockableMacro
-import Shared
+import MockableTypes
 
 final class MockableMacroTests: XCTestCase {
     override func invokeTest() {

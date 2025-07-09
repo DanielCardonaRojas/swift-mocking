@@ -11,7 +11,7 @@ import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import MockableGenerator
 import WitnessGenerator
-import Shared
+import MockableTypes
 
 @main
 struct MockablePlugin: CompilerPlugin {

@@ -6,7 +6,7 @@
 //
 
 import Mockable
-import Shared
+import MockableTypes
 import XCTest
 
 final class MockitoTests: XCTestCase {

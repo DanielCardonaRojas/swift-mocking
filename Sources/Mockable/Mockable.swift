@@ -6,8 +6,7 @@
 //
 
 import Foundation
-import Shared
-
+import MockableTypes
 
 @attached(peer, names: suffixed(Mock), suffixed(Witness))
 public macro Mockable(_ options: [MockableOptions] = []) = #externalMacro(module: "MockableMacro", type: "MockableMacro")
