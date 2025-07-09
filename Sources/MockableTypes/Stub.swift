@@ -70,3 +70,11 @@ extension Stub where Effects == Throws {
         self.output = Return.error(error)
     }
 }
+
+extension Stub where Effects == AsyncThrows {
+    /// Defines an error to be thrown when this stub is matched.
+    /// - Parameter error: The error to throw.
+    public func thenThrow<E: Error>(_ error: E) {
+        self.output = Return.error(error)
+    }
+}
