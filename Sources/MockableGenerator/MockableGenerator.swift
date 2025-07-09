@@ -1,6 +1,6 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
-import Shared
+import MockableTypes
 
 public enum MockableGenerator {
     /// Processes a protocol declaration to generate a nested mock struct.

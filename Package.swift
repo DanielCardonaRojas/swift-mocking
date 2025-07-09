@@ -17,7 +17,12 @@ let package = Package(
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "Mockable",
-            targets: ["Mockable"]),
+            targets: ["Mockable"]
+        ),
+        .library(
+            name: "MockableTypes",
+            targets: ["MockableTypes"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-syntax.git", from: "600.0.1"),
@@ -30,12 +35,12 @@ let package = Package(
             dependencies: [
                 "MockableMacro",
             ]),
-        .target(name: "Shared"),
+        .target(name: "MockableTypes"),
         .target(
             name: "MockableGenerator",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-                "Shared"
+                "MockableTypes"
             ]
         ),
         .macro(
@@ -51,14 +56,14 @@ let package = Package(
             dependencies: [
                 "MockableGenerator",
                 "Mockable",
-                "Shared"
+                "MockableTypes"
             ]
         ),
         .testTarget(name: "MockableMacroTests", dependencies: [
             "MockableGenerator",
             "Mockable",
             "MockableMacro",
-            "Shared",
+            "MockableTypes",
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             .product(name: "MacroTesting", package: "swift-macro-testing")
         ])

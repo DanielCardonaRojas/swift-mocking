@@ -5,7 +5,7 @@
 //  Created by Daniel Cardona on 6/07/25.
 //
 
-import Shared
+import MockableTypes
 #if canImport(XCTest)
 import XCTest
 
