@@ -1,6 +1,15 @@
 {
   "pins" : [
     {
+      "identity" : "protocolwitnessmacro",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DanielCardonaRojas/ProtocolWitnessMacro",
+      "state" : {
+        "branch" : "main",
+        "revision" : "475634830a82df877278b1567bf8973756979915"
+      }
+    },
+    {
       "identity" : "swift-custom-dump",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-custom-dump",
