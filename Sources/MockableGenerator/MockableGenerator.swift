@@ -1,9 +1,6 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
-
-struct MacroError: Error {
-    let message: String
-}
+import Shared
 
 public enum MockableGenerator {
     /// Processes a protocol declaration to generate a nested mock struct.
@@ -49,5 +46,25 @@ public enum MockableGenerator {
         )
 
         return [DeclSyntax(mockStruct)]
+    }
+
+    public static func codeGenOptions(protocolDecl: ProtocolDeclSyntax) -> MockableOptions {
+        for attribute in protocolDecl.attributes {
+            guard let attr = attribute.as(AttributeSyntax.self) else {
+                return []
+            }
+
+            guard let arguments = attr.arguments?.as(LabeledExprListSyntax.self) else {
+                // No arguments or unexpected format
+                return []
+            }
+            for argument in arguments {
+                guard let parsedOption = MockableOptions(stringLiteral: argument.expression.description) else {
+                    continue
+                }
+                return parsedOption
+            }
+        }
+        return []
     }
 }

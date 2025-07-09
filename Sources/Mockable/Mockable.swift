@@ -6,8 +6,8 @@
 //
 
 import Foundation
+import Shared
 
-public enum MockableOptions { }
 
-@attached(peer, names: suffixed(Mock))
+@attached(peer, names: suffixed(Mock), suffixed(Witness))
 public macro Mockable(_ options: [MockableOptions] = []) = #externalMacro(module: "MockableMacro", type: "MockableMacro")
