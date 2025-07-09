@@ -74,18 +74,18 @@ The `@Mockable` macro generates the following code within your **test target**:
 
 ```swift
 public struct PricingServiceMock {
-    public struct Spying {
-        let price = Spy<String, None, Int>()
-        func price(for item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-            Interaction.init(matchers: item, spy: price)
-        }
-    }
     typealias PricingServiceMockWitness = PricingServiceWitness<Spying>
     static func new() -> PricingServiceMockWitness.Synthesized {
         .init(
             context: .init(),
             witness: .init(price: adapt(\.price))
         )
+    }
+    public struct Spying {
+        let price = Spy<String, None, Int>()
+        func price(for item: ArgMatcher<String>) -> Interaction<String, None, Int> {
+            Interaction.init(matchers: item, spy: price)
+        }
     }
 }
 ```
