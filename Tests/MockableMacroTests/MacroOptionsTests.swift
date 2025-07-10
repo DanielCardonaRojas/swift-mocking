@@ -1,0 +1,73 @@
+
+import SwiftSyntaxMacros
+import SwiftSyntaxMacrosTestSupport
+import XCTest
+import MockableMacro
+import MacroTesting
+
+final class MacroOptionsTests: XCTestCase {
+    override func invokeTest() {
+      withMacroTesting(
+        record: false,
+        macros: ["Mockable": MockableMacro.self]
+      ) {
+        super.invokeTest()
+      }
+    }
+
+    func testPrefixMockOption() {
+        assertMacro {
+            """
+            @Mockable([.prefixMock])
+            protocol MyService {
+                func doSomething()
+            }
+            """
+        } expansion: {
+            #"""
+            protocol MyService {
+                func doSomething()
+            }
+
+            struct MockMyService {
+                typealias Witness = MyServiceWitness<Self>
+                var instance: Witness.Synthesized {
+                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething)))
+                }
+                let doSomething = Spy<None, Void>()
+                func doSomething() -> Interaction<None, Void> {
+                    Interaction(spy: doSomething)
+                }
+            }
+            """#
+        }
+    }
+
+    func testSuffixMockOption() {
+        assertMacro {
+            """
+            @Mockable([.suffixMock])
+            protocol MyService {
+                func doSomething()
+            }
+            """
+        } expansion: {
+            #"""
+            protocol MyService {
+                func doSomething()
+            }
+
+            struct MyServiceMock {
+                typealias Witness = MyServiceWitness<Self>
+                var instance: Witness.Synthesized {
+                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething)))
+                }
+                let doSomething = Spy<None, Void>()
+                func doSomething() -> Interaction<None, Void> {
+                    Interaction(spy: doSomething)
+                }
+            }
+            """#
+        }
+    }
+}
