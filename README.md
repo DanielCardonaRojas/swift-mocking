@@ -65,43 +65,249 @@ protocol PricingService {
 }
 ```
 
-### Generated Code
+### Generated Code Examples
 
-The `@Mockable` macro generates the following code within your **test target**:
+Here are some examples of how `@Mockable` expands different protocol definitions:
+
+#### Basic Method
 
 ```swift
-public struct PricingServiceMock {
-    typealias PricingServiceMockWitness = PricingServiceWitness<Spying>
-    static func new() -> PricingServiceMockWitness.Synthesized {
-        .init(
-            context: .init(),
-            witness: .init(price: adapt(\.price))
-        )
+@Mockable()
+protocol PricingService {
+    func price(_ item: String) -> Int
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol PricingService {
+    func price(_ item: String) -> Int
+}
+
+struct PricingServiceMock {
+    typealias Witness = PricingServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(price: adapt(\.price)))
     }
-    public struct Spying {
-        let price = Spy<String, None, Int>()
-        func price(for item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-            Interaction(matchers: item, spy: price)
-        }
+    let price = Spy<String, None, Int>()
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
+        Interaction(item, spy: price)
     }
 }
 ```
+</details>
 
-The `@Witnessed` macro (used by `@Mockable` under the hood) generates the protocol witness. This code would typically be placed in your main **application target**, allowing you to use it for dependency injection.
+#### Method with `throws`
 
 ```swift
-struct PricingServiceWitness<A> {
-    var price: (A, String) -> Int
+@Mockable()
+protocol PricingService {
+    func price(_ item: String) throws -> Int
+}
+```
+<details>
+<summary>Generated Code</summary>
 
-    struct Synthesized: PricingService {
-        let context: A
-        let witness: PricingServiceWitness
+```swift
+protocol PricingService {
+    func price(_ item: String) throws -> Int
+}
 
-        func price(for item: String) -> Int {
-            witness.price(context, item)
-        }
+struct PricingServiceMock {
+    typealias Witness = PricingServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(price: adapt(\.price)))
+    }
+    let price = Spy<String, Throws, Int>()
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
+        Interaction(item, spy: price)
     }
 }
+```
+</details>
+
+#### Method with `async`
+
+```swift
+@Mockable()
+protocol PricingService {
+    func price(_ item: String) async -> Int
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol PricingService {
+    func price(_ item: String) async -> Int
+}
+
+struct PricingServiceMock {
+    typealias Witness = PricingServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(price: adapt(\.price)))
+    }
+    let price = Spy<String, Async, Int>()
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, Async, Int> {
+        Interaction(item, spy: price)
+    }
+}
+```
+</details>
+
+#### Method with `async throws`
+
+```swift
+@Mockable()
+protocol PricingService {
+    func price(_ item: String) async throws -> Int
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol PricingService {
+    func price(_ item: String) async throws -> Int
+}
+
+struct PricingServiceMock {
+    typealias Witness = PricingServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(price: adapt(\.price)))
+    }
+    let price = Spy<String, AsyncThrows, Int>()
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncThrows, Int> {
+        Interaction(item, spy: price)
+    }
+}
+```
+</details>
+
+#### Multiple Methods
+
+```swift
+@Mockable()
+protocol FeedService {
+    func fetch(from url: URL) async throws -> Data
+    func post(to url: URL, data: Data) async throws
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol FeedService {
+    func fetch(from url: URL) async throws -> Data
+    func post(to url: URL, data: Data) async throws
+}
+
+struct FeedServiceMock {
+    typealias Witness = FeedServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(fetch: adapt(\.fetch), post: adapt(\.post)))
+    }
+    let fetch = Spy<URL, AsyncThrows, Data>()
+    func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
+        Interaction(url, spy: fetch)
+    }
+    let post = Spy<URL, Data, AsyncThrows, Void>()
+    func post(to url: ArgMatcher<URL>, data: ArgMatcher<Data>) -> Interaction<URL, Data, AsyncThrows, Void> {
+        Interaction(url, data, spy: post)
+    }
+}
+```
+</details>
+
+#### Method with No Parameters and No Return
+
+```swift
+@Mockable()
+protocol Service {
+    func doSomething()
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol Service {
+    func doSomething()
+}
+
+struct ServiceMock {
+    typealias Witness = ServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+    }
+    let doSomething_ = Spy<None, Void>()
+    func doSomething() -> Interaction<None, Void> {
+        Interaction(spy: doSomething_)
+    }
+}
+```
+</details>
+
+#### Macro Option: `.prefixMock`
+
+```swift
+@Mockable([.prefixMock])
+protocol MyService {
+    func doSomething()
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol MyService {
+    func doSomething()
+}
+
+struct MockMyService {
+    typealias Witness = MyServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+    }
+    let doSomething_ = Spy<None, Void>()
+    func doSomething() -> Interaction<None, Void> {
+        Interaction(spy: doSomething_)
+    }
+}
+```
+</details>
+
+#### Protocol with Associated Type
+
+```swift
+@Mockable()
+protocol MyService {
+    associatedtype Item
+    func item() -> Item
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol MyService {
+    associatedtype Item
+    func item() -> Item
+}
+
+struct MyServiceMock {
+    typealias Witness = MyServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(item: adapt(\.item_)))
+    }
+    let item_ = Spy<None, Item>()
+    func item() -> Interaction<None, Item> {
+        Interaction(spy: item_)
+    }
+}
+```
+</details>
 ```
 
 ### Usage
