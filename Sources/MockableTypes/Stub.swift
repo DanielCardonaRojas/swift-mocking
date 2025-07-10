@@ -63,15 +63,7 @@ public class Stub<each I, Effects: Effect, O> {
     }
 }
 
-extension Stub where Effects == Throws {
-    /// Defines an error to be thrown when this stub is matched.
-    /// - Parameter error: The error to throw.
-    public func thenThrow<E: Error>(_ error: E) {
-        self.output = Return.error(error)
-    }
-}
-
-extension Stub where Effects == AsyncThrows {
+extension Stub where Effects: Throwing {
     /// Defines an error to be thrown when this stub is matched.
     /// - Parameter error: The error to throw.
     public func thenThrow<E: Error>(_ error: E) {

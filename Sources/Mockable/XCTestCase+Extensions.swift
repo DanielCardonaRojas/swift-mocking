@@ -52,6 +52,9 @@ public extension Assert {
         }
     }
 
+}
+
+public extension Assert where Eff: Throwing {
     func `throws`(
         _ errorMatcher: ArgMatcher<any Error>? = nil,
         file: StaticString = #filePath,
