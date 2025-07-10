@@ -308,6 +308,110 @@ struct MyServiceMock {
 }
 ```
 </details>
+
+#### Protocol with Property
+
+```swift
+@Mockable()
+protocol MyService {
+    var value: Int { get }
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol MyService {
+    var value: Int { get }
+}
+
+struct MyServiceMock {
+    typealias Witness = MyServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init())
+    }
+}
+```
+</details>
+
+#### Protocol with Initializer
+
+```swift
+@Mockable()
+protocol MyService {
+    init(value: Int)
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol MyService {
+    init(value: Int)
+}
+
+struct MyServiceMock {
+    typealias Witness = MyServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init())
+    }
+}
+```
+</details>
+
+#### Protocol with Subscript
+
+```swift
+@Mockable()
+protocol MyService {
+    subscript(index: Int) -> String { get }
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+protocol MyService {
+    subscript(index: Int) -> String { get }
+}
+
+struct MyServiceMock {
+    typealias Witness = MyServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init())
+    }
+}
+```
+</details>
+
+#### Public Protocol
+
+```swift
+@Mockable()
+public protocol Service {
+    func doSomething()
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+public protocol Service {
+    func doSomething()
+}
+
+struct ServiceMock {
+    typealias Witness = ServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+    }
+    let doSomething_ = Spy<None, Void>()
+    func doSomething() -> Interaction<None, Void> {
+        Interaction(spy: doSomething_)
+    }
+}
+```
+</details>
 ```
 
 ### Usage
@@ -365,30 +469,70 @@ final class MockitoTests: XCTestCase {
 
 ## ⚡️ Advanced Usage
 
-### Async and Throws
+### Advanced Argument Matching
 
-`Mockable` seamlessly handles `async` and `throws` functions.
+`Mockable` provides a rich set of argument matchers to precisely control stubbing and verification.
+
+#### Matching Any Argument
 
 ```swift
-@Mockable
-protocol DataService {
-    func fetchData() async throws -> Data
-}
+// Stub a method to return a value regardless of the input string
+when(spy.someMethod(.any)).thenReturn(10)
+
+// Verify a method was called with any integer argument
+verify(spy.anotherMethod(.any)).called()
 ```
 
-In your tests, you can stub throwing functions with `thenThrow` and `async` functions with `thenReturn`.
+#### Matching Specific Values (using `.equal` or literals)
 
 ```swift
-func testAsyncThrows() async throws {
-    let mock = DataServiceMock.new()
-    let spy = mock.context
+// Stub a method to return 10 only when called with "specific"
+when(spy.someMethod(.equal("specific"))).thenReturn(10)
 
-    // Stub a successful result
-    when(spy.fetchData()).thenReturn(Data())
+// Verify a method was called exactly with 42 (using literal conformance)
+verify(spy.anotherMethod(42)).called()
+```
 
-    // Stub an error
-    when(spy.fetchData()).thenThrow(URLError(.badURL))
-}
+#### Matching Comparable Values (`.lessThan`, `.greaterThan`)
+
+```swift
+// Stub a method to return a value if the integer argument is less than 10
+when(spy.processValue(.lessThan(10))).thenReturn("small")
+
+// Verify a method was called with an integer argument greater than 100
+verify(spy.processValue(.greaterThan(100))).called()
+```
+
+#### Matching Object Identity (`.identical`)
+
+```swift
+class MyObject {}
+let obj = MyObject()
+
+// Stub a method to return a value only when called with the exact instance 'obj'
+when(spy.handleObject(.identical(obj))).thenReturn("same instance")
+```
+
+#### Matching Optional Values (`.notNil`, `.nil`)
+
+```swift
+// Verify a method was called with a non-nil optional string
+verify(spy.handleOptional(.notNil())).called()
+
+// Stub a method to return a default value when called with a nil optional integer
+when(spy.handleOptional(.nil())).thenReturn(0)
+```
+
+#### Matching Errors (`.anyError`, `.error`)
+
+```swift
+enum MyError: Error { case invalid }
+
+// Verify a method threw any error
+verify(spy.performAction()).throws(.anyError())
+
+// Verify a method threw an error of type MyError
+verify(spy.processData()).throws(.error(MyError.self))
 ```
 
 ### Descriptive Error Reporting
