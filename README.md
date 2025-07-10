@@ -1,11 +1,11 @@
 
-# SwiftMockito
+# SwiftMocking
 
 [![swift-version](https://img.shields.io/badge/swift-5.9-orange.svg)](https://img.shields.io/badge/swift-5.9-orange.svg)
 [![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://img.shields.io/badge/license-MIT-lightgrey.svg)
 
-`Mockable` is a modern, type-safe mocking library for Swift that uses macros to provide a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of parameter packs and protocol witness structs.
+`SwiftMocking` is a modern, type-safe mocking library for Swift that uses macros to provide a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of parameter packs and protocol witness structs provided by the companion package called [swift-witness](https://github.com/DanielCardonaRojas/swift-witness).
 
 ---
 
@@ -26,24 +26,21 @@
 
 ## ⚙️ How it Works
 
-`Mockable` builds upon the powerful `ProtocolWitnessMacro` library to do the heavy lifting.
+`SwiftMocking` builds upon the powerful [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) library to do the heavy lifting.
 
-1.  **Protocol Analysis with `@Witnessed`**: The `@Witnessed` macro from the dependency package is responsible for analyzing the protocol. It supports a wide variety of requirements, including functions with different effects (`async`, `throws`), properties, and subscripts. It generates a generic `protocol witness` struct for the protocol.
+1.  **Protocol Analysis with `@Witnessed`**: The `@Witnessed` macro from the [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) is responsible for analyzing the protocol and providing a mechanism for synthesizing protocol conformances.
 
-2.  **Mock Generation with `@Mockable`**: The `@Mockable` macro in this library then takes that protocol witness and generates the necessary mocking infrastructure. This includes:
-    *   A `Spying` struct with spies for each protocol requirement.
-    *   A typealias that connects the generic witness to the `Spying` struct.
-    *   A static `new()` function to easily create a fully synthesized mock instance for your tests.
+2.  **Mock Generation with `@Mockable`**: The `@Mockable` macro in this library then builds a witness value by passing in spies for each protocol requirement. These will power stubbing and spying of each protocol requirement.
 
-This two-step process ensures that the core logic of protocol analysis is separate from the mock generation, and that your project only contains the code it needs for each specific target.
+This two-step process also enables different workflows. For example, you can annotate the protocol in your main target and generate both the witness which is useful for things other than testing and choose to generate the mock only in your test target. Or you can decide to generate both things in your main target. This enables that the core logic of protocol analysis is separate from the mock generation, and that your project only contains the code it needs for each specific target.
 
-For a deeper understanding of protocol witnesses, please refer to the [ProtocolWitnessMacro documentation](https://github.com/DanielCardonaRojas/ProtocolWitnessMacro?tab=readme-ov-file#-what-is-a-protocol-witness).
+For a deeper understanding of protocol witnesses, please refer to the [swift-witness documentation](https://github.com/DanielCardonaRojas/ProtocolWitnessMacro?tab=readme-ov-file#-what-is-a-protocol-witness).
 
 ---
 
 ## 📦 Installation
 
-To add `Mockable` to your Swift package, add it as a dependency in your `Package.swift` file:
+To add `SwiftMocking` to your Swift package, add it as a dependency in your `Package.swift` file:
 
 ```swift
 .package(url: "https://github.com/DanielCardonaRojas/swift-mockito.git", from: "1.0.0"),

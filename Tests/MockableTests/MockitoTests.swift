@@ -11,72 +11,68 @@ import XCTest
 
 final class MockitoTests: XCTestCase {
     func testMockitoBuilder() {
-        let mock = MockPricingService.new()
-        let spy = mock.context
-        let store = Store(pricingService: mock)
-        when(spy.price("apple")).thenReturn(13)
-        when(spy.price("banana")).thenReturn(17)
+        let mock = PricingServiceMock()
+        let store = Store(pricingService: mock.instance)
+        when(mock.price("apple")).thenReturn(13)
+        when(mock.price("banana")).thenReturn(17)
 
         store.register("apple")
         store.register("banana")
-        verify(spy.price(.any)).called(2)
+        verify(mock.price(.any)).called(2)
         XCTAssertEqual(store.prices["apple"], 13)
         XCTAssertEqual(store.prices["banana"], 17)
     }
 
     func test_verifyInOrder() {
-        let mock = MockPricingService.new()
-        let spy = mock.context
-        let store = Store(pricingService: mock)
-        when(spy.price(.any)).thenReturn(13)
+        let mock = PricingServiceMock()
+        let store = Store(pricingService: mock.instance)
+        when(mock.price(.any)).thenReturn(13)
 
         store.register("apple")
         store.register("banana")
         verifyInOrder([
-            spy.price("apple"),
-            spy.price("banana")
+            mock.price("apple"),
+            mock.price("banana")
         ])
     }
 
     func test_verifyThrows() {
-        let mock = MockPricingService.new()
-        let spy = mock.context
-        let store = Store(pricingService: mock)
-        when(spy.price(.any)).thenReturn(13)
-        when(spy.price("rotten")).thenThrow(TestError.example)
+        let mock = PricingServiceMock()
+        let store = Store(pricingService: mock.instance)
+        when(mock.price(.any)).thenReturn(13)
+        when(mock.price("rotten")).thenThrow(TestError.example)
 
         store.register("apple")
         store.register("banana")
         store.register("rotten")
 
-        verify(spy.price("rotten")).throws()
+        verify(mock.price("rotten")).throws()
     }
 
     func test_asyncDataFetcher() async throws {
-        let mock = MockDataFetcherService.new()
-        let spy = mock.context
+        let mock = MockDataFetcherService()
 
         // Stub async method
-        when(spy.fetchData(id: .any)).thenReturn("async_data_1")
-        let data1 = await mock.fetchData(id: "id1")
+        when(mock.fetchData(id: .any)).thenReturn("async_data_1")
+        let data1 = await mock.instance.fetchData(id: "id1")
         XCTAssertEqual(data1, "async_data_1")
-        verify(spy.fetchData(id: "id1")).called(1)
+        verify(mock.fetchData(id: "id1")).called(1)
 
         // Stub async throws method
-        when(spy.fetchDataThrows(id: "error_id")).thenThrow(TestError.example)
+        when(mock.fetchDataThrows(id: "error_id")).thenThrow(TestError.example)
         do {
-            _ = try await mock.fetchDataThrows(id: "error_id")
+            _ = try await mock.instance.fetchDataThrows(id: "error_id")
             XCTFail("Should have thrown an error")
         } catch {
             XCTAssert(error is TestError)
         }
-        verify(spy.fetchDataThrows(id: "error_id")).throws()
+        verify(mock.fetchDataThrows(id: "error_id")).throws()
 
         // Stub async throws method with success
-        when(spy.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
-        let data2 = try await mock.fetchDataThrows(id: "success_id")
+        when(mock.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
+        let data2 = try await mock.instance.fetchDataThrows(id: "success_id")
         XCTAssertEqual(data2, "async_data_2")
-        verify(spy.fetchDataThrows(id: "success_id")).called(1)
+        verify(mock.fetchDataThrows(id: "success_id")).called(1)
     }
 }
 
@@ -105,7 +101,7 @@ class Store {
     }
 }
 
-@Mockable([.includeWitness, .prefixMock])
+@Mockable([.includeWitness])
 protocol PricingService {
     func price(_ item: String) throws -> Int
 }

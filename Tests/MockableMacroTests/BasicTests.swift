@@ -1,16 +1,11 @@
-//
-//  MockableMacroTests.swift
-//  Mockable
-//
-//  Created by Daniel Cardona on 6/07/25.
-//
 
+import SwiftSyntaxMacros
+import SwiftSyntaxMacrosTestSupport
 import XCTest
-import MacroTesting
 import MockableMacro
-import MockableTypes
+import MacroTesting
 
-final class MockableMacroTests: XCTestCase {
+final class BasicTests: XCTestCase {
     override func invokeTest() {
       withMacroTesting(
         record: false,
@@ -47,5 +42,4 @@ final class MockableMacroTests: XCTestCase {
             """#
         }
     }
-
 }
