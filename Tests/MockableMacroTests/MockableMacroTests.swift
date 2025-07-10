@@ -42,7 +42,7 @@ final class MockableMacroTests: XCTestCase {
                 struct Spying {
                     let price = Spy<String, None, Int>()
                     func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-                        Interaction.init(item, spy: price)
+                        Interaction(item, spy: price)
                     }
                 }
             }

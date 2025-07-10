@@ -24,7 +24,7 @@ public enum SpyGenerator {
     /// struct Spying {
     ///     let doSomething = Spy<String, None, Int>()
     ///     func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
-    ///         Interaction.init(matchers: value, spy: doSomething)
+    ///         Interaction(value, spy: doSomething)
     ///     }
     /// }
     /// ```
@@ -56,7 +56,7 @@ public enum SpyGenerator {
     /// ```swift
     /// let doSomething = Spy<String, None, Int>()
     /// func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
-    ///     Interaction.init(value, spy: doSomething)
+    ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
     private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) throws -> (DeclSyntax, DeclSyntax) {
@@ -168,7 +168,7 @@ public enum SpyGenerator {
     /// For example, for a function `doSomething(with value: String) -> Int`, this will generate:
     /// ```swift
     /// func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
-    ///     Interaction.init(matchers: value, spy: doSomething)
+    ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
     private static func createStubFunction(name: String, spyPropertyName: String, inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String, parameterNames: [TokenSyntax], parameterLabels: [TokenSyntax?]) throws -> FunctionDeclSyntax {
@@ -267,15 +267,12 @@ public enum SpyGenerator {
     ///
     /// For example, for a function `doSomething(with value: String)`, this will generate:
     /// ```swift
-    /// { .init(value, spy: doSomething)
+    /// { Interaction(value, spy: doSomething)
     /// }
     /// ```
     private static func createFunctionBody(spyPropertyName: String, parameterNames: [TokenSyntax]) -> CodeBlockSyntax {
         let interactionCall = FunctionCallExprSyntax(
-            callee: MemberAccessExprSyntax(
-                base: TypeExprSyntax(type: IdentifierTypeSyntax(name: .identifier("Interaction"))),
-                declName: DeclReferenceExprSyntax(baseName: .keyword(.`init`))
-            )
+            callee: DeclReferenceExprSyntax(baseName: .identifier("Interaction"))
         ) {
             for name in parameterNames {
                 LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: name))
