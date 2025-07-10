@@ -32,11 +32,11 @@ final class ProtocolFeaturesTests: XCTestCase {
             struct ServiceMock {
                 typealias Witness = ServiceWitness<Self>
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething)))
+                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
                 }
-                let doSomething = Spy<None, Void>()
+                let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething)
+                    Interaction(spy: doSomething_)
                 }
             }
             """#
@@ -134,11 +134,11 @@ final class ProtocolFeaturesTests: XCTestCase {
             struct MyServiceMock {
                 typealias Witness = MyServiceWitness<Self>
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(item: adapt(\.item)))
+                    .init(context: self, witness: .init(item: adapt(\.item_)))
                 }
-                let item = Spy<None, Item>()
+                let item_ = Spy<None, Item>()
                 func item() -> Interaction<None, Item> {
-                    Interaction(spy: item)
+                    Interaction(spy: item_)
                 }
             }
             """#

@@ -54,9 +54,7 @@ public enum SpyGenerator {
     /// ```
     private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) throws -> (DeclSyntax, DeclSyntax) {
         let funcName = funcDecl.name.text
-        let count = functionNames[funcName, default: 0]
-        functionNames[funcName] = count + 1
-        let spyPropertyName = count > 0 ? "\(funcName)_\(count)" : funcName
+        let spyPropertyName = MockableGenerator.spyPropertyName(for: funcDecl, functionNames: &functionNames)
 
         let (inputTypes, parameterNames, parameterLabels) = getFunctionParameters(funcDecl)
         let outputType = getFunctionReturnType(funcDecl)

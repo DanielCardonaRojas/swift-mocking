@@ -25,10 +25,12 @@ extension MockableGenerator {
         )
 
         let funcDecls = protocolDecl.memberBlock.members.compactMap { $0.decl.as(FunctionDeclSyntax.self) }
+        var functionNames = [String: Int]()
 
         let witnessArguments = LabeledExprListSyntax {
             for funcDecl in funcDecls {
                 let funcName = funcDecl.name.text
+                let spyPropertyName = spyPropertyName(for: funcDecl, functionNames: &functionNames)
 
                 let adaptCall = FunctionCallExprSyntax(
                     callee: DeclReferenceExprSyntax(baseName: .identifier("adapt"))
@@ -40,7 +42,7 @@ extension MockableGenerator {
                                 KeyPathComponentSyntax(
                                     period: .periodToken(),
                                     component: .property(
-                                        .init(declName: DeclReferenceExprSyntax(baseName: .identifier(funcName)))
+                                        .init(declName: DeclReferenceExprSyntax(baseName: .identifier(spyPropertyName)))
                                     )
                                 )
                             ]

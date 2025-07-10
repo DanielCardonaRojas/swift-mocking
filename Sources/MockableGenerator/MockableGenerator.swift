@@ -81,4 +81,17 @@ public enum MockableGenerator {
         }
         return []
     }
+
+    public static func spyPropertyName(for funcDecl: FunctionDeclSyntax, functionNames: inout [String: Int]) -> String {
+        let funcName = funcDecl.name.text
+        let count = functionNames[funcName, default: 0]
+        functionNames[funcName] = count + 1
+        let baseName = count > 0 ? "\(funcName)_\(count)" : funcName
+
+        if funcDecl.signature.parameterClause.parameters.isEmpty {
+            return baseName + "_"
+        } else {
+            return baseName
+        }
+    }
 }

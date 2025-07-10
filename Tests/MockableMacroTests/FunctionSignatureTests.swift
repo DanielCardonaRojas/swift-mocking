@@ -178,11 +178,11 @@ final class FunctionSignatureTests: XCTestCase {
             struct ServiceMock {
                 typealias Witness = ServiceWitness<Self>
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething)))
+                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
                 }
-                let doSomething = Spy<None, String>()
+                let doSomething_ = Spy<None, String>()
                 func doSomething() -> Interaction<None, String> {
-                    Interaction(spy: doSomething)
+                    Interaction(spy: doSomething_)
                 }
             }
             """#
@@ -234,11 +234,11 @@ final class FunctionSignatureTests: XCTestCase {
             struct ServiceMock {
                 typealias Witness = ServiceWitness<Self>
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething)))
+                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
                 }
-                let doSomething = Spy<None, Void>()
+                let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething)
+                    Interaction(spy: doSomething_)
                 }
             }
             """#
