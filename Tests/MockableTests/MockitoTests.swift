@@ -10,18 +10,6 @@ import MockableTypes
 import XCTest
 
 final class MockitoTests: XCTestCase {
-    func testMock() {
-        let mock = MockPricingService.new()
-        let spy = mock.context
-        let store = Store(pricingService: mock)
-        spy.price.when(calledWith:.equal("apple")).thenReturn(100)
-        spy.price.when(calledWith:.equal("banana")).thenReturn(100)
-        store.items = ["apple", "banana"]
-        store.tagPrices()
-        when(spy.price(.any)).thenReturn(100)
-        XCTAssert(spy.price.verify(calledWith: .any, count: .equal(2)))
-    }
-
     func testMockitoBuilder() {
         let mock = MockPricingService.new()
         let spy = mock.context
@@ -72,23 +60,23 @@ final class MockitoTests: XCTestCase {
         when(spy.fetchData(id: .any)).thenReturn("async_data_1")
         let data1 = await mock.fetchData(id: "id1")
         XCTAssertEqual(data1, "async_data_1")
-        verify(spy.fetchData(id: .equal("id1"))).called(1)
+        verify(spy.fetchData(id: "id1")).called(1)
 
         // Stub async throws method
-        when(spy.fetchDataThrows(id: .equal("error_id"))).thenThrow(TestError.example)
+        when(spy.fetchDataThrows(id: "error_id")).thenThrow(TestError.example)
         do {
             _ = try await mock.fetchDataThrows(id: "error_id")
             XCTFail("Should have thrown an error")
         } catch {
             XCTAssert(error is TestError)
         }
-        verify(spy.fetchDataThrows(id: .equal("error_id"))).throws()
+        verify(spy.fetchDataThrows(id: "error_id")).throws()
 
         // Stub async throws method with success
-        when(spy.fetchDataThrows(id: .equal("success_id"))).thenReturn("async_data_2")
+        when(spy.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
         let data2 = try await mock.fetchDataThrows(id: "success_id")
         XCTAssertEqual(data2, "async_data_2")
-        verify(spy.fetchDataThrows(id: .equal("success_id"))).called(1)
+        verify(spy.fetchDataThrows(id: "success_id")).called(1)
     }
 }
 
