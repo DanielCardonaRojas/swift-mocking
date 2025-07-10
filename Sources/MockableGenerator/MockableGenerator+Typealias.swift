@@ -2,7 +2,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 
 extension MockableGenerator {
-    static func makeTypealiasDecl(protocolName: String, spyingName: String) -> DeclSyntax {
+    static func makeTypealiasDecl(protocolName: String) -> DeclSyntax {
         let witnessTypeName = protocolName + "Witness"
         let typealiasName = "Witness"
 
@@ -15,7 +15,7 @@ extension MockableGenerator {
                         arguments: GenericArgumentListSyntax(
                             [
                                 GenericArgumentSyntax(
-                                    argument: IdentifierTypeSyntax(name: .identifier(spyingName))
+                                    argument: IdentifierTypeSyntax(name: .keyword(.Self))
                                 )
                             ]
                         )

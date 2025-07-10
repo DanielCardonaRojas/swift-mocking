@@ -28,7 +28,7 @@ public enum SpyGenerator {
     ///     }
     /// }
     /// ```
-    public static func processProtocol(protocolDecl: ProtocolDeclSyntax, structName: String) throws -> DeclSyntax {
+    public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
         var members = [DeclSyntax]()
         var functionNames = [String: Int]()
 
@@ -40,14 +40,7 @@ public enum SpyGenerator {
             }
         }
 
-        let spyStruct = StructDeclSyntax(
-            name: TokenSyntax.identifier(structName),
-            memberBlock: MemberBlockSyntax {
-                MemberBlockItemListSyntax(members.map { MemberBlockItemSyntax(decl: $0) })
-            }
-        )
-
-        return DeclSyntax(spyStruct)
+        return members
     }
 
     /// Processes a function declaration to generate a spy property and a stubbing function.
