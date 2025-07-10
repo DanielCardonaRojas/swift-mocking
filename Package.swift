@@ -5,7 +5,7 @@ import PackageDescription
 import CompilerPluginSupport
 
 let package = Package(
-    name: "Mockable",
+    name: "swift-mocking",
     platforms: [
         .macOS(.v14),
         .iOS(.v17),
