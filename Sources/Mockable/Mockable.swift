@@ -10,3 +10,6 @@ import MockableTypes
 
 @attached(peer, names: suffixed(Mock), prefixed(Mock), suffixed(Witness))
 public macro Mockable(_ options: MockableOptions = []) = #externalMacro(module: "MockableMacro", type: "MockableMacro")
+
+@attached(peer, names: suffixed(Witness))
+public macro Witnessed() = #externalMacro(module: "MockableMacro", type: "WitnessMacro")
