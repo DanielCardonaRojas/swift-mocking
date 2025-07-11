@@ -8,6 +8,11 @@
 
 import Foundation
 
+
+public protocol DefaultProvider {
+    var defaultProviderRegistry: DefaultProvidableRegistry { get set }
+}
+
 /// A registry for `DefaultProvidable` types, allowing dynamic control over which types provide default values.
 public class DefaultProvidableRegistry {
     /// The shared singleton instance of the registry.
