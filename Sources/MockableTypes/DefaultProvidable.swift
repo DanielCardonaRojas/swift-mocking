@@ -61,7 +61,7 @@ extension Array: DefaultProvidable {
 }
 
 extension Dictionary: DefaultProvidable {
-    public static var defaultValue: [Key, Value] {
+    public static var defaultValue: Self {
         return [:]
     }
 }
