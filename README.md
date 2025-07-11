@@ -216,6 +216,20 @@ verify(spy.performAction()).throws(.anyError())
 verify(spy.processData()).throws(.error(MyError.self))
 ```
 
+### Dynamic Stubbing with `thenReturn` Closure
+
+You can now define the return value of a stub dynamically based on the arguments passed to the mocked function. This is achieved by providing a closure to `thenReturn` that takes the arguments as input and returns the desired output.
+
+```swift
+// Stub a method to return a value that depends on its input argument
+when(spy.calculate(a: .any, b: .any)).thenReturn { a, b in
+    return a + b
+}
+
+// Now, when you call calculate, the return value will be the sum of a and b
+let result = mock.calculate(a: 5, b: 10) // result will be 15
+```
+
 ### Descriptive Error Reporting
 
 `Mockable` provides detailed error messages when a test assertion fails. For example, if you expect a function to be called 4 times but it was only called twice, you'll get a clear message indicating the discrepancy.

@@ -49,6 +49,18 @@ final class MockitoTests: XCTestCase {
         verify(mock.price("rotten")).throws()
     }
 
+    func test_inspect_arguments() {
+        let mock = PricingServiceMock()
+
+        when(mock.price(.any)).thenReturn { item in
+            let priceDict = ["apple": 13, "banana": 5]
+            return priceDict[item] ?? .zero
+        }
+
+        XCTAssertEqual(try mock.instance.price("apple"), 13)
+        XCTAssertEqual(try mock.instance.price("banana"), 5)
+    }
+
     func test_asyncDataFetcher() async throws {
         let mock = MockDataFetcherService()
 

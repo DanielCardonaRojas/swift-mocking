@@ -71,7 +71,9 @@ public class Assert<each Input, Eff: Effect, Output> {
         for invocation in spy.invocations {
             for stub in spy.stubs {
                 // Is there is no programmed `Return` for this stub don't even bother trying to match
-                guard let stubbedReturn = stub.output else { continue }
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
 
                 if stub.invocationMatcher.isMatchedBy(invocation) { // Found a candidate
 
