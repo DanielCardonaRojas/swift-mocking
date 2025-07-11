@@ -2,7 +2,7 @@
 # NOTE: All archives will be generated but only one will be visible as per current limitations in docc
 # Requires the creation of orphan branch gh-pages and tweaking settings to publish from "gh-pages/docs"
 set -e
-BASE_PATH=/Mockable/docs
+BASE_PATH=/swift-mocking/docs
 SELECTED_TARGET=MockableTypes
 TARGETS="MockableTypes" # List of all targets/modules in swift package
 DOC_REF=$(git describe --tags --abbrev=0 || git rev-parse --abbrev-ref HEAD)
