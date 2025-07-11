@@ -37,7 +37,7 @@
 public class Stub<each I, Effects: Effect, O> {
     /// The ``InvocationMatcher`` that defines when this stub should be applied.
     public let invocationMatcher: InvocationMatcher<repeat each I>
-    var output: Return<O>?
+    var output: ((Invocation<repeat each I>) -> Return<O>)?
 
     /// Initializes a `Stub` instance.
     /// - Parameter invocationMatcher: The ``InvocationMatcher`` that determines when this stub is active.
@@ -45,21 +45,26 @@ public class Stub<each I, Effects: Effect, O> {
         self.invocationMatcher = invocationMatcher
     }
 
-    /// Retrieves the output defined for this stub.
-    /// - Returns: The stubbed output value.
-    /// - Throws: ``MockingError/unStubbed`` if no output has been defined for this stub.
-    @discardableResult
-    func get() throws -> O {
-        guard let output else {
-            throw MockingError.unStubbed
+    func returnValue(for invocation: Invocation<repeat each I>) -> Return<O>? {
+        guard invocationMatcher.isMatchedBy(invocation) else {
+            return nil
         }
-        return try output.get()
+        return output?(invocation)
+
     }
 
     /// Defines the return value for this stub.
     /// - Parameter output: The value to return when this stub is matched.
     public func thenReturn(_ output: O) {
-        self.output = Return.value(output)
+        self.output = { _ in  Return.value(output) }
+    }
+
+    public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
+        self.output = { invocation in
+            let returnValue = handler(repeat each invocation.arguments)
+            return Return.value(returnValue)
+        }
+
     }
 }
 
@@ -67,6 +72,6 @@ extension Stub where Effects: Throwing {
     /// Defines an error to be thrown when this stub is matched.
     /// - Parameter error: The error to throw.
     public func thenThrow<E: Error>(_ error: E) {
-        self.output = Return.error(error)
+        self.output = { _ in  Return.error(error) }
     }
 }

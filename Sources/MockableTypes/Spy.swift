@@ -49,7 +49,8 @@ public class Spy<each Input, Effects: Effect, Output> {
     /// - Returns: The ``Return`` value from the matching stub.
     /// - Throws: ``MockingError/unStubbed`` if no matching stub is found.
     func invoke(_ input: repeat each Input) throws -> Return<Output> {
-        invocations.append(Invocation(arguments: repeat each input))
+        let invocation = Invocation(arguments: repeat each input)
+        invocations.append(invocation)
 
         // search through stub for a return value
         var matchingStub: Stub<repeat each Input, Effects, Output>?
@@ -60,7 +61,7 @@ public class Spy<each Input, Effects: Effect, Output> {
                 break
             }
         }
-        guard let returnValue = matchingStub?.output else {
+        guard let returnValue = matchingStub?.returnValue(for: invocation) else {
             throw MockingError.unStubbed
         }
 
@@ -152,7 +153,7 @@ public class Spy<each Input, Effects: Effect, Output> {
         for invocation in invocations {
             for stub in stubs {
                 if stub.invocationMatcher.isMatchedBy(invocation) {
-                    if let stubbedReturn = stub.output {
+                    if let stubbedReturn = stub.returnValue(for: invocation) {
                         do {
                             try stubbedReturn.get()
                         }
