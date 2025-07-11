@@ -56,6 +56,8 @@ echo "Creating documentation for $DOC_REF"
 for TARGET in $TARGETS; do
 	ARCHIVE_DIR=$WORKTREE_DIR/$TARGET.doccarchive
 
+	swift package clean
+
 	swift package --allow-writing-to-directory $ARCHIVE_DIR generate-documentation \
 		--target $TARGET \
 		--output-path $ARCHIVE_DIR \
