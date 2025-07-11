@@ -1,0 +1,41 @@
+
+//
+//  DefaultProvidableRegistry.swift
+//  MockableTypes
+//
+//  Created by Daniel Cardona on 11/07/25.
+//
+
+import Foundation
+
+/// A registry for `DefaultProvidable` types, allowing dynamic control over which types provide default values.
+public class DefaultProvidableRegistry {
+    /// The shared singleton instance of the registry.
+    public static let shared = DefaultProvidableRegistry()
+
+    private var registeredTypes: Set<ObjectIdentifier> = []
+
+    private init() {}
+
+    /// Registers a `DefaultProvidable` type with the registry.
+    ///
+    /// Once registered, `Spy` instances can use the `defaultValue` of this type
+    /// if no specific stub is found and the `useDefaultValues` option is enabled.
+    /// - Parameter type: The `DefaultProvidable` type to register.
+    public func register<T: DefaultProvidable>(_ type: T.Type) {
+        registeredTypes.insert(ObjectIdentifier(type))
+    }
+
+    /// Deregisters a `DefaultProvidable` type from the registry.
+    /// - Parameter type: The `DefaultProvidable` type to deregister.
+    public func deregister<T: DefaultProvidable>(_ type: T.Type) {
+        registeredTypes.remove(ObjectIdentifier(type))
+    }
+
+    /// Checks if a `DefaultProvidable` type is registered.
+    /// - Parameter type: The `DefaultProvidable` type to check.
+    /// - Returns: `true` if the type is registered, `false` otherwise.
+    public func isRegistered<T: DefaultProvidable>(_ type: T.Type) -> Bool {
+        registeredTypes.contains(ObjectIdentifier(type))
+    }
+}
