@@ -3,7 +3,8 @@
 # Requires the creation of orphan branch gh-pages and tweaking settings to publish from "gh-pages/docs"
 set -e
 BASE_PATH=/swift-mocking/docs
-URL_BASE_PATH=danielcardonarojas.github.io/swift-mocking
+# URL_BASE_PATH=danielcardonarojas.github.io/swift-mocking
+URL_BASE_PATH=swift-mocking
 SELECTED_TARGET=MockableTypes
 TARGETS="MockableTypes" # List of all targets/modules in swift package
 DOC_REF=$(git describe --tags --abbrev=0 || git rev-parse --abbrev-ref HEAD)
