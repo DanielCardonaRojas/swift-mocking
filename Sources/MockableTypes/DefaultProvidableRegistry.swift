@@ -20,7 +20,11 @@ public class DefaultProvidableRegistry {
 
     private var registeredTypes: Set<ObjectIdentifier> = []
 
-    public init() {}
+    public init(_ types: [DefaultProvidable.Type] = []) {
+        for type in types {
+            registeredTypes.insert(ObjectIdentifier(type))
+        }
+    }
 
     public func getDefaultForType<T>(_ type: T.Type) -> T? {
         if let providableType = type as? any DefaultProvidable.Type,
@@ -37,6 +41,12 @@ public class DefaultProvidableRegistry {
     /// - Parameter type: The `DefaultProvidable` type to register.
     public func register<T: DefaultProvidable>(_ type: T.Type) {
         registeredTypes.insert(ObjectIdentifier(type))
+    }
+
+    public func register(_ types: [DefaultProvidable.Type]) {
+        for type in types {
+            registeredTypes.insert(ObjectIdentifier(type))
+        }
     }
 
     /// Deregisters a `DefaultProvidable` type from the registry.
