@@ -40,6 +40,7 @@ public class Spy<each Input, Effects: Effect, Output> {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     public private(set) var invocations: [Invocation<repeat each Input>] = []
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
+    var defaultProviderRegistry: DefaultProvidableRegistry?
 
     /// Initializes a new `Spy` instance.
     public init() { }
@@ -62,6 +63,10 @@ public class Spy<each Input, Effects: Effect, Output> {
             }
         }
         guard let returnValue = matchingStub?.returnValue(for: invocation) else {
+            if let fallback = defaultProviderRegistry?.getDefaultForType(Output.self) {
+                return .value(fallback)
+            }
+
             throw MockingError.unStubbed
         }
 
@@ -237,36 +242,40 @@ extension Spy where Effects == AsyncThrows {
 // MARK: Adapters
 
 /// A helper that converts a spy into a closure that is easily assignable to a protocol witness closure property.
-public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, None, O>>) -> (Context, repeat each I) -> O {
+public func adapt<Context: DefaultProvider, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, None, O>>) -> (Context, repeat each I) -> O {
     { (context, input: repeat each I) -> O  in
         let spy = context[keyPath: keyPath]
+        spy.defaultProviderRegistry = context.defaultProviderRegistry
         let result = spy.call(repeat each input)
         return result
     }
 }
 
 /// A helper that converts a spy into a closure that is easily assignable to a protocol witness closure property.
-public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, Throws, O>>) -> (Context, repeat each I) throws -> O {
+public func adapt<Context: DefaultProvider, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, Throws, O>>) -> (Context, repeat each I) throws -> O {
     { (context, input: repeat each I) -> O  in
         let spy = context[keyPath: keyPath]
+        spy.defaultProviderRegistry = context.defaultProviderRegistry
         let result = try spy.call(repeat each input)
         return result
     }
 }
 
 /// A helper that converts an `async` spy into a closure that is easily assignable to a protocol witness closure property.
-public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, Async, O>>) -> (Context, repeat each I) async -> O {
+public func adapt<Context: DefaultProvider, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, Async, O>>) -> (Context, repeat each I) async -> O {
     { (context, input: repeat each I) async -> O  in
         let spy = context[keyPath: keyPath]
+        spy.defaultProviderRegistry = context.defaultProviderRegistry
         let result = await spy.call(repeat each input)
         return result
     }
 }
 
 /// A helper that converts an `async throws` spy into a closure that is easily assignable to a protocol witness closure property.
-public func adapt<Context, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, AsyncThrows, O>>) -> (Context, repeat each I) async throws -> O {
+public func adapt<Context: DefaultProvider, each I, O>(_ keyPath: KeyPath<Context, Spy<repeat each I, AsyncThrows, O>>) -> (Context, repeat each I) async throws -> O {
     { (context, input: repeat each I) async throws -> O  in
         let spy = context[keyPath: keyPath]
+        spy.defaultProviderRegistry = context.defaultProviderRegistry
         let result = try await spy.call(repeat each input)
         return result
     }
