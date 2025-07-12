@@ -20,7 +20,7 @@ public class DefaultProvidableRegistry {
 
     private var registeredTypes: Set<ObjectIdentifier> = []
 
-    private init() {}
+    public init() {}
 
     public func getDefaultForType<T>(_ type: T.Type) -> T? {
         if let providableType = type as? any DefaultProvidable.Type,
