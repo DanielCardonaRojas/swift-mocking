@@ -18,10 +18,10 @@
 | **Type-Safe Mocking** | Uses [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) to keep mocks synchronized with protocol definitions, preventing runtime errors. |
 | **Clean, Readable API** | Provides a Mockito-style API that makes tests expressive and easy to maintain. |
 | **No Preprocessor Macros** | Avoids `#if DEBUG` by using macros to generate code only where needed, resulting in a cleaner build process. |
-| **Target-Specific Generation**| Generates protocol witnesses for your main target and synthesizes mock conformances for your test target. |
+| **Target-Specific Generation**| Allows generates protocol witnesses for your main target and synthesizes mock conformances for your test target. |
 | **Flexible Argument Matching**| Offers powerful argument matchers like `.any` and `.equal`, with `ExpressibleBy...Literal` conformance for cleaner syntax. |
 | **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. |
-| **Compact Code Generation** | Keeps the generated code as small and compact as possible to minimize binary size. |
+| **Compact Code Generation** | Keeps the generated code as small and compact as possible. |
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
 
 ---
@@ -158,30 +158,30 @@ final class StoreTests: XCTestCase {
 
 ```swift
 // Stub a method to return a value regardless of the input string
-when(spy.someMethod(.any)).thenReturn(10)
+when(mock.someMethod(.any)).thenReturn(10)
 
 // Verify a method was called with any integer argument
-verify(spy.anotherMethod(.any)).called()
+verify(mock.anotherMethod(.any)).called()
 ```
 
 #### Matching Specific Values (using `.equal` or literals)
 
 ```swift
 // Stub a method to return 10 only when called with "specific"
-when(spy.someMethod(.equal("specific"))).thenReturn(10)
+when(mock.someMethod(.equal("specific"))).thenReturn(10)
 
 // Verify a method was called exactly with 42 (using literal conformance)
-verify(spy.anotherMethod(42)).called()
+verify(mock.anotherMethod(42)).called()
 ```
 
 #### Matching Comparable Values (`.lessThan`, `.greaterThan`)
 
 ```swift
 // Stub a method to return a value if the integer argument is less than 10
-when(spy.processValue(.lessThan(10))).thenReturn("small")
+when(mock.processValue(.lessThan(10))).thenReturn("small")
 
 // Verify a method was called with an integer argument greater than 100
-verify(spy.processValue(.greaterThan(100))).called()
+verify(mock.processValue(.greaterThan(100))).called()
 ```
 
 #### Matching Object Identity (`.identical`)
@@ -191,17 +191,17 @@ class MyObject {}
 let obj = MyObject()
 
 // Stub a method to return a value only when called with the exact instance 'obj'
-when(spy.handleObject(.identical(obj))).thenReturn("same instance")
+when(mock.handleObject(.identical(obj))).thenReturn("same instance")
 ```
 
 #### Matching Optional Values (`.notNil`, `.nil`)
 
 ```swift
 // Verify a method was called with a non-nil optional string
-verify(spy.handleOptional(.notNil())).called()
+verify(mock.handleOptional(.notNil())).called()
 
 // Stub a method to return a default value when called with a nil optional integer
-when(spy.handleOptional(.nil())).thenReturn(0)
+when(mock.handleOptional(.nil())).thenReturn(0)
 ```
 
 #### Matching Errors (`.anyError`, `.error`)
@@ -210,10 +210,10 @@ when(spy.handleOptional(.nil())).thenReturn(0)
 enum MyError: Error { case invalid }
 
 // Verify a method threw any error
-verify(spy.performAction()).throws(.anyError())
+verify(mock.performAction()).throws(.anyError())
 
 // Verify a method threw an error of type MyError
-verify(spy.processData()).throws(.error(MyError.self))
+verify(mock.processData()).throws(.error(MyError.self))
 ```
 
 ### Dynamic Stubbing with `thenReturn` Closure
@@ -223,7 +223,7 @@ You can now define the return value of a stub dynamically based on the arguments
 
 ```swift
 // Stub a method to return a value that depends on its input argument
-when(spy.calculate(a: .any, b: .any)).thenReturn { a, b in
+when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
     return a + b
 }
 
@@ -275,7 +275,7 @@ let customValue = mock.getCustomType() // customValue will be MyCustomType(name:
 
 ```swift
 // Example of a failing test
-verify(spy.price(for: .any)).called(4)
+verify(mock.price(for: .any)).called(4)
 ```
 
 This will produce the following error:
@@ -604,7 +604,6 @@ struct ServiceMock {
 }
 ```
 </details>
-```
 
 
 ## 📚 Documentation
