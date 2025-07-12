@@ -24,8 +24,7 @@ final class MockitoTests: XCTestCase {
     }
 
     func test_default_provider() {
-        let registry = DefaultProvidableRegistry()
-        registry.register(Int.self)
+        let registry = DefaultProvidableRegistry([Int.self])
         var mock = PricingServiceMock()
         mock.defaultProviderRegistry = registry
         let store = Store(pricingService: mock.instance)
