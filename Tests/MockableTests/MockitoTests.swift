@@ -23,6 +23,16 @@ final class MockitoTests: XCTestCase {
         XCTAssertEqual(store.prices["banana"], 17)
     }
 
+    func test_default_provider() {
+        let registry = DefaultProvidableRegistry()
+        registry.register(Int.self)
+        var mock = PricingServiceMock()
+        mock.defaultProviderRegistry = registry
+        let store = Store(pricingService: mock.instance)
+        store.register("apple")
+        XCTAssertEqual(store.prices["apple"], .zero)
+    }
+
     func test_verifyInOrder() {
         let mock = PricingServiceMock()
         let store = Store(pricingService: mock.instance)
