@@ -239,7 +239,7 @@ when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
 XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 15)
 
 // Replace the calculation function
-when(mock.calculate(a: .any, b: .any)).thenReturn { * }
+when(mock.calculate(a: .any, b: .any)).thenReturn(*)
 XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 50)
 ```
 
