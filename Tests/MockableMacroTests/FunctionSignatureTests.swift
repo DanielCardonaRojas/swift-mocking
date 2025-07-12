@@ -29,8 +29,9 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            struct PricingServiceMock {
+            struct PricingServiceMock: DefaultProvider {
                 typealias Witness = PricingServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(price: adapt(\.price)))
                 }
@@ -57,8 +58,9 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) throws -> Int
             }
 
-            struct PricingServiceMock {
+            struct PricingServiceMock: DefaultProvider {
                 typealias Witness = PricingServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(price: adapt(\.price)))
                 }
@@ -85,8 +87,9 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) async -> Int
             }
 
-            struct PricingServiceMock {
+            struct PricingServiceMock: DefaultProvider {
                 typealias Witness = PricingServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(price: adapt(\.price)))
                 }
@@ -113,8 +116,9 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) async throws -> Int
             }
 
-            struct PricingServiceMock {
+            struct PricingServiceMock: DefaultProvider {
                 typealias Witness = PricingServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(price: adapt(\.price)))
                 }
@@ -143,8 +147,9 @@ final class FunctionSignatureTests: XCTestCase {
                 func post(to url: URL, data: Data) async throws
             }
 
-            struct FeedServiceMock {
+            struct FeedServiceMock: DefaultProvider {
                 typealias Witness = FeedServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(fetch: adapt(\.fetch), post: adapt(\.post)))
                 }
@@ -175,8 +180,9 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething() -> String
             }
 
-            struct ServiceMock {
+            struct ServiceMock: DefaultProvider {
                 typealias Witness = ServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
                 }
@@ -203,8 +209,9 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething(with value: Int)
             }
 
-            struct ServiceMock {
+            struct ServiceMock: DefaultProvider {
                 typealias Witness = ServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(doSomething: adapt(\.doSomething)))
                 }
@@ -231,8 +238,9 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething()
             }
 
-            struct ServiceMock {
+            struct ServiceMock: DefaultProvider {
                 typealias Witness = ServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
                 }

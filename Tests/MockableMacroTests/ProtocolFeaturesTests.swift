@@ -29,8 +29,9 @@ final class ProtocolFeaturesTests: XCTestCase {
                 func doSomething()
             }
 
-            struct ServiceMock {
+            struct ServiceMock: DefaultProvider {
                 typealias Witness = ServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
                 }
@@ -57,8 +58,9 @@ final class ProtocolFeaturesTests: XCTestCase {
                 var value: Int { get }
             }
 
-            struct MyServiceMock {
+            struct MyServiceMock: DefaultProvider {
                 typealias Witness = MyServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init())
                 }
@@ -81,8 +83,9 @@ final class ProtocolFeaturesTests: XCTestCase {
                 init(value: Int)
             }
 
-            struct MyServiceMock {
+            struct MyServiceMock: DefaultProvider {
                 typealias Witness = MyServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init())
                 }
@@ -105,8 +108,9 @@ final class ProtocolFeaturesTests: XCTestCase {
                 subscript(index: Int) -> String { get }
             }
 
-            struct MyServiceMock {
+            struct MyServiceMock: DefaultProvider {
                 typealias Witness = MyServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init())
                 }
@@ -131,8 +135,9 @@ final class ProtocolFeaturesTests: XCTestCase {
                 func item() -> Item
             }
 
-            struct MyServiceMock {
+            struct MyServiceMock: DefaultProvider {
                 typealias Witness = MyServiceWitness<Self>
+                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(item: adapt(\.item_)))
                 }
