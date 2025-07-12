@@ -22,6 +22,14 @@ public class DefaultProvidableRegistry {
 
     private init() {}
 
+    public func getDefaultForType<T>(_ type: T.Type) -> T? {
+        if let providableType = type as? any DefaultProvidable.Type,
+           registeredTypes.contains(ObjectIdentifier(providableType)) {
+            return providableType.defaultValue as? T
+        }
+        return nil
+    }
+
     /// Registers a `DefaultProvidable` type with the registry.
     ///
     /// Once registered, `Spy` instances can use the `defaultValue` of this type
