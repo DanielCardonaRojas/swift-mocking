@@ -54,8 +54,8 @@ public enum MockableGenerator {
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
                 members.append(MemberBlockItemSyntax(decl: typealiasDecl))
+                members.append(MemberBlockItemSyntax(decl: DeclSyntax("var defaultProviderRegistry: DefaultProvidableRegistry = .shared")))
                 members.append(MemberBlockItemSyntax(decl: instanceProperty))
-                members.append(MemberBlockItemSyntax(decl: DeclSyntax("public var defaultProviderRegistry: DefaultProvidableRegistry = .shared")))
                 members.append(contentsOf: spyMembers.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)
             }
