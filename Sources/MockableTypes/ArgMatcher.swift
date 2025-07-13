@@ -50,6 +50,9 @@ public struct ArgMatcher<Argument> {
         return .init { _ in true }
     }
 
+    public static func any(that predicate: @escaping (Argument) -> Bool) -> Self {
+        return .init(matcher: predicate)
+    }
 }
 
 public extension ArgMatcher where Argument: Equatable {

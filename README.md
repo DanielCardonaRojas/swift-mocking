@@ -23,20 +23,7 @@
 | **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. |
 | **Compact Code Generation** | Keeps the generated code as small and compact as possible. |
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
-
----
-
-## ⚙️ How it Works
-
-`SwiftMocking` builds upon the powerful [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) library to do the heavy lifting.
-
-1.  **Protocol Analysis with `@Witnessed`**: The `@Witnessed` macro from the [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) is responsible for analyzing the protocol and providing a mechanism for synthesizing protocol conformances.
-
-2.  **Mock Generation with `@Mockable`**: The `@Mockable` macro in this library then builds a witness value by passing in spies for each protocol requirement. These will power stubbing and spying of each protocol requirement.
-
-This two-step process also enables different workflows. For example, you can annotate the protocol in your main target and generate both the witness which is useful for things other than testing and choose to generate the mock only in your test target. Or you can decide to generate both things in your main target. This enables that the core logic of protocol analysis is separate from the mock generation, and that your project only contains the code it needs for each specific target.
-
-For a deeper understanding of protocol witnesses, please refer to the [swift-witness documentation](https://github.com/DanielCardonaRojas/ProtocolWitnessMacro?tab=readme-ov-file#-what-is-a-protocol-witness).
+| **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what code gets generated . |
 
 ---
 
@@ -49,53 +36,6 @@ To add `SwiftMocking` to your Swift package, add it as a dependency in your `Pac
 ```
 
 ---
-
-## 🚀 Example
-
-Here's an example of how to use `Mockable` to mock a `PricingService` protocol:
-
-```swift
-import SwiftMocking
-
-@Mockable
-protocol PricingService {
-    func price(for item: String) -> Int
-}
-```
-
-### Generated Code
-
-The `@Mockable` macro generates the following code:
-
-```swift
-struct PricingServiceMock {
-    typealias Witness = PricingServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(price: adapt(\.price)))
-    }
-    let price = Spy<String, None, Int>()
-    func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-        Interaction(item, spy: price)
-    }
-}
-```
-
-The `@Witnessed` macro (used by `@Mockable` under the hood) generates the protocol witness. This code would typically be placed in your main **application target**, allowing you to use it for dependency injection.
-
-```swift
-struct PricingServiceWitness<A> {
-    var price: (A, String) -> Int
-
-    struct Synthesized: PricingService {
-        let context: A
-        let witness: PricingServiceWitness
-
-        func price(for item: String) -> Int {
-            witness.price(context, item)
-        }
-    }
-}
-```
 
 ### Usage
 
@@ -147,6 +87,68 @@ final class StoreTests: XCTestCase {
 ```
 
 ---
+
+## ⚙️ How it Works
+
+`SwiftMocking` builds upon the powerful [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) library to do the heavy lifting. `swift-witness` generates a struct with closures representing the protocol requirements. It also generates the code necessary to synthesize a protocol conformance (witness + Self). `swift-testing` takes advantage of this since it now only needs to create an instance of the witness and provide the correct context (the set of method spies that should be invoked).
+
+1.  **Protocol Analysis with `@Witnessed`**: The `@Witnessed` macro from the [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) is responsible for analyzing the protocol and providing a mechanism for synthesizing protocol conformances.
+
+2.  **Mock Generation with `@Mockable`**: The `@Mockable` macro in this library then builds a witness value by passing in spies for each protocol requirement. These will power stubbing and spying of each protocol requirement.
+
+This two-step process also enables different workflows. For example, you can annotate the protocol in your main target and generate both the witness which is useful for things other than testing and choose to generate the mock only in your test target. Or you can decide to generate both things in your main target. This enables that the core logic of protocol analysis is separate from the mock generation, and that your project only contains the code it needs for each specific target.
+
+For a deeper understanding of protocol witnesses, please refer to the [swift-witness documentation](https://github.com/DanielCardonaRojas/ProtocolWitnessMacro?tab=readme-ov-file#-what-is-a-protocol-witness).
+
+---
+
+
+## 🚀 Example
+
+Here's an example of how to use `Mockable` to mock a `PricingService` protocol:
+
+```swift
+import SwiftMocking
+
+@Mockable
+protocol PricingService {
+    func price(for item: String) -> Int
+}
+```
+
+### Generated Code
+
+The `@Mockable` macro generates the following code:
+
+```swift
+struct PricingServiceMock {
+    typealias Witness = PricingServiceWitness<Self>
+    var instance: Witness.Synthesized {
+        .init(context: self, witness: .init(price: adapt(\.price)))
+    }
+    let price = Spy<String, None, Int>()
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
+        Interaction(item, spy: price)
+    }
+}
+```
+
+The `@Witnessed` macro (used by `@Mockable` under the hood) generates the protocol witness. This code would typically be placed in your main **application target**, allowing you to use it for dependency injection.
+
+```swift
+struct PricingServiceWitness<A> {
+    var price: (A, String) -> Int
+
+    struct Synthesized: PricingService {
+        let context: A
+        let witness: PricingServiceWitness
+
+        func price(for item: String) -> Int {
+            witness.price(context, item)
+        }
+    }
+}
+```
 
 ## ⚡️ Advanced Usage
 
@@ -219,26 +221,39 @@ verify(mock.processData()).throws(.error(MyError.self))
 ### Dynamic Stubbing with `thenReturn` Closure
 
 
-You can now define the return value of a stub dynamically based on the arguments passed to the mocked function. This is achieved by providing a closure to `thenReturn` that takes the arguments as input and returns the desired output.
+A powerful feature of `SwiftMocking` is that you can define the return value of a stub dynamically based on the arguments passed to the mocked function. This is achieved by providing a closure to `thenReturn`.
+
+It is common in other testing frameworks, that the parameters of this closure be of type Any. However, thanks to the use of parameter packs, the set of arguments here are concrete types, and are guaranteed to match the types of the function signature that is being stubbed. This essentially enables substituting the mocked function dynamically. For example:
 
 ```swift
-// Stub a method to return a value that depends on its input argument
-when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
-    return a + b
+@Mocked
+protocol Calculator {
+    func calculate(a: Int, b: Int) -> Int
 }
 
-// Now, when you call calculate, the return value will be the sum of a and b
-let result = mock.calculate(a: 5, b: 10) // result will be 15
+// Calculate summing
+when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
+    // Note that not casting is required. a and here are of type Int
+    return a + b
+}
+XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 15)
+
+// Replace the calculation function
+when(mock.calculate(a: .any, b: .any)).thenReturn(*)
+XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 50)
 ```
 
 ### Default Values for Unstubbed Methods
 
-`SwiftMocking` now provides a mechanism to return default values for methods that have not been explicitly stubbed. This is achieved through the `DefaultProvidable` protocol and the `DefaultProvidableRegistry`.
+`SwiftMocking` provides a mechanism to return default values for methods that have not been explicitly stubbed. This is achieved through the `DefaultProvidable` protocol and the `DefaultProvidableRegistry`.
 
 -   **`DefaultProvidable` Protocol**: Types conforming to this protocol can provide a `defaultValue`.
 -   **`DefaultProvidableRegistry`**: This registry manages and provides access to default values for registered `DefaultProvidable` types.
 
-Generated mock structs now conform to the `DefaultProvider` protocol, which includes a `defaultProviderRegistry` property. This allows `Spy` instances to automatically retrieve and return default values for unstubbed methods whose return types conform to `DefaultProvidable` and are registered with the `defaultProviderRegistry`.
+Without a mechanism to provide default/fallback values when a method is not stubbed, calling the mock would unavoidably result in a `fatalError`.
+
+For this reason, and to providide a less rigid testing experience, generated mocks include a `defaultProviderRegistry` property. This provides the flexibility of not having to stub every combination of arguments of a function, for certain return types.
+
 
 By default, common Swift types like `String`, `Int`, `Double`, `Float`, `Bool`, `Optional`, `Array`, `Dictionary`, and `Set` conform to `DefaultProvidable` and are automatically registered.
 

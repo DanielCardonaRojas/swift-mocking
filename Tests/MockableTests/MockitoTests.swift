@@ -95,6 +95,19 @@ final class MockitoTests: XCTestCase {
         XCTAssertEqual(data2, "async_data_2")
         verify(mock.fetchDataThrows(id: "success_id")).called(1)
     }
+
+    func testCalculate() {
+        let mockCalculator = CalculatorMock()
+        let even = ArgMatcher<Int>.any(that: { $0 % 2 == 0 })
+        let odd = ArgMatcher<Int>.any(that: { $0 % 2 == 1 })
+        when(mockCalculator.calculate(odd, odd)).thenReturn(*)
+        when(mockCalculator.calculate(even, even)).thenReturn(-)
+        when(mockCalculator.calculate(.any, .any)).thenReturn(+)
+
+        XCTAssertEqual(mockCalculator.instance.calculate(3, 3), 9, "Multiplies because both are odd")
+        XCTAssertEqual(mockCalculator.instance.calculate(3, 4), 7, "Sums because one is odd the other even")
+        XCTAssertEqual(mockCalculator.instance.calculate(18, 4), 14, "Subtracts because both are even")
+    }
 }
 
 class Store {
@@ -131,4 +144,9 @@ protocol PricingService {
 protocol DataFetcherService {
     func fetchData(id: String) async -> String
     func fetchDataThrows(id: String) async throws -> String
+}
+
+@Mockable([.includeWitness])
+protocol Calculator {
+    func calculate(_ a: Int, _ b: Int) -> Int
 }
