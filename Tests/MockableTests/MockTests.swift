@@ -24,4 +24,28 @@ final class MockTests: XCTestCase {
         let _: Spy<String, None, Void> = mock.myFunctionWithDifferentSignature
         XCTAssertEqual(mock.spies.count, 2)
     }
+
+    func testClear_ClearsAllSpies() {
+        let mock = Mock()
+        let spy1: Spy<Int, None, Void> = mock.myFunction
+        let spy2: Spy<String, None, Void> = mock.anotherFunction
+
+        spy1.when(calledWith: 42).thenReturn(())
+        spy1.call(42)
+
+        spy2.when(calledWith: "test").thenReturn(())
+        spy2.call("test")
+
+        XCTAssertEqual(spy1.invocations.count, 1)
+        XCTAssertEqual(spy2.invocations.count, 1)
+        XCTAssertEqual(spy1.stubs.count, 1)
+        XCTAssertEqual(spy2.stubs.count, 1)
+
+        mock.clear()
+
+        XCTAssertEqual(spy1.invocations.count, 0)
+        XCTAssertEqual(spy2.invocations.count, 0)
+        XCTAssertEqual(spy1.stubs.count, 0)
+        XCTAssertEqual(spy2.stubs.count, 0)
+    }
 }
