@@ -177,6 +177,12 @@ public class Spy<each Input, Effects: Effect, Output> {
     public func verifyThrows() -> Bool {
         verifyThrows(.anyError())
     }
+
+    /// Clear stubs and invocations,  leaving the spy in a fresh state.
+    public func clear() {
+        stubs = []
+        invocations = []
+    }
 }
 
 // MARK: Throwing
