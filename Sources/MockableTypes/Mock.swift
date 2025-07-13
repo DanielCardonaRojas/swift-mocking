@@ -19,5 +19,9 @@ open class Mock {
             return spy
         }
     }
+
+    public func clear() {
+        spies.values.forEach { $0.clear() }
+    }
 }
 
