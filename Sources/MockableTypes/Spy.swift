@@ -6,6 +6,12 @@
 //
 import Foundation
 
+protocol AnySpy {
+    var defaultProviderRegistry: DefaultProvidableRegistry? { get set }
+    var invocationCount: Int { get }
+    func clear()
+}
+
 /// A ``Spy`` is a type of test double that captures calls to its methods, allowing you to inspect them later.
 ///
 /// You can use a ``Spy`` to verify that a method was called with specific arguments, or to check how many times it was called.
@@ -18,6 +24,10 @@ public class Spy<each Input, Effects: Effect, Output> {
     public private(set) var invocations: [Invocation<repeat each Input>] = []
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
     var defaultProviderRegistry: DefaultProvidableRegistry?
+
+    var invocationCount: Int {
+        invocations.count
+    }
 
     /// Initializes a new `Spy` instance.
     public init() { }
