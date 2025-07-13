@@ -19,7 +19,7 @@ protocol AnySpy {
 ///
 /// You don't create spies manually. Instead, you use the `@Mockable` macro to generate a spy for a protocol.
 /// The generated mock will have a `context` property that provides access to the spy.
-public class Spy<each Input, Effects: Effect, Output> {
+public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     public private(set) var invocations: [Invocation<repeat each Input>] = []
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
