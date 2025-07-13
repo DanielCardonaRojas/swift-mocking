@@ -268,7 +268,13 @@ public enum SpyGenerator {
             for name in parameterNames {
                 LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: name))
             }
-            LabeledExprSyntax(label: "spy", expression: DeclReferenceExprSyntax(baseName: .identifier(spyPropertyName)))
+            LabeledExprSyntax(
+                label: "spy",
+                expression: MemberAccessExprSyntax(
+                    base: SuperExprSyntax(),
+                    name: .identifier(spyPropertyName)
+                )
+            )
         }
 
         return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(interactionCall)))])
