@@ -16,6 +16,8 @@ jobs:
     runs-on: macos-latest
 
     steps:
+    - name: Select Xcode version
+      run: sudo xcode-select -s /Applications/Xcode_16.2.app
     - uses: actions/checkout@v4
     - name: Select Swift Version
       uses: swift-actions/setup-swift@v2
