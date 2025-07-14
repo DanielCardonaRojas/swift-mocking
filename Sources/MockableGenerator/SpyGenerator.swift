@@ -7,7 +7,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-public enum SpyGenerator {
+public extension MockableGenerator {
     /// Processes a protocol declaration to generate a spy struct.
     ///
     /// This function takes a `ProtocolDeclSyntax` and generates a corresponding spy struct that conforms to the protocol.
@@ -28,14 +28,13 @@ public enum SpyGenerator {
     ///     }
     /// }
     /// ```
-    public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
+    public static func makeInteractions(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
         var members = [DeclSyntax]()
         var functionNames = [String: Int]()
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let (spyProperty, stubFunction) = try processFunc(funcDecl, &functionNames)
-                members.append(spyProperty)
+                let (_, stubFunction) = try processFunc(funcDecl, &functionNames)
                 members.append(stubFunction)
             }
         }
@@ -103,7 +102,7 @@ public enum SpyGenerator {
     /// Extracts the effect type (throws, async, etc.) from a function declaration.
     ///
     /// For example, for `async throws -> Int`, this will return `AsyncThrows`.
-    private static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> String {
+    static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> String {
         let effects = funcDecl.signature.effectSpecifiers
         if effects?.throwsClause != nil && effects?.asyncSpecifier != nil {
             return "AsyncThrows"
