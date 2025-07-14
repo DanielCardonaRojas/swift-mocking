@@ -48,7 +48,7 @@ public enum MockableGenerator {
         let instanceProperty = makeInstanceComputedProperty(protocolDecl: protocolDecl)
 
         // Create the Mock struct
-        let mockStruct = StructDeclSyntax(
+        let mockStruct = ClassDeclSyntax(
             name: TokenSyntax.identifier(mockName),
             inheritanceClause: InheritanceClauseSyntax(inheritedTypes: [InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("DefaultProvider")))]),
             memberBlock: MemberBlockSyntax {
