@@ -43,7 +43,7 @@ public enum MockableGenerator {
         }
 
         // Generate the spy properties and methods using SpyGenerator
-        let spyMembers = try SpyGenerator.processProtocol(protocolDecl: protocolDecl)
+        let spyMembers = try makeInteractions(protocolDecl: protocolDecl)
         let typealiasDecl = makeTypealiasDecl(protocolName: protocolName, mockName: mockName)
         let instanceProperty = makeInstanceComputedProperty(protocolDecl: protocolDecl)
 
