@@ -29,7 +29,7 @@ final class ProtocolFeaturesTests: XCTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: DefaultProvider {
+            class ServiceMock: Mock, DefaultProvider {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -58,7 +58,7 @@ final class ProtocolFeaturesTests: XCTestCase {
                 var value: Int { get }
             }
 
-            class MyServiceMock: DefaultProvider {
+            class MyServiceMock: Mock, DefaultProvider {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -83,7 +83,7 @@ final class ProtocolFeaturesTests: XCTestCase {
                 init(value: Int)
             }
 
-            class MyServiceMock: DefaultProvider {
+            class MyServiceMock: Mock, DefaultProvider {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -108,7 +108,7 @@ final class ProtocolFeaturesTests: XCTestCase {
                 subscript(index: Int) -> String { get }
             }
 
-            class MyServiceMock: DefaultProvider {
+            class MyServiceMock: Mock, DefaultProvider {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -135,7 +135,7 @@ final class ProtocolFeaturesTests: XCTestCase {
                 func item() -> Item
             }
 
-            class MyServiceMock: DefaultProvider {
+            class MyServiceMock: Mock, DefaultProvider {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {

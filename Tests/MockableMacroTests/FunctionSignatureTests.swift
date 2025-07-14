@@ -29,7 +29,7 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: DefaultProvider {
+            class PricingServiceMock: Mock, DefaultProvider {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -58,7 +58,7 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) throws -> Int
             }
 
-            class PricingServiceMock: DefaultProvider {
+            class PricingServiceMock: Mock, DefaultProvider {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -87,7 +87,7 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) async -> Int
             }
 
-            class PricingServiceMock: DefaultProvider {
+            class PricingServiceMock: Mock, DefaultProvider {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -116,7 +116,7 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) async throws -> Int
             }
 
-            class PricingServiceMock: DefaultProvider {
+            class PricingServiceMock: Mock, DefaultProvider {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -147,7 +147,7 @@ final class FunctionSignatureTests: XCTestCase {
                 func post(to url: URL, data: Data) async throws
             }
 
-            class FeedServiceMock: DefaultProvider {
+            class FeedServiceMock: Mock, DefaultProvider {
                 typealias Witness = FeedServiceWitness<FeedServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -180,7 +180,7 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething() -> String
             }
 
-            class ServiceMock: DefaultProvider {
+            class ServiceMock: Mock, DefaultProvider {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -209,7 +209,7 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething(with value: Int)
             }
 
-            class ServiceMock: DefaultProvider {
+            class ServiceMock: Mock, DefaultProvider {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
@@ -238,7 +238,7 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: DefaultProvider {
+            class ServiceMock: Mock, DefaultProvider {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
