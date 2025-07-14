@@ -24,7 +24,7 @@ final class BasicTests: XCTestCase {
             }
             """
         } expansion: {
-            #"""
+            """
             protocol PricingService {
                 func price(_ item: String) -> Int
             }
@@ -33,14 +33,14 @@ final class BasicTests: XCTestCase {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(price: adapt(\.price)))
+                    .init(context: self, witness: .init(price: adaptNone(self, super.price)))
                 }
                 let price = Spy<String, None, Int>()
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-                    Interaction(item, spy: price)
+                    Interaction(item, spy: super.price)
                 }
             }
-            """#
+            """
         }
     }
 }
