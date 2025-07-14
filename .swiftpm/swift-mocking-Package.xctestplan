@@ -1,0 +1,31 @@
+{
+  "configurations" : [
+    {
+      "id" : "9679B2D2-4654-47EB-A0DD-58DC3E2926EC",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "MockableMacroTests",
+        "name" : "MockableMacroTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "MockableTests",
+        "name" : "MockableTests"
+      }
+    }
+  ],
+  "version" : 1
+}
