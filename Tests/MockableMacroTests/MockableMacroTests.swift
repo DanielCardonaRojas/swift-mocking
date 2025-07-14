@@ -34,8 +34,8 @@ final class MockableMacroTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            struct PricingServiceMock: DefaultProvider {
-                typealias Witness = PricingServiceWitness<Self>
+            class PricingServiceMock: DefaultProvider {
+                typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(price: adapt(\.price)))
