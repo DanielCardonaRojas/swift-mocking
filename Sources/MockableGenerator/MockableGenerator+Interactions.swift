@@ -7,7 +7,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-public enum SpyGenerator {
+public extension MockableGenerator {
     /// Processes a protocol declaration to generate a spy struct.
     ///
     /// This function takes a `ProtocolDeclSyntax` and generates a corresponding spy struct that conforms to the protocol.
@@ -28,7 +28,7 @@ public enum SpyGenerator {
     ///     }
     /// }
     /// ```
-    public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
+    static func makeInteractions(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
         var members = [DeclSyntax]()
         var functionNames = [String: Int]()
 
