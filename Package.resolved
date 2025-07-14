@@ -59,8 +59,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/DanielCardonaRojas/swift-witness",
       "state" : {
-        "branch" : "main",
-        "revision" : "9f70c28a9bcbe897894560b88d08e97561fe45ec"
+        "branch" : "swift-syntax-601",
+        "revision" : "9c7d3f231c53352cf2c43d741226b3fbe365ac52"
       }
     },
     {
