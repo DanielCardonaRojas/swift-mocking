@@ -29,8 +29,8 @@ final class MacroOptionsTests: XCTestCase {
                 func doSomething()
             }
 
-            struct MockMyService: DefaultProvider {
-                typealias Witness = MyServiceWitness<Self>
+            class MockMyService: DefaultProvider {
+                typealias Witness = MyServiceWitness<MockMyService>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
@@ -58,8 +58,8 @@ final class MacroOptionsTests: XCTestCase {
                 func doSomething()
             }
 
-            struct MyServiceMock: DefaultProvider {
-                typealias Witness = MyServiceWitness<Self>
+            class MyServiceMock: DefaultProvider {
+                typealias Witness = MyServiceWitness<MyServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
