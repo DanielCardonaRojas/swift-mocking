@@ -37,7 +37,7 @@ extension MockableGenerator {
                     callee: DeclReferenceExprSyntax(baseName: .identifier("adapt\(effectType)"))
                 ) {
                     LabeledExprSyntax(
-                        expression: DeclReferenceExprSyntax(baseName: .keyword(.self))
+                        expression: DeclReferenceExprSyntax(baseName: .identifier("self"))
                     )
                     LabeledExprSyntax(
                         expression: MemberAccessExprSyntax(
