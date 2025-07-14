@@ -178,10 +178,10 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething_)))
+                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething)))
                 }
                 func doSomething() -> Interaction<None, String> {
-                    Interaction(spy: super.doSomething_)
+                    Interaction(spy: super.doSomething)
                 }
             }
             """
@@ -234,10 +234,10 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething_)))
+                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething)))
                 }
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: super.doSomething_)
+                    Interaction(spy: super.doSomething)
                 }
             }
             """

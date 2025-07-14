@@ -33,10 +33,10 @@ final class ProtocolFeaturesTests: XCTestCase {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething_)))
+                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething)))
                 }
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: super.doSomething_)
+                    Interaction(spy: super.doSomething)
                 }
             }
             """
@@ -138,10 +138,10 @@ final class ProtocolFeaturesTests: XCTestCase {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(item: adaptNone(self, super.item_)))
+                    .init(context: self, witness: .init(item: adaptNone(self, super.item)))
                 }
                 func item() -> Interaction<None, Item> {
-                    Interaction(spy: super.item_)
+                    Interaction(spy: super.item)
                 }
             }
             """
