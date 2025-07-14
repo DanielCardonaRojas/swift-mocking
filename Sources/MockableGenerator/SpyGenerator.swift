@@ -28,7 +28,7 @@ public extension MockableGenerator {
     ///     }
     /// }
     /// ```
-    public static func makeInteractions(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
+    static func makeInteractions(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
         var members = [DeclSyntax]()
         var functionNames = [String: Int]()
 
