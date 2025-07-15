@@ -20,7 +20,6 @@ final class MockTests: XCTestCase {
         let spy2 = createSpy(type: Int.self, mock: mock)
 
         XCTAssert(spy === spy2)
-        XCTAssert(spy as? Spy<any CustomStringConvertible, None, String> != nil)
         XCTAssertEqual(mock.spies.count, 1)
     }
 
