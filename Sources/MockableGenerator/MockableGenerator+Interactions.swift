@@ -103,7 +103,7 @@ public extension MockableGenerator {
     /// Extracts the effect type (throws, async, etc.) from a function declaration.
     ///
     /// For example, for `async throws -> Int`, this will return `AsyncThrows`.
-    private static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> String {
+    static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> String {
         let effects = funcDecl.signature.effectSpecifiers
         if effects?.throwsClause != nil && effects?.asyncSpecifier != nil {
             return "AsyncThrows"
@@ -268,7 +268,15 @@ public extension MockableGenerator {
             for name in parameterNames {
                 LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: name))
             }
-            LabeledExprSyntax(label: "spy", expression: DeclReferenceExprSyntax(baseName: .identifier(spyPropertyName)))
+
+            LabeledExprSyntax(
+                label: "spy",
+                expression: MemberAccessExprSyntax(
+                    base: SuperExprSyntax(),
+                    name: .identifier(spyPropertyName)
+                )
+            )
+
         }
 
         return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(interactionCall)))])
