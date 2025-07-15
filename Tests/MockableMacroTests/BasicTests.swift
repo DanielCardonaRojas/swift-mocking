@@ -29,9 +29,8 @@ final class BasicTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mock, DefaultProvider {
+            class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,

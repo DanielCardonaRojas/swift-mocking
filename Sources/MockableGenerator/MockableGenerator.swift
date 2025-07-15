@@ -52,15 +52,12 @@ public enum MockableGenerator {
             name: TokenSyntax.identifier(mockName),
             inheritanceClause: InheritanceClauseSyntax(inheritedTypes: [
                 InheritedTypeSyntax(
-                    type: IdentifierTypeSyntax(name: .identifier("Mock")),
-                    trailingComma: .commaToken()
-                ),
-                InheritedTypeSyntax(type: IdentifierTypeSyntax(name: .identifier("DefaultProvider")))
+                    type: IdentifierTypeSyntax(name: .identifier("Mock"))
+                )
             ]),
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
                 members.append(MemberBlockItemSyntax(decl: typealiasDecl))
-                members.append(MemberBlockItemSyntax(decl: DeclSyntax("var defaultProviderRegistry: DefaultProvidableRegistry = .shared")))
                 members.append(MemberBlockItemSyntax(decl: instanceProperty))
                 members.append(contentsOf: spyMembers.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)

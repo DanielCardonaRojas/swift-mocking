@@ -15,7 +15,8 @@
 /// for a specific method are recorded in the same spy instance.
 ///
 @dynamicMemberLookup
-open class Mock {
+open class Mock: DefaultProvider {
+    public var defaultProviderRegistry: DefaultProvidableRegistry = .shared
     public init() { }
     private(set) var spies: [String: AnySpy] = [:]
 
