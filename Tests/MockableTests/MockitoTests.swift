@@ -108,6 +108,17 @@ final class MockitoTests: XCTestCase {
         XCTAssertEqual(mockCalculator.instance.calculate(3, 4), 7, "Sums because one is odd the other even")
         XCTAssertEqual(mockCalculator.instance.calculate(18, 4), 14, "Subtracts because both are even")
     }
+
+    struct TestEvent: Identifiable {
+        let id: UUID = UUID()
+    }
+//    func testAnalyticsEvent() {
+//        let mock = AnalyticsProtocolMock()
+//        let event = TestEvent()
+//        mock.instance.logEvent(event)
+//        verify(mock.logEvent(.any(TestEvent.self))).called()
+//    }
+
 }
 
 class Store {
@@ -150,3 +161,40 @@ protocol DataFetcherService {
 protocol Calculator {
     func calculate(_ a: Int, _ b: Int) -> Int
 }
+
+//@Mockable([.includeWitness])
+public protocol AnalyticsProtocol: Sendable {
+    func logEvent<E: Identifiable>(_ event: E)
+}
+public struct AnalyticsProtocolWitness<A> {
+    public let logEvent: (A, any Identifiable) -> Void
+
+    public init(
+        logEvent: @escaping (A, any Identifiable) -> Void
+    ) {
+        self.logEvent = logEvent
+    }
+    public struct Synthesized: AnalyticsProtocol {
+        public let context: A
+        public let witness: AnalyticsProtocolWitness
+        public func logEvent<E: Identifiable>(_ event: E) -> Void {
+            witness.logEvent(context, event)
+        }
+    }
+}
+
+class AnalyticsProtocolMock: Mock {
+    typealias Witness = AnalyticsProtocolWitness<AnalyticsProtocolMock>
+    var instance: Witness.Synthesized {
+        .init(
+            context: self,
+            witness: .init(
+                logEvent: adaptNone(self, super.logEvent)
+            )
+        )
+    }
+    func logEvent<E: Identifiable>(_ event: ArgMatcher<E>) -> Interaction<E, None, Void> {
+        Interaction(event, spy: super.logEvent)
+    }
+}
+

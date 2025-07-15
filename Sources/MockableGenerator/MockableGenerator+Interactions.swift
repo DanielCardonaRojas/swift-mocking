@@ -65,7 +65,9 @@ public extension MockableGenerator {
             outputType: outputType,
             effectType: effectType,
             parameterNames: parameterNames,
-            parameterLabels: parameterLabels
+            parameterLabels: parameterLabels,
+            genericParameterClause: funcDecl.genericParameterClause,
+            genericWhereClause: funcDecl.genericWhereClause
         )
 
         return DeclSyntax(stubFunction)
@@ -150,20 +152,32 @@ public extension MockableGenerator {
     /// For example, for a function `doSomething(with value: String) -> Int`, this will generate:
     /// ```swift
     /// func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
-    ///     Interaction(value, spy: doSomething)
+    ///     Interaction(value, spy: super.doSomething)
     /// }
     /// ```
-    private static func createStubFunction(name: String, spyPropertyName: String, inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String, parameterNames: [TokenSyntax], parameterLabels: [TokenSyntax?]) throws -> FunctionDeclSyntax {
+    private static func createStubFunction(
+        name: String,
+        spyPropertyName: String,
+        inputTypes: [TypeSyntax],
+        outputType: TypeSyntax,
+        effectType: String,
+        parameterNames: [TokenSyntax],
+        parameterLabels: [TokenSyntax?],
+        genericParameterClause: GenericParameterClauseSyntax?,
+        genericWhereClause: GenericWhereClauseSyntax?
+    ) throws -> FunctionDeclSyntax {
         let parameterList = createParameterList(inputTypes: inputTypes, parameterNames: parameterNames, parameterLabels: parameterLabels)
         let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType)
         let body = createFunctionBody(spyPropertyName: spyPropertyName, parameterNames: parameterNames)
 
         return FunctionDeclSyntax(
             name: TokenSyntax.identifier(name),
+            genericParameterClause: genericParameterClause,
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax { parameterList },
                 returnClause: returnType
             ),
+            genericWhereClause: genericWhereClause,
             body: body
         )
     }
