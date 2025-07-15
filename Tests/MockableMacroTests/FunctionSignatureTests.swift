@@ -301,7 +301,7 @@ final class FunctionSignatureTests: XCTestCase {
                         )
                     )
                 }
-                func logEvent<E: Identifiable>(_ event: ArgMatcher<E>) -> Interaction<E, None, Bool> {
+                func logEvent(_ event: ArgMatcher<any Identifiable>) -> Interaction<any Identifiable, None, Bool> {
                     Interaction(event, spy: super.logEvent)
                 }
             }
