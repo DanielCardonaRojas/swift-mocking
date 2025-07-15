@@ -166,13 +166,12 @@ public extension MockableGenerator {
         genericParameterClause: GenericParameterClauseSyntax?,
         genericWhereClause: GenericWhereClauseSyntax?
     ) throws -> FunctionDeclSyntax {
-        let parameterList = createParameterList(inputTypes: inputTypes, parameterNames: parameterNames, parameterLabels: parameterLabels)
-        let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType)
+        let parameterList = createParameterList(inputTypes: inputTypes, parameterNames: parameterNames, parameterLabels: parameterLabels, genericParameterClause: genericParameterClause)
+        let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType, genericParameterClause: genericParameterClause)
         let body = createFunctionBody(spyPropertyName: spyPropertyName, parameterNames: parameterNames)
 
         return FunctionDeclSyntax(
             name: TokenSyntax.identifier(name),
-            genericParameterClause: genericParameterClause,
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax { parameterList },
                 returnClause: returnType
@@ -188,8 +187,18 @@ public extension MockableGenerator {
     /// ```swift
     /// (with value: ArgMatcher<String>)
     /// ```
-    private static func createParameterList(inputTypes: [TypeSyntax], parameterNames: [TokenSyntax], parameterLabels: [TokenSyntax?]) -> FunctionParameterListSyntax {
+    private static func createParameterList(inputTypes: [TypeSyntax], parameterNames: [TokenSyntax], parameterLabels: [TokenSyntax?], genericParameterClause: GenericParameterClauseSyntax?) -> FunctionParameterListSyntax {
         var parameters = [FunctionParameterSyntax]()
+        // Map generic parameter names to their first type constraint
+        var genericParameterConstraints: [String: TypeSyntax] = [:]
+        if let genericParams = genericParameterClause?.parameters {
+            for param in genericParams {
+                if let constrainedType = param.inheritedType {
+                    genericParameterConstraints[param.name.text] = constrainedType
+                }
+            }
+        }
+
         for (index, type) in inputTypes.enumerated() {
             let parameterName = parameterNames[index]
             let parameterLabel = parameterLabels[index]
@@ -207,6 +216,21 @@ public extension MockableGenerator {
                 secondName = parameterName
             }
 
+            let argMatcherType: TypeSyntax
+            if let identifierType = type.as(IdentifierTypeSyntax.self),
+               let constraint = genericParameterConstraints[identifierType.name.text] {
+                // This is a generic parameter with a constraint, use 'any Constraint'
+                argMatcherType = TypeSyntax(
+                    SomeOrAnyTypeSyntax(
+                        someOrAnySpecifier: .keyword(.any),
+                        constraint: constraint
+                    )
+                )
+            } else {
+                // Not a generic parameter or no constraint, use the original type
+                argMatcherType = type
+            }
+
             let param = FunctionParameterSyntax(
                 firstName: parameterLabel ?? .wildcardToken(),
                 secondName: secondName,
@@ -214,7 +238,7 @@ public extension MockableGenerator {
                 type: TypeSyntax(
                     IdentifierTypeSyntax(
                         name: .identifier("ArgMatcher"),
-                        genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: type) }
+                        genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: argMatcherType) }
                     )
                 )
             )
@@ -229,10 +253,34 @@ public extension MockableGenerator {
     /// ```swift
     /// -> Interaction<String, None, Int>
     /// ```
-    private static func createInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String) -> ReturnClauseSyntax {
+    private static func createInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String, genericParameterClause: GenericParameterClauseSyntax?) -> ReturnClauseSyntax {
         var genericArgs = [GenericArgumentSyntax]()
+        // Map generic parameter names to their first type constraint
+        var genericParameterConstraints: [String: TypeSyntax] = [:]
+        if let genericParams = genericParameterClause?.parameters {
+            for param in genericParams {
+                if let constrainedType = param.inheritedType {
+                    genericParameterConstraints[param.name.text] = constrainedType
+                }
+            }
+        }
+
         for inputType in inputTypes {
-            genericArgs.append(GenericArgumentSyntax(argument: inputType))
+            let argType: TypeSyntax
+            if let identifierType = inputType.as(IdentifierTypeSyntax.self),
+               let constraint = genericParameterConstraints[identifierType.name.text] {
+                // This is a generic parameter with a constraint, use 'any Constraint'
+                argType = TypeSyntax(
+                    SomeOrAnyTypeSyntax(
+                        someOrAnySpecifier: .keyword(.any),
+                        constraint: constraint
+                    )
+                )
+            } else {
+                // Not a generic parameter or no constraint, use the original type
+                argType = inputType
+            }
+            genericArgs.append(GenericArgumentSyntax(argument: argType))
         }
         genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType)))
         genericArgs.append(GenericArgumentSyntax(argument: outputType))
