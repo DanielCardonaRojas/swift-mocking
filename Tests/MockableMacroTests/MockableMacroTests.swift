@@ -38,7 +38,12 @@ final class MockableMacroTests: XCTestCase {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(price: adaptNone(self, super.price)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            price: adaptNone(self, super.price)
+                        )
+                    )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)

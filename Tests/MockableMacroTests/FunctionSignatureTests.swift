@@ -33,7 +33,12 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(price: adaptNone(self, super.price)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            price: adaptNone(self, super.price)
+                        )
+                    )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)
@@ -61,7 +66,12 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(price: adaptThrows(self, super.price)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            price: adaptThrows(self, super.price)
+                        )
+                    )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
                     Interaction(item, spy: super.price)
@@ -89,7 +99,12 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(price: adaptAsync(self, super.price)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            price: adaptAsync(self, super.price)
+                        )
+                    )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Async, Int> {
                     Interaction(item, spy: super.price)
@@ -117,7 +132,12 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(price: adaptAsyncThrows(self, super.price)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            price: adaptAsyncThrows(self, super.price)
+                        )
+                    )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncThrows, Int> {
                     Interaction(item, spy: super.price)
@@ -147,7 +167,13 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = FeedServiceWitness<FeedServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(fetch: adaptAsyncThrows(self, super.fetch), post: adaptAsyncThrows(self, super.post)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            fetch: adaptAsyncThrows(self, super.fetch),
+                            post: adaptAsyncThrows(self, super.post)
+                        )
+                    )
                 }
                 func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
                     Interaction(url, spy: super.fetch)
@@ -178,7 +204,12 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            doSomething: adaptNone(self, super.doSomething)
+                        )
+                    )
                 }
                 func doSomething() -> Interaction<None, String> {
                     Interaction(spy: super.doSomething)
@@ -206,7 +237,12 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            doSomething: adaptNone(self, super.doSomething)
+                        )
+                    )
                 }
                 func doSomething(with value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
                     Interaction(value, spy: super.doSomething)
@@ -234,7 +270,12 @@ final class FunctionSignatureTests: XCTestCase {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething)))
+                    .init(
+                        context: self,
+                        witness: .init(
+                            doSomething: adaptNone(self, super.doSomething)
+                        )
+                    )
                 }
                 func doSomething() -> Interaction<None, Void> {
                     Interaction(spy: super.doSomething)

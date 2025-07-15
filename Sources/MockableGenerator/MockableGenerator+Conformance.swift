@@ -48,6 +48,7 @@ extension MockableGenerator {
                 }
 
                 LabeledExprSyntax(
+                    leadingTrivia: .newline,
                     label: .identifier(funcName),
                     colon: .colonToken(trailingTrivia: .space),
                     expression: adaptCall
@@ -59,21 +60,31 @@ extension MockableGenerator {
             calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
             leftParen: .leftParenToken(),
             arguments: witnessArguments,
-            rightParen: .rightParenToken()
+            rightParen: .rightParenToken(leadingTrivia: .newline)
         )
 
         let contextArgument = DeclReferenceExprSyntax(baseName: .keyword(.`self`))
 
         let outerInitArguments = LabeledExprListSyntax {
-            LabeledExprSyntax(label: "context", colon: .colonToken(trailingTrivia: .space), expression: contextArgument)
-            LabeledExprSyntax(label: "witness", colon: .colonToken(trailingTrivia: .space), expression: witnessInit)
+            LabeledExprSyntax(
+                leadingTrivia: .newline,
+                label: "context",
+                colon: .colonToken(trailingTrivia: .space),
+                expression: contextArgument
+            )
+            LabeledExprSyntax(
+                leadingTrivia: .newline,
+                label: "witness",
+                colon: .colonToken(trailingTrivia: .space),
+                expression: witnessInit
+            )
         }
 
         let outerInit = FunctionCallExprSyntax(
             calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
             leftParen: .leftParenToken(),
             arguments: outerInitArguments,
-            rightParen: .rightParenToken()
+            rightParen: .rightParenToken(leadingTrivia: .newline)
         )
 
         let getterBody = CodeBlockSyntax(
