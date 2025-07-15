@@ -108,6 +108,22 @@ final class MockitoTests: XCTestCase {
         XCTAssertEqual(mockCalculator.instance.calculate(3, 4), 7, "Sums because one is odd the other even")
         XCTAssertEqual(mockCalculator.instance.calculate(18, 4), 14, "Subtracts because both are even")
     }
+
+    func testAnalyticsEvent() {
+        struct TestEvent: Identifiable {
+            let id: UUID = UUID()
+        }
+
+        struct OtherEvent: Identifiable {
+            let id: UUID = UUID()
+        }
+        let mock = AnalyticsProtocolMock()
+        let event = TestEvent()
+        when(mock.logEvent(.any)).thenReturn(())
+        mock.instance.logEvent(event)
+        verify(mock.logEvent(.as(TestEvent.self))).called()
+    }
+
 }
 
 class Store {
@@ -150,3 +166,9 @@ protocol DataFetcherService {
 protocol Calculator {
     func calculate(_ a: Int, _ b: Int) -> Int
 }
+
+@Mockable([.includeWitness])
+public protocol AnalyticsProtocol: Sendable {
+    func logEvent<E: Identifiable>(_ event: E)
+}
+

@@ -27,7 +27,11 @@
 /// ```
 public struct ArgMatcher<Argument> {
     let matcher: (Argument) -> Bool
-    
+
+    public init(matcher: @escaping (Argument) -> Bool) {
+        self.matcher = matcher
+    }
+
     /// Calls the underlying matcher function with the given value.
     /// - Parameter value: The argument value to match against.
     /// - Returns: `true` if the value matches, `false` otherwise.
@@ -56,6 +60,19 @@ public struct ArgMatcher<Argument> {
 
     public static func any(that predicate: @escaping (Argument) -> Bool) -> Self {
         return .init(matcher: predicate)
+    }
+
+    /// A matcher that matches an argument if it can be cast to a specific type.
+    ///
+    /// This is useful when dealing with protocols or superclasses, and you want to match a specific concrete type.
+    /// For example casting an argument of type: `any CustomStringConvertible` to  `String`.
+    ///
+    /// - Parameter type: The type to check for casting.
+    /// - Returns: An `ArgMatcher` that matches if the argument can be cast to the given type.
+    public static func `as`<T>(_ type: T.Type) -> Self {
+        .init(matcher: { argument in
+            (argument as? T) != nil
+        })
     }
 }
 

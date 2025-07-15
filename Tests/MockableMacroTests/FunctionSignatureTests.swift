@@ -276,4 +276,36 @@ final class FunctionSignatureTests: XCTestCase {
             """
         }
     }
+
+    func testGenericParameter() {
+        assertMacro {
+            """
+            @Mockable
+            public protocol AnalyticsProtocol: Sendable {
+                func logEvent<E: Identifiable>(_ event: E) -> Bool
+            }
+            """
+        } expansion: {
+            """
+            public protocol AnalyticsProtocol: Sendable {
+                func logEvent<E: Identifiable>(_ event: E) -> Bool
+            }
+
+            class AnalyticsProtocolMock: Mock {
+                typealias Witness = AnalyticsProtocolWitness<AnalyticsProtocolMock>
+                var instance: Witness.Synthesized {
+                    .init(
+                        context: self,
+                        witness: .init(
+                            logEvent: adaptNone(self, super.logEvent)
+                        )
+                    )
+                }
+                func logEvent(_ event: ArgMatcher<any Identifiable>) -> Interaction<any Identifiable, None, Bool> {
+                    Interaction(event, spy: super.logEvent)
+                }
+            }
+            """
+        }
+    }
 }
