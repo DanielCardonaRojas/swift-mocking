@@ -24,7 +24,7 @@ final class ProtocolFeaturesTests: XCTestCase {
             }
             """
         } expansion: {
-            #"""
+            """
             public protocol Service {
                 func doSomething()
             }
@@ -33,14 +33,14 @@ final class ProtocolFeaturesTests: XCTestCase {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething_)))
                 }
                 let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething_)
+                    Interaction(spy: super.doSomething_)
                 }
             }
-            """#
+            """
         }
     }
 
@@ -129,7 +129,7 @@ final class ProtocolFeaturesTests: XCTestCase {
             }
             """
         } expansion: {
-            #"""
+            """
             protocol MyService {
                 associatedtype Item
                 func item() -> Item
@@ -139,14 +139,14 @@ final class ProtocolFeaturesTests: XCTestCase {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(item: adapt(\.item_)))
+                    .init(context: self, witness: .init(item: adaptNone(self, super.item_)))
                 }
                 let item_ = Spy<None, Item>()
                 func item() -> Interaction<None, Item> {
-                    Interaction(spy: item_)
+                    Interaction(spy: super.item_)
                 }
             }
-            """#
+            """
         }
     }
 }

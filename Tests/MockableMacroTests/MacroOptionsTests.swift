@@ -24,7 +24,7 @@ final class MacroOptionsTests: XCTestCase {
             }
             """
         } expansion: {
-            #"""
+            """
             protocol MyService {
                 func doSomething()
             }
@@ -33,14 +33,14 @@ final class MacroOptionsTests: XCTestCase {
                 typealias Witness = MyServiceWitness<MockMyService>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething_)))
                 }
                 let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething_)
+                    Interaction(spy: super.doSomething_)
                 }
             }
-            """#
+            """
         }
     }
 
@@ -53,7 +53,7 @@ final class MacroOptionsTests: XCTestCase {
             }
             """
         } expansion: {
-            #"""
+            """
             protocol MyService {
                 func doSomething()
             }
@@ -62,14 +62,14 @@ final class MacroOptionsTests: XCTestCase {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
-                    .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+                    .init(context: self, witness: .init(doSomething: adaptNone(self, super.doSomething_)))
                 }
                 let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething_)
+                    Interaction(spy: super.doSomething_)
                 }
             }
-            """#
+            """
         }
     }
 }
