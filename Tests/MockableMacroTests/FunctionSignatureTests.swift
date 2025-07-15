@@ -37,7 +37,7 @@ final class FunctionSignatureTests: XCTestCase {
                 }
                 let price = Spy<String, None, Int>()
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-                    Interaction(item, spy: price)
+                    Interaction(item, spy: super.price)
                 }
             }
             """#
@@ -66,7 +66,7 @@ final class FunctionSignatureTests: XCTestCase {
                 }
                 let price = Spy<String, Throws, Int>()
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
-                    Interaction(item, spy: price)
+                    Interaction(item, spy: super.price)
                 }
             }
             """#
@@ -95,7 +95,7 @@ final class FunctionSignatureTests: XCTestCase {
                 }
                 let price = Spy<String, Async, Int>()
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Async, Int> {
-                    Interaction(item, spy: price)
+                    Interaction(item, spy: super.price)
                 }
             }
             """#
@@ -124,7 +124,7 @@ final class FunctionSignatureTests: XCTestCase {
                 }
                 let price = Spy<String, AsyncThrows, Int>()
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncThrows, Int> {
-                    Interaction(item, spy: price)
+                    Interaction(item, spy: super.price)
                 }
             }
             """#
@@ -155,11 +155,11 @@ final class FunctionSignatureTests: XCTestCase {
                 }
                 let fetch = Spy<URL, AsyncThrows, Data>()
                 func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
-                    Interaction(url, spy: fetch)
+                    Interaction(url, spy: super.fetch)
                 }
                 let post = Spy<URL, Data, AsyncThrows, Void>()
                 func post(to url: ArgMatcher<URL>, data: ArgMatcher<Data>) -> Interaction<URL, Data, AsyncThrows, Void> {
-                    Interaction(url, data, spy: post)
+                    Interaction(url, data, spy: super.post)
                 }
             }
             """#
@@ -188,7 +188,7 @@ final class FunctionSignatureTests: XCTestCase {
                 }
                 let doSomething_ = Spy<None, String>()
                 func doSomething() -> Interaction<None, String> {
-                    Interaction(spy: doSomething_)
+                    Interaction(spy: super.doSomething_)
                 }
             }
             """#
@@ -217,7 +217,7 @@ final class FunctionSignatureTests: XCTestCase {
                 }
                 let doSomething = Spy<Int, None, Void>()
                 func doSomething(with value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
-                    Interaction(value, spy: doSomething)
+                    Interaction(value, spy: super.doSomething)
                 }
             }
             """#
@@ -246,7 +246,7 @@ final class FunctionSignatureTests: XCTestCase {
                 }
                 let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething_)
+                    Interaction(spy: super.doSomething_)
                 }
             }
             """#

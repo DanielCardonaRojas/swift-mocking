@@ -37,7 +37,7 @@ final class BasicTests: XCTestCase {
                 }
                 let price = Spy<String, None, Int>()
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-                    Interaction(item, spy: price)
+                    Interaction(item, spy: super.price)
                 }
             }
             """#

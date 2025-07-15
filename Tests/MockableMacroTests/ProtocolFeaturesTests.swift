@@ -37,7 +37,7 @@ final class ProtocolFeaturesTests: XCTestCase {
                 }
                 let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething_)
+                    Interaction(spy: super.doSomething_)
                 }
             }
             """#
@@ -143,7 +143,7 @@ final class ProtocolFeaturesTests: XCTestCase {
                 }
                 let item_ = Spy<None, Item>()
                 func item() -> Interaction<None, Item> {
-                    Interaction(spy: item_)
+                    Interaction(spy: super.item_)
                 }
             }
             """#

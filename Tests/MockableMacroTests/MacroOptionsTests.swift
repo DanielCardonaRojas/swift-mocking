@@ -37,7 +37,7 @@ final class MacroOptionsTests: XCTestCase {
                 }
                 let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething_)
+                    Interaction(spy: super.doSomething_)
                 }
             }
             """#
@@ -66,7 +66,7 @@ final class MacroOptionsTests: XCTestCase {
                 }
                 let doSomething_ = Spy<None, Void>()
                 func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: doSomething_)
+                    Interaction(spy: super.doSomething_)
                 }
             }
             """#
