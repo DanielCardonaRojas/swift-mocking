@@ -34,8 +34,7 @@ public extension MockableGenerator {
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let (spyProperty, stubFunction) = try processFunc(funcDecl, &functionNames)
-                members.append(spyProperty)
+                let stubFunction = try processFunc(funcDecl, &functionNames)
                 members.append(stubFunction)
             }
         }
@@ -47,25 +46,17 @@ public extension MockableGenerator {
     ///
     /// For example, for a function `func doSomething(with value: String) -> Int`, this will generate:
     /// ```swift
-    /// let doSomething = Spy<String, None, Int>()
     /// func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
-    ///     Interaction(value, spy: doSomething)
+    ///     Interaction(value, spy: super.doSomething)
     /// }
     /// ```
-    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) throws -> (DeclSyntax, DeclSyntax) {
+    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) throws -> DeclSyntax {
         let funcName = funcDecl.name.text
         let spyPropertyName = MockableGenerator.spyPropertyName(for: funcDecl, functionNames: &functionNames)
 
         let (inputTypes, parameterNames, parameterLabels) = getFunctionParameters(funcDecl)
         let outputType = getFunctionReturnType(funcDecl)
         let effectType = getFunctionEffectType(funcDecl)
-
-        let spyProperty = try createSpyProperty(
-            name: spyPropertyName,
-            inputTypes: inputTypes,
-            outputType: outputType,
-            effectType: effectType
-        )
 
         let stubFunction = try createStubFunction(
             name: funcName,
@@ -77,7 +68,7 @@ public extension MockableGenerator {
             parameterLabels: parameterLabels
         )
 
-        return (DeclSyntax(spyProperty), DeclSyntax(stubFunction))
+        return DeclSyntax(stubFunction)
     }
 
     /// Extracts the parameter types, internal names, and external labels from a function declaration.
