@@ -10,6 +10,20 @@ final class MockTests: XCTestCase {
         XCTAssertEqual(mock.spies.count, 1)
     }
 
+    func testSubscript_WhenSpyIsGeneric() {
+        let mock = Mock()
+        func createSpy<E: CustomStringConvertible>(type: E.Type, mock: Mock) -> Spy<E, None, String> {
+            return mock.mySpy
+
+        }
+        let spy = createSpy(type: Int.self, mock: mock)
+        let spy2 = createSpy(type: Int.self, mock: mock)
+
+        XCTAssert(spy === spy2)
+        XCTAssert(spy as? Spy<any CustomStringConvertible, None, String> != nil)
+        XCTAssertEqual(mock.spies.count, 1)
+    }
+
     func testSubscript_WhenSpyExists_ReturnsExistingSpy() {
         let mock = Mock()
         let spy1: Spy<Int, None, Void> = mock.myFunction
