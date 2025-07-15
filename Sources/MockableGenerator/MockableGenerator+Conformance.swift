@@ -33,24 +33,26 @@ extension MockableGenerator {
                 let spyPropertyName = spyPropertyName(for: funcDecl, functionNames: &functionNames)
                 let effectType = getFunctionEffectType(funcDecl)
 
-                let adaptCall = FunctionCallExprSyntax(
-                    callee: DeclReferenceExprSyntax(baseName: .identifier("adapt\(effectType)"))
-                ) {
-                    LabeledExprSyntax(
-                        expression: DeclReferenceExprSyntax(baseName: .identifier("self"))
-                    )
-                    LabeledExprSyntax(
-                        expression: MemberAccessExprSyntax(
-                            base: SuperExprSyntax(),
-                            name: .identifier(spyPropertyName)
-                        )
-                    )
-                }
-
                 LabeledExprSyntax(
                     label: .identifier(funcName),
                     colon: .colonToken(trailingTrivia: .space),
-                    expression: adaptCall
+                    expression: FunctionCallExprSyntax(
+                        calledExpression: DeclReferenceExprSyntax(baseName: .identifier("adapt\(effectType)")),
+                        leftParen: .leftParenToken(),
+                        arguments: LabeledExprListSyntax([
+                            LabeledExprSyntax(
+                                expression: DeclReferenceExprSyntax(baseName: .identifier("self")),
+                                trailingComma: .commaToken()
+                            ),
+                            LabeledExprSyntax(
+                                expression: MemberAccessExprSyntax(
+                                    base: SuperExprSyntax(),
+                                    name: .identifier(spyPropertyName)
+                                )
+                            )
+                        ]),
+                        rightParen: .rightParenToken()
+                    )
                 )
             }
         }
