@@ -27,7 +27,11 @@
 /// ```
 public struct ArgMatcher<Argument> {
     let matcher: (Argument) -> Bool
-    
+
+    public init(matcher: @escaping (Argument) -> Bool) {
+        self.matcher = matcher
+    }
+
     /// Calls the underlying matcher function with the given value.
     /// - Parameter value: The argument value to match against.
     /// - Returns: `true` if the value matches, `false` otherwise.
