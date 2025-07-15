@@ -29,9 +29,8 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mock, DefaultProvider {
+            class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
@@ -62,9 +61,8 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) throws -> Int
             }
 
-            class PricingServiceMock: Mock, DefaultProvider {
+            class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
@@ -95,9 +93,8 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) async -> Int
             }
 
-            class PricingServiceMock: Mock, DefaultProvider {
+            class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
@@ -128,9 +125,8 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) async throws -> Int
             }
 
-            class PricingServiceMock: Mock, DefaultProvider {
+            class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
@@ -163,9 +159,8 @@ final class FunctionSignatureTests: XCTestCase {
                 func post(to url: URL, data: Data) async throws
             }
 
-            class FeedServiceMock: Mock, DefaultProvider {
+            class FeedServiceMock: Mock {
                 typealias Witness = FeedServiceWitness<FeedServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
@@ -200,9 +195,8 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething() -> String
             }
 
-            class ServiceMock: Mock, DefaultProvider {
+            class ServiceMock: Mock {
                 typealias Witness = ServiceWitness<ServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
@@ -233,9 +227,8 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething(with value: Int)
             }
 
-            class ServiceMock: Mock, DefaultProvider {
+            class ServiceMock: Mock {
                 typealias Witness = ServiceWitness<ServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
@@ -266,9 +259,8 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: Mock, DefaultProvider {
+            class ServiceMock: Mock {
                 typealias Witness = ServiceWitness<ServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,

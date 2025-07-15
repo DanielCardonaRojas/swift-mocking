@@ -29,9 +29,8 @@ final class MacroOptionsTests: XCTestCase {
                 func doSomething()
             }
 
-            class MockMyService: Mock, DefaultProvider {
+            class MockMyService: Mock {
                 typealias Witness = MyServiceWitness<MockMyService>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
@@ -62,9 +61,8 @@ final class MacroOptionsTests: XCTestCase {
                 func doSomething()
             }
 
-            class MyServiceMock: Mock, DefaultProvider {
+            class MyServiceMock: Mock {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                var defaultProviderRegistry: DefaultProvidableRegistry = .shared
                 var instance: Witness.Synthesized {
                     .init(
                         context: self,
