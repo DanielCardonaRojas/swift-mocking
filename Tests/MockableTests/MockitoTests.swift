@@ -8,6 +8,7 @@
 import Mockable
 import MockableTypes
 import XCTest
+import WitnessTypes
 
 final class MockitoTests: XCTestCase {
     func testMockitoBuilder() {
@@ -25,7 +26,7 @@ final class MockitoTests: XCTestCase {
 
     func test_default_provider() {
         let registry = DefaultProvidableRegistry([Int.self])
-        var mock = PricingServiceMock()
+        let mock = PricingServiceMock()
         mock.defaultProviderRegistry = registry
         let store = Store(pricingService: mock.instance)
         store.register("apple")
@@ -124,6 +125,14 @@ final class MockitoTests: XCTestCase {
         verify(mock.logEvent(.as(TestEvent.self))).called()
     }
 
+    func testStatic() {
+        LoggerMock.witness.register(strategy: "static")
+        when(LoggerMock.log(.any)).thenReturn(())
+        LoggerMock.Conformance.log("hello")
+        LoggerMock.Conformance.log("hello")
+        verify(LoggerMock.log("hello")).called(2)
+    }
+
 }
 
 class Store {
@@ -168,7 +177,11 @@ protocol Calculator {
 }
 
 @Mockable([.includeWitness])
-public protocol AnalyticsProtocol: Sendable {
+protocol AnalyticsProtocol {
     func logEvent<E: Identifiable>(_ event: E)
 }
 
+@Mockable([.includeWitness])
+protocol Logger {
+    static func log(_ message: String)
+}

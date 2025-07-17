@@ -2,6 +2,7 @@
 import Foundation
 import Mockable
 import MockableTypes
+import WitnessTypes
 
 // MARK: - Function Signature Variations
 
