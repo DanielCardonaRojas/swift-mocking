@@ -23,10 +23,64 @@ extension MockableGenerator {
             baseType: IdentifierTypeSyntax(name: .identifier(mockWitnessTypeName)),
             name: .identifier("Synthesized")
         )
+        let contextArgument = DeclReferenceExprSyntax(baseName: .keyword(.`self`))
 
+        let outerInitArguments = LabeledExprListSyntax {
+            LabeledExprSyntax(
+                label: "context",
+                colon: .colonToken(trailingTrivia: .space),
+                expression: contextArgument
+            )
+        }
+
+        let outerInit = FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
+            leftParen: .leftParenToken(),
+            arguments: outerInitArguments,
+            rightParen: .rightParenToken()
+        )
+
+        let getterBody = CodeBlockSyntax(
+            statements: [
+                CodeBlockItemSyntax(item: .expr(ExprSyntax(outerInit)))
+            ]
+        )
+
+        let instanceVar = VariableDeclSyntax(
+            bindingSpecifier: .keyword(.var),
+            bindings: [
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier("instance")),
+                    typeAnnotation: TypeAnnotationSyntax(type: returnType),
+                    accessorBlock: AccessorBlockSyntax(accessors: .getter(getterBody.statements))
+                )
+            ]
+        )
+
+        return DeclSyntax(instanceVar)
+    }
+
+    static func makeWitnessProperty(protocolDecl: ProtocolDeclSyntax) -> DeclSyntax {
+        let returnType = IdentifierTypeSyntax(name: .identifier("Witness"))
+        let instanceVar = VariableDeclSyntax(
+            bindingSpecifier: .keyword(.var),
+            bindings: [
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier("witness")),
+                    typeAnnotation: TypeAnnotationSyntax(type: returnType),
+                    accessorBlock: AccessorBlockSyntax(accessors: .getter( CodeBlockItemListSyntax {
+                        makeWitnessInit(protocolDecl: protocolDecl)
+                    }))
+                )
+            ]
+        )
+        return DeclSyntax(instanceVar)
+    }
+
+
+    static func makeWitnessInit(protocolDecl: ProtocolDeclSyntax) -> FunctionCallExprSyntax {
         let funcDecls = protocolDecl.memberBlock.members.compactMap { $0.decl.as(FunctionDeclSyntax.self) }
         var functionNames = [String: Int]()
-
         let witnessArguments = LabeledExprListSyntax {
             for funcDecl in funcDecls {
                 let funcName = funcDecl.name.text
@@ -55,56 +109,12 @@ extension MockableGenerator {
                 )
             }
         }
-
-        let witnessInit = FunctionCallExprSyntax(
+        return FunctionCallExprSyntax(
             calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
             leftParen: .leftParenToken(),
             arguments: witnessArguments,
             rightParen: .rightParenToken(leadingTrivia: .newline)
         )
-
-        let contextArgument = DeclReferenceExprSyntax(baseName: .keyword(.`self`))
-
-        let outerInitArguments = LabeledExprListSyntax {
-            LabeledExprSyntax(
-                leadingTrivia: .newline,
-                label: "context",
-                colon: .colonToken(trailingTrivia: .space),
-                expression: contextArgument
-            )
-            LabeledExprSyntax(
-                leadingTrivia: .newline,
-                label: "witness",
-                colon: .colonToken(trailingTrivia: .space),
-                expression: witnessInit
-            )
-        }
-
-        let outerInit = FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
-            leftParen: .leftParenToken(),
-            arguments: outerInitArguments,
-            rightParen: .rightParenToken(leadingTrivia: .newline)
-        )
-
-        let getterBody = CodeBlockSyntax(
-            statements: [
-                CodeBlockItemSyntax(item: .expr(ExprSyntax(outerInit)))
-            ]
-        )
-
-        let instanceVar = VariableDeclSyntax(
-            bindingSpecifier: .keyword(.var),
-            bindings: [
-                PatternBindingSyntax(
-                    pattern: IdentifierPatternSyntax(identifier: .identifier("instance")),
-                    typeAnnotation: TypeAnnotationSyntax(type: returnType),
-                    accessorBlock: AccessorBlockSyntax(accessors: .getter(getterBody.statements))
-                )
-            ]
-        )
-
-        return DeclSyntax(instanceVar)
     }
 }
 
