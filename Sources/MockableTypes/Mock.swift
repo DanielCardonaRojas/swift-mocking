@@ -19,6 +19,11 @@ open class Mock: DefaultProvider {
     public var defaultProviderRegistry: DefaultProvidableRegistry = .shared
     public init() { }
     private(set) var spies: [String: AnySpy] = [:]
+    static private var spies_: [String: [String: AnySpy]] = [:]
+
+    static var spies: [String: AnySpy] {
+        spies_["\(Self.self)"] ?? [:]
+    }
 
     /// Provides a ``Spy`` instance for the given member name.
     ///
@@ -35,6 +40,21 @@ open class Mock: DefaultProvider {
         } else {
             let spy = Spy<repeat each Input, Eff, Output>()
             spies[member] = spy
+            return spy
+        }
+    }
+
+    public static subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
+        let thisType = "\(Self.self)" // The name of the subclass mock
+        if spies_[thisType] == nil {
+            spies_[thisType] = [:]
+        }
+
+        if let existingSpy = spies_[thisType]?[member] as? Spy<repeat each Input, Eff, Output> {
+            return existingSpy
+        } else {
+            let spy = Spy<repeat each Input, Eff, Output>()
+            spies_[thisType]?[member] = spy
             return spy
         }
     }
