@@ -1,6 +1,7 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import MockableTypes
+import MockableTypes
 
 public enum MockableGenerator {
     /// Processes a protocol declaration to generate a mock struct.
@@ -30,6 +31,7 @@ public enum MockableGenerator {
     /// }
     /// ```
     public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
+        let hasStaticRequirements = hasStaticMembers(protocolDecl: protocolDecl)
         let protocolName = protocolDecl.name.text
         let codeGenOptions = MockableGenerator.codeGenOptions(protocolDecl: protocolDecl)
         let mockName: String
@@ -48,10 +50,7 @@ public enum MockableGenerator {
         let conformanceTypealiasDecl = makeConformanceTypealias(protocolName: protocolName, mockName: mockName)
         let instanceProperty = makeInstanceComputedProperty(protocolDecl: protocolDecl)
         let witnessProperty = makeWitnessProperty(protocolDecl: protocolDecl)
-        let staticWitnessProperty = makeWitnessProperty(
-            protocolDecl: protocolDecl,
-            modifiers: .init(arrayLiteral: .init(name: .keyword(.static)))
-        )
+        let staticWitnessProperty = makeStaticWitnessProperty(protocolDecl: protocolDecl)
 
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
@@ -67,13 +66,30 @@ public enum MockableGenerator {
                 members.append(MemberBlockItemSyntax(decl: conformanceTypealiasDecl))
                 members.append(MemberBlockItemSyntax(decl: instanceProperty))
                 members.append(MemberBlockItemSyntax(decl: witnessProperty))
-                members.append(MemberBlockItemSyntax(decl: staticWitnessProperty))
+                if hasStaticRequirements {
+                    members.append(MemberBlockItemSyntax(decl: staticWitnessProperty))
+                }
                 members.append(contentsOf: spyMembers.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)
             }
         )
 
         return [DeclSyntax(mockStruct)]
+    }
+
+    private static func hasStaticMembers(protocolDecl: ProtocolDeclSyntax) -> Bool {
+        for member in protocolDecl.memberBlock.members {
+            if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
+                if funcDecl.modifiers.contains(where: { $0.name.text == "static" }) {
+                    return true
+                }
+            } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
+                if varDecl.modifiers.contains(where: { $0.name.text == "static" }) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     public static func codeGenOptions(protocolDecl: ProtocolDeclSyntax) -> MockableOptions {

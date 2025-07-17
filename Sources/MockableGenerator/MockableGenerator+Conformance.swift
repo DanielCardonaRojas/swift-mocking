@@ -61,9 +61,23 @@ extension MockableGenerator {
         return DeclSyntax(instanceVar)
     }
 
-    static func makeWitnessProperty(protocolDecl: ProtocolDeclSyntax, modifiers: DeclModifierListSyntax = []) -> DeclSyntax {
+    static func makeWitnessProperty(protocolDecl: ProtocolDeclSyntax) -> DeclSyntax {
+        let instanceVar = makeWitnessVar(protocolDecl: protocolDecl)
+        return DeclSyntax(instanceVar)
+    }
+
+    static func makeStaticWitnessProperty(protocolDecl: ProtocolDeclSyntax) -> DeclSyntax {
+        let instanceVar = makeWitnessVar(
+            protocolDecl: protocolDecl,
+            modifiers: .init(arrayLiteral: .init(name: .keyword(.static)))
+        )
+
+        return DeclSyntax(instanceVar)
+    }
+
+    private static func makeWitnessVar(protocolDecl: ProtocolDeclSyntax, modifiers: DeclModifierListSyntax = []) -> VariableDeclSyntax {
         let returnType = IdentifierTypeSyntax(name: .identifier("Witness"))
-        let instanceVar = VariableDeclSyntax(
+        return VariableDeclSyntax(
             modifiers: modifiers,
             bindingSpecifier: .keyword(.var),
             bindings: [
@@ -76,7 +90,6 @@ extension MockableGenerator {
                 )
             ]
         )
-        return DeclSyntax(instanceVar)
     }
 
 
@@ -112,7 +125,9 @@ extension MockableGenerator {
             }
         }
         return FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
+            calledExpression: MemberAccessExprSyntax(
+                name: .keyword(.`init`)
+            ),
             leftParen: .leftParenToken(),
             arguments: witnessArguments,
             rightParen: .rightParenToken(leadingTrivia: .newline)
