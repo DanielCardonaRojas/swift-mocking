@@ -47,6 +47,10 @@ public enum MockableGenerator {
         let typealiasDecl = makeTypealiasDecl(protocolName: protocolName, mockName: mockName)
         let instanceProperty = makeInstanceComputedProperty(protocolDecl: protocolDecl)
         let witnessProperty = makeWitnessProperty(protocolDecl: protocolDecl)
+        let staticWitnessProperty = makeWitnessProperty(
+            protocolDecl: protocolDecl,
+            modifiers: .init(arrayLiteral: .init(name: .keyword(.static)))
+        )
 
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
@@ -61,6 +65,7 @@ public enum MockableGenerator {
                 members.append(MemberBlockItemSyntax(decl: typealiasDecl))
                 members.append(MemberBlockItemSyntax(decl: instanceProperty))
                 members.append(MemberBlockItemSyntax(decl: witnessProperty))
+                members.append(MemberBlockItemSyntax(decl: staticWitnessProperty))
                 members.append(contentsOf: spyMembers.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)
             }
