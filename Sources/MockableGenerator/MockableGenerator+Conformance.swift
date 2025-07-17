@@ -42,7 +42,7 @@ extension MockableGenerator {
 
         let getterBody = CodeBlockSyntax(
             statements: [
-                CodeBlockItemSyntax(item: .expr(ExprSyntax(outerInit)))
+                CodeBlockItemSyntax(item: .stmt(StmtSyntax(ReturnStmtSyntax(expression: ExprSyntax(outerInit))))),
             ]
         )
 
