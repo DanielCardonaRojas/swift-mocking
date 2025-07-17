@@ -31,6 +31,11 @@ extension MockableGenerator {
                 colon: .colonToken(trailingTrivia: .space),
                 expression: contextArgument
             )
+            LabeledExprSyntax(
+                label: "strategy",
+                colon: .colonToken(trailingTrivia: .space),
+                expression: ExprSyntax(literal: "mocking")
+            )
         }
 
         let outerInit = FunctionCallExprSyntax(
