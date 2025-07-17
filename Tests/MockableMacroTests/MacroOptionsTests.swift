@@ -32,11 +32,12 @@ final class MacroOptionsTests: XCTestCase {
             class MockMyService: Mock {
                 typealias Witness = MyServiceWitness<MockMyService>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            doSomething: adaptNone(self, super.doSomething)
-                        )
+                        doSomething: adaptNone(self, super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {
@@ -64,11 +65,12 @@ final class MacroOptionsTests: XCTestCase {
             class MyServiceMock: Mock {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            doSomething: adaptNone(self, super.doSomething)
-                        )
+                        doSomething: adaptNone(self, super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {

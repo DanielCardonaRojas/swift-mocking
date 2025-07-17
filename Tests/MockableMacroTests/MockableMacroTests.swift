@@ -37,11 +37,12 @@ final class MockableMacroTests: XCTestCase {
             class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            price: adaptNone(self, super.price)
-                        )
+                        price: adaptNone(self, super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {

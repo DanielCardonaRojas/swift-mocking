@@ -32,11 +32,12 @@ final class ProtocolFeaturesTests: XCTestCase {
             class ServiceMock: Mock {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            doSomething: adaptNone(self, super.doSomething)
-                        )
+                        doSomething: adaptNone(self, super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {
@@ -64,10 +65,11 @@ final class ProtocolFeaturesTests: XCTestCase {
             class MyServiceMock: Mock {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                        )
                     )
                 }
             }
@@ -92,10 +94,11 @@ final class ProtocolFeaturesTests: XCTestCase {
             class MyServiceMock: Mock {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                        )
                     )
                 }
             }
@@ -120,10 +123,11 @@ final class ProtocolFeaturesTests: XCTestCase {
             class MyServiceMock: Mock {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                        )
                     )
                 }
             }
@@ -150,11 +154,12 @@ final class ProtocolFeaturesTests: XCTestCase {
             class MyServiceMock: Mock {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            item: adaptNone(self, super.item)
-                        )
+                        item: adaptNone(self, super.item)
                     )
                 }
                 func item() -> Interaction<None, Item> {

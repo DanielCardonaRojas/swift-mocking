@@ -32,11 +32,12 @@ final class FunctionSignatureTests: XCTestCase {
             class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            price: adaptNone(self, super.price)
-                        )
+                        price: adaptNone(self, super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
@@ -64,11 +65,12 @@ final class FunctionSignatureTests: XCTestCase {
             class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            price: adaptThrows(self, super.price)
-                        )
+                        price: adaptThrows(self, super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
@@ -96,11 +98,12 @@ final class FunctionSignatureTests: XCTestCase {
             class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            price: adaptAsync(self, super.price)
-                        )
+                        price: adaptAsync(self, super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Async, Int> {
@@ -128,11 +131,12 @@ final class FunctionSignatureTests: XCTestCase {
             class PricingServiceMock: Mock {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            price: adaptAsyncThrows(self, super.price)
-                        )
+                        price: adaptAsyncThrows(self, super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncThrows, Int> {
@@ -162,12 +166,13 @@ final class FunctionSignatureTests: XCTestCase {
             class FeedServiceMock: Mock {
                 typealias Witness = FeedServiceWitness<FeedServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            fetch: adaptAsyncThrows(self, super.fetch),
-                            post: adaptAsyncThrows(self, super.post)
-                        )
+                        fetch: adaptAsyncThrows(self, super.fetch),
+                        post: adaptAsyncThrows(self, super.post)
                     )
                 }
                 func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
@@ -198,11 +203,12 @@ final class FunctionSignatureTests: XCTestCase {
             class ServiceMock: Mock {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            doSomething: adaptNone(self, super.doSomething)
-                        )
+                        doSomething: adaptNone(self, super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, String> {
@@ -230,11 +236,12 @@ final class FunctionSignatureTests: XCTestCase {
             class ServiceMock: Mock {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            doSomething: adaptNone(self, super.doSomething)
-                        )
+                        doSomething: adaptNone(self, super.doSomething)
                     )
                 }
                 func doSomething(with value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
@@ -262,11 +269,12 @@ final class FunctionSignatureTests: XCTestCase {
             class ServiceMock: Mock {
                 typealias Witness = ServiceWitness<ServiceMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            doSomething: adaptNone(self, super.doSomething)
-                        )
+                        doSomething: adaptNone(self, super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {
@@ -294,11 +302,12 @@ final class FunctionSignatureTests: XCTestCase {
             class AnalyticsProtocolMock: Mock {
                 typealias Witness = AnalyticsProtocolWitness<AnalyticsProtocolMock>
                 var instance: Witness.Synthesized {
+                    witness.register(strategy: "mocking")
+                    return .init(context: self, strategy: "mocking")
+                }
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            logEvent: adaptNone(self, super.logEvent)
-                        )
+                        logEvent: adaptNone(self, super.logEvent)
                     )
                 }
                 func logEvent(_ event: ArgMatcher<any Identifiable>) -> Interaction<any Identifiable, None, Bool> {
