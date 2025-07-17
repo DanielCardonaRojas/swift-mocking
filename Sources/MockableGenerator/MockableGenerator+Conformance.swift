@@ -47,6 +47,7 @@ extension MockableGenerator {
 
         let getterBody = CodeBlockSyntax(
             statements: [
+                CodeBlockItemSyntax(stringLiteral: "witness.register(strategy: \"mocking\")"),
                 CodeBlockItemSyntax(item: .stmt(StmtSyntax(ReturnStmtSyntax(expression: ExprSyntax(outerInit))))),
             ]
         )
