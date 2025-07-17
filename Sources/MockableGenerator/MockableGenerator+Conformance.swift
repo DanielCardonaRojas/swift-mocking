@@ -17,12 +17,7 @@ extension MockableGenerator {
     /// - Parameter protocolDecl: The `ProtocolDeclSyntax` to generate the property for.
     /// - Returns: A `DeclSyntax` representing the computed `instance` property.
     static func makeInstanceComputedProperty(protocolDecl: ProtocolDeclSyntax) -> DeclSyntax {
-        let mockWitnessTypeName = "Witness"
-
-        let returnType = MemberTypeSyntax(
-            baseType: IdentifierTypeSyntax(name: .identifier(mockWitnessTypeName)),
-            name: .identifier("Synthesized")
-        )
+        let returnType = IdentifierTypeSyntax(name: .identifier("Conformance"))
         let contextArgument = DeclReferenceExprSyntax(baseName: .keyword(.`self`))
 
         let outerInitArguments = LabeledExprListSyntax {

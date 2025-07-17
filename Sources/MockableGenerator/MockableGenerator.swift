@@ -45,6 +45,7 @@ public enum MockableGenerator {
         // Generate the spy properties and methods using SpyGenerator
         let spyMembers = try makeInteractions(protocolDecl: protocolDecl)
         let typealiasDecl = makeTypealiasDecl(protocolName: protocolName, mockName: mockName)
+        let conformanceTypealiasDecl = makeConformanceTypealias(protocolName: protocolName, mockName: mockName)
         let instanceProperty = makeInstanceComputedProperty(protocolDecl: protocolDecl)
         let witnessProperty = makeWitnessProperty(protocolDecl: protocolDecl)
         let staticWitnessProperty = makeWitnessProperty(
@@ -63,6 +64,7 @@ public enum MockableGenerator {
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
                 members.append(MemberBlockItemSyntax(decl: typealiasDecl))
+                members.append(MemberBlockItemSyntax(decl: conformanceTypealiasDecl))
                 members.append(MemberBlockItemSyntax(decl: instanceProperty))
                 members.append(MemberBlockItemSyntax(decl: witnessProperty))
                 members.append(MemberBlockItemSyntax(decl: staticWitnessProperty))
