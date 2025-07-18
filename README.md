@@ -244,6 +244,24 @@ when(mock.calculate(a: .any, b: .any)).thenReturn(*)
 XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 50)
 ```
 
+### Logging Invocations
+
+`SwiftMocking` provides a simple way to log method invocations on your mock objects. This can be useful for debugging tests and understanding the flow of interactions. You can enable logging on a per-instance or per-type basis.
+
+#### Enabling Logging for a Mock Instance
+
+To enable logging for a specific mock instance, set the `isLoggingEnabled` property to `true`.
+
+```swift
+let mock = PricingServiceMock()
+mock.isLoggingEnabled = true
+
+// Any calls to mock.instance methods will now be logged to the console.
+_ = mock.instance.price(for: "apple")
+// Output: PricingServiceMock.price("apple")
+```
+
+
 ### Default Values for Unstubbed Methods
 
 `SwiftMocking` provides a mechanism to return default values for methods that have not been explicitly stubbed. This is achieved through the `DefaultProvidable` protocol and the `DefaultProvidableRegistry`.
