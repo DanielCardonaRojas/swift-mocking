@@ -19,10 +19,12 @@ open class Mock: DefaultProvider {
     public var Super: Mock.Type {
         Self.self as Mock.Type
     }
+
     public var defaultProviderRegistry: DefaultProvidableRegistry = .shared
-    public init() { }
     private(set) var spies: [String: AnySpy] = [:]
     static private var spies_: [String: [String: AnySpy]] = [:]
+
+    public init() { }
 
     static var spies: [String: AnySpy] {
         spies_["\(Self.self)"] ?? [:]

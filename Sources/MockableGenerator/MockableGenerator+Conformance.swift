@@ -62,15 +62,6 @@ extension MockableGenerator {
         return DeclSyntax(instanceVar)
     }
 
-    static func makeStaticWitnessProperty(protocolDecl: ProtocolDeclSyntax) -> DeclSyntax {
-        let instanceVar = makeWitnessVar(
-            protocolDecl: protocolDecl,
-            modifiers: .init(arrayLiteral: .init(name: .keyword(.static)))
-        )
-
-        return DeclSyntax(instanceVar)
-    }
-
     private static func makeWitnessVar(protocolDecl: ProtocolDeclSyntax, modifiers: DeclModifierListSyntax = []) -> VariableDeclSyntax {
         let returnType = IdentifierTypeSyntax(name: .identifier("Witness"))
         return VariableDeclSyntax(
