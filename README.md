@@ -533,6 +533,7 @@ class MyServiceMock<Item>: Mock, MockWitnessContainer {
         Interaction(spy: super.item)
     }
 }
+```
 </details>
 
 #### Protocol with Property
@@ -561,6 +562,7 @@ class MyServiceMock: Mock, MockWitnessContainer {
         )
     }
 }
+```
 </details>
 
 #### Protocol with Initializer
@@ -589,6 +591,7 @@ class MyServiceMock: Mock, MockWitnessContainer {
         )
     }
 }
+```
 </details>
 
 #### Protocol with Subscript
@@ -617,6 +620,7 @@ class MyServiceMock: Mock, MockWitnessContainer {
         )
     }
 }
+```
 </details>
 
 #### Public Protocol
@@ -648,6 +652,7 @@ public class ServiceMock: Mock, MockWitnessContainer {
         Interaction(spy: super.doSomething)
     }
 }
+```
 </details>
 
 
