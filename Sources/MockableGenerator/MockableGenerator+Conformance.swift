@@ -118,7 +118,7 @@ extension MockableGenerator {
                 )
                 let staticAdaptCall = FunctionCallExprSyntax(
                     calledExpression: MemberAccessExprSyntax(
-                        base: DeclReferenceExprSyntax(baseName: .identifier("Super")),
+                        base: DeclReferenceExprSyntax(baseName: .keyword(.`Self`)),
                         name: .identifier("adapt\(effectType)")
                     ),
                     leftParen: .leftParenToken(),

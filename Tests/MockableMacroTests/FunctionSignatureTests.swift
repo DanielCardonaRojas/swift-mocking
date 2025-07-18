@@ -317,7 +317,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        log: Super.adaptNone(Super.log)
+                        log: Self.adaptNone(Super.log)
                     )
                 }
                 static func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
