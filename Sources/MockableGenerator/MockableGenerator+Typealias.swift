@@ -3,7 +3,6 @@ import SwiftSyntaxBuilder
 
 extension MockableGenerator {
     static func makeConformanceTypealias(protocolName: String, mockName: String) -> DeclSyntax {
-        let witnessTypeName = protocolName + "Witness"
         let typealiasName = "Conformance"
 
         let typealiasDecl = TypeAliasDeclSyntax(
@@ -11,16 +10,7 @@ extension MockableGenerator {
             initializer: TypeInitializerClauseSyntax(
                 value: MemberTypeSyntax(
                     baseType: IdentifierTypeSyntax(
-                        name: .identifier(witnessTypeName),
-                        genericArgumentClause: GenericArgumentClauseSyntax(
-                            arguments: GenericArgumentListSyntax(
-                                [
-                                    GenericArgumentSyntax(
-                                        argument: IdentifierTypeSyntax(name: .identifier(mockName))
-                                    )
-                                ]
-                            )
-                        )
+                        name: .identifier("Witness")
                     ),
                     name: .identifier("Synthesized")
                 )

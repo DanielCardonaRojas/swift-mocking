@@ -22,7 +22,7 @@ final class BasicTests: MacroTestCase {
 
             class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()

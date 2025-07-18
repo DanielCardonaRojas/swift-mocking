@@ -22,7 +22,7 @@ final class MacroOptionsTests: MacroTestCase {
 
             class MockMyService: Mocking {
                 typealias Witness = MyServiceWitness<MockMyService>
-                typealias Conformance = MyServiceWitness<MockMyService>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -57,7 +57,7 @@ final class MacroOptionsTests: MacroTestCase {
 
             class MyServiceMock: Mocking {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()

@@ -22,7 +22,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -57,7 +57,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -92,7 +92,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -127,7 +127,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -164,7 +164,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class FeedServiceMock: Mocking {
                 typealias Witness = FeedServiceWitness<FeedServiceMock>
-                typealias Conformance = FeedServiceWitness<FeedServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -203,7 +203,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class ServiceMock: Mocking {
                 typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -238,7 +238,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class ServiceMock: Mocking {
                 typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -273,7 +273,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class ServiceMock: Mocking {
                 typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -309,7 +309,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class LoggerMock: Mocking {
                 typealias Witness = LoggerWitness<LoggerMock>
-                typealias Conformance = LoggerWitness<LoggerMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -345,7 +345,7 @@ final class FunctionSignatureTests: MacroTestCase {
 
             class AnalyticsProtocolMock: Mocking {
                 typealias Witness = AnalyticsProtocolWitness<AnalyticsProtocolMock>
-                typealias Conformance = AnalyticsProtocolWitness<AnalyticsProtocolMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
