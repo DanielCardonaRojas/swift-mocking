@@ -234,7 +234,7 @@ protocol Calculator {
 
 // Calculate summing
 when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
-    // Note that not casting is required. a and here are of type Int
+    // Note that no casting is required. a and here are of type Int
     return a + b
 }
 XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 15)
@@ -318,10 +318,6 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol PricingService {
-    func price(_ item: String) throws -> Int
-}
-
 class PricingServiceMock: Mock, MockWitnessContainer {
     typealias Witness = PricingServiceWitness<PricingServiceMock>
     typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
@@ -354,10 +350,6 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol PricingService {
-    func price(_ item: String) async -> Int
-}
-
 class PricingServiceMock: Mock, MockWitnessContainer {
     typealias Witness = PricingServiceWitness<PricingServiceMock>
     typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
@@ -390,10 +382,6 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol PricingService {
-    func price(_ item: String) async throws -> Int
-}
-
 class PricingServiceMock: Mock, MockWitnessContainer {
     typealias Witness = PricingServiceWitness<PricingServiceMock>
     typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
@@ -427,11 +415,6 @@ protocol FeedService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol FeedService {
-    func fetch(from url: URL) async throws -> Data
-    func post(to url: URL, data: Data) async throws
-}
-
 class FeedServiceMock: Mock, MockWitnessContainer {
     typealias Witness = FeedServiceWitness<FeedServiceMock>
     typealias Conformance = FeedServiceWitness<FeedServiceMock>.Synthesized
@@ -446,11 +429,9 @@ class FeedServiceMock: Mock, MockWitnessContainer {
             post: adaptAsyncThrows(self, super.post)
         )
     }
-    let fetch = Spy<URL, AsyncThrows, Data>()
     func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
         Interaction(url, spy: super.fetch)
     }
-    let post = Spy<URL, Data, AsyncThrows, Void>()
     func post(to url: ArgMatcher<URL>, data: ArgMatcher<Data>) -> Interaction<URL, Data, AsyncThrows, Void> {
         Interaction(url, data, spy: super.post)
     }
@@ -470,10 +451,6 @@ protocol Service {
 <summary>Generated Code</summary>
 
 ```swift
-protocol Service {
-    func doSomething()
-}
-
 class ServiceMock: Mock, MockWitnessContainer {
     typealias Witness = ServiceWitness<ServiceMock>
     typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
@@ -506,10 +483,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    func doSomething()
-}
-
 class MockMyService: Mock, MockWitnessContainer {
     typealias Witness = MyServiceWitness<MockMyService>
     typealias Conformance = MyServiceWitness<MockMyService>.Synthesized
@@ -543,11 +516,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    associatedtype Item
-    func item() -> Item
-}
-
 class MyServiceMock<Item>: Mock, MockWitnessContainer {
     typealias Witness = MyServiceWitness<Item, MyServiceMock<Item>>
     typealias Conformance = MyServiceWitness<Item, MyServiceMock<Item>>.Synthesized
@@ -579,10 +547,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    var value: Int { get }
-}
-
 class MyServiceMock: Mock, MockWitnessContainer {
     typealias Witness = MyServiceWitness<MyServiceMock>
     typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
@@ -593,10 +557,9 @@ class MyServiceMock: Mock, MockWitnessContainer {
     lazy var instance: Conformance = .init(context: self, strategy: "mocking")
     var witness: Witness {
         .init(
-            value: adaptProperty(self, \.value)
+            value: adapt(self, super.value)
         )
     }
-    let value = Spy<None, Int>()
 }
 </details>
 
@@ -612,10 +575,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    init(value: Int)
-}
-
 class MyServiceMock: Mock, MockWitnessContainer {
     typealias Witness = MyServiceWitness<MyServiceMock>
     typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
@@ -626,10 +585,9 @@ class MyServiceMock: Mock, MockWitnessContainer {
     lazy var instance: Conformance = .init(context: self, strategy: "mocking")
     var witness: Witness {
         .init(
-            init_value: adaptInitializer(self, super.init)
+            init_value: adapt(Super.init)
         )
     }
-    let init_value = Spy<Int, Void>()
 }
 </details>
 
@@ -645,10 +603,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    subscript(index: Int) -> String { get }
-}
-
 class MyServiceMock: Mock, MockWitnessContainer {
     typealias Witness = MyServiceWitness<MyServiceMock>
     typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
@@ -659,10 +613,9 @@ class MyServiceMock: Mock, MockWitnessContainer {
     lazy var instance: Conformance = .init(context: self, strategy: "mocking")
     var witness: Witness {
         .init(
-            subscript_index: adaptSubscript(self, \.[])
+            subscriptIndex: adapt(self, super.subscriptIndex)
         )
     }
-    let subscript_index = Spy<Int, String>()
 }
 </details>
 
@@ -678,10 +631,6 @@ public protocol Service {
 <summary>Generated Code</summary>
 
 ```swift
-public protocol Service {
-    func doSomething()
-}
-
 public class ServiceMock: Mock, MockWitnessContainer {
     public typealias Witness = ServiceWitness<ServiceMock>
     public typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
