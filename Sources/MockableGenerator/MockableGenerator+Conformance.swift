@@ -90,14 +90,8 @@ extension MockableGenerator {
                 let effectType = getFunctionEffectType(funcDecl)
                 let isStatic = funcDecl.modifiers.contains(where: { $0.isStatic })
 
-                let adaptCall = FunctionCallExprSyntax(
-                    callee: DeclReferenceExprSyntax(baseName: .identifier("adapt\(effectType)"))
-                ) {
-                    if !isStatic {
-                        LabeledExprSyntax(
-                            expression: DeclReferenceExprSyntax(baseName: .identifier("self"))
-                        )
-                    }
+                let declReferenceExpr = DeclReferenceExprSyntax(baseName: .identifier("adapt\(effectType)"))
+                let argList = LabeledExprListSyntax {
                     if !isStatic {
                         LabeledExprSyntax(
                             expression: MemberAccessExprSyntax(
@@ -116,11 +110,27 @@ extension MockableGenerator {
                     }
                 }
 
+                let adaptCall = FunctionCallExprSyntax(
+                    calledExpression: declReferenceExpr,
+                    leftParen: .leftParenToken(),
+                    arguments: argList,
+                    rightParen: .rightParenToken()
+                )
+                let staticAdaptCall = FunctionCallExprSyntax(
+                    calledExpression: MemberAccessExprSyntax(
+                        base: DeclReferenceExprSyntax(baseName: .identifier("Super")),
+                        name: .identifier("adapt\(effectType)")
+                    ),
+                    leftParen: .leftParenToken(),
+                    arguments: argList,
+                    rightParen: .rightParenToken()
+                )
+
                 LabeledExprSyntax(
                     leadingTrivia: .newline,
                     label: .identifier(funcName),
                     colon: .colonToken(trailingTrivia: .space),
-                    expression: adaptCall
+                    expression: isStatic ? staticAdaptCall : adaptCall
                 )
             }
         }
