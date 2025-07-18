@@ -16,7 +16,7 @@
 ///
 @dynamicMemberLookup
 open class Mock: DefaultProvider {
-    public static var this: Mock.Type {
+    public var Super: Mock.Type {
         Self.self as Mock.Type
     }
     public var defaultProviderRegistry: DefaultProvidableRegistry = .shared
