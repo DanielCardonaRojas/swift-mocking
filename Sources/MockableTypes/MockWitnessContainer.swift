@@ -7,6 +7,9 @@
 
 import WitnessTypes
 
+public typealias Mocking = Mock & MockWitnessContainer
+
+/// Base protocol for all mocks
 public protocol MockWitnessContainer<Witness> {
     associatedtype Witness: RecordableMixin
     var witness: Witness { get }
