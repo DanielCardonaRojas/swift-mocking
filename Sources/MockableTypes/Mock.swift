@@ -16,12 +16,21 @@
 ///
 @dynamicMemberLookup
 open class Mock: DefaultProvider {
+    /// This provides a way to access super as if it where in a static context.
+    ///
+    ///  `super.myProtocolFunc` will use the instance subscript to create/read a spy when it is used in a non static context.
+    ///   when it is used in a static context it will use a the static subscript. This provide a mechanism to select static super.
     public var Super: Mock.Type {
         Self.self as Mock.Type
     }
 
     public var defaultProviderRegistry: DefaultProvidableRegistry = .shared
+
+    /// Stores spies per protocol  requirement. Keys are function or variable names.
     private(set) var spies: [String: AnySpy] = [:]
+
+    /// Stores spies per protocol requirement. Keys in the outermost dictionary correspond to the Mock type,
+    /// keys in the inner dictionary are function or variable names. This enables tracking spies for static requirements.
     static private var spies_: [String: [String: AnySpy]] = [:]
 
     public init() { }
@@ -49,6 +58,15 @@ open class Mock: DefaultProvider {
         }
     }
 
+    /// Provides a ``Spy`` instance for the given member name.
+    ///
+    /// This subscript is the core of the `@dynamicMemberLookup` functionality. When you access a
+    /// member on a `Mock` static type (e.g., `MyMock.myMethod`), this subscript is called with the
+    /// member's name as a string. It then either returns an existing spy for that name or
+    /// creates a new one, stores it, and returns it.
+    ///
+    /// - Parameter member: The name of the member being accessed.
+    /// - Returns: A ``Spy`` instance configured for the member's signature.
     public static subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
         let thisType = "\(Self.self)" // The name of the subclass mock
         if spies_[thisType] == nil {
