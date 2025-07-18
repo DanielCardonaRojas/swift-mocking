@@ -101,21 +101,32 @@ extension MockableGenerator {
                 let funcName = funcDecl.name.text
                 let spyPropertyName = spyPropertyName(for: funcDecl, functionNames: &functionNames)
                 let effectType = getFunctionEffectType(funcDecl)
+                let isStatic = funcDecl.modifiers.contains(where: { $0.isStatic })
 
                 let adaptCall = FunctionCallExprSyntax(
                     callee: DeclReferenceExprSyntax(baseName: .identifier("adapt\(effectType)"))
                 ) {
-                    if !funcDecl.modifiers.contains(where: { $0.isStatic }) {
+                    if !isStatic {
                         LabeledExprSyntax(
                             expression: DeclReferenceExprSyntax(baseName: .identifier("self"))
                         )
                     }
-                    LabeledExprSyntax(
-                        expression: MemberAccessExprSyntax(
-                            base: SuperExprSyntax(),
-                            name: .identifier(spyPropertyName)
+                    if !isStatic {
+                        LabeledExprSyntax(
+                            expression: MemberAccessExprSyntax(
+                                base: SuperExprSyntax(),
+                                name: .identifier(spyPropertyName)
+                            )
                         )
-                    )
+                    } else {
+                        LabeledExprSyntax(
+                            expression: MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(baseName: .identifier("Super")),
+                                name: .identifier(spyPropertyName)
+                            )
+                        )
+
+                    }
                 }
 
                 LabeledExprSyntax(
