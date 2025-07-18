@@ -16,6 +16,9 @@
 ///
 @dynamicMemberLookup
 open class Mock: DefaultProvider {
+    public static var this: Mock.Type {
+        Self.self as Mock.Type
+    }
     public var defaultProviderRegistry: DefaultProvidableRegistry = .shared
     public init() { }
     private(set) var spies: [String: AnySpy] = [:]
