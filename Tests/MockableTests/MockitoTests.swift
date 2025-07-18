@@ -11,6 +11,10 @@ import XCTest
 import WitnessTypes
 
 final class MockitoTests: XCTestCase {
+    override class func setUp() {
+        LoggerMock.setup()
+    }
+
     func testMockitoBuilder() {
         let mock = PricingServiceMock()
         let store = Store(pricingService: mock.instance)
@@ -126,7 +130,6 @@ final class MockitoTests: XCTestCase {
     }
 
     func testStatic() {
-        LoggerMock.witness.register(strategy: "static")
         when(LoggerMock.log(.any)).thenReturn(())
         LoggerMock.Conformance.log("hello")
         LoggerMock.Conformance.log("hello")
