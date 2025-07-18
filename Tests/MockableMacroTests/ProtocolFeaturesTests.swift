@@ -5,15 +5,7 @@ import XCTest
 import MockableMacro
 import MacroTesting
 
-final class ProtocolFeaturesTests: XCTestCase {
-    override func invokeTest() {
-      withMacroTesting(
-        record: false,
-        macros: ["Mockable": MockableMacro.self]
-      ) {
-        super.invokeTest()
-      }
-    }
+final class ProtocolFeaturesTests: MacroTestCase {
 
     func testPublicProtocol() {
         assertMacro {
@@ -32,7 +24,8 @@ final class ProtocolFeaturesTests: XCTestCase {
             class ServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = ServiceWitness<ServiceMock>
                 typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -66,7 +59,8 @@ final class ProtocolFeaturesTests: XCTestCase {
             class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -96,7 +90,8 @@ final class ProtocolFeaturesTests: XCTestCase {
             class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -126,7 +121,8 @@ final class ProtocolFeaturesTests: XCTestCase {
             class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -158,7 +154,8 @@ final class ProtocolFeaturesTests: XCTestCase {
             class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
                 typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")

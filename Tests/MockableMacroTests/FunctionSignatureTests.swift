@@ -5,16 +5,7 @@ import XCTest
 import MockableMacro
 import MacroTesting
 
-final class FunctionSignatureTests: XCTestCase {
-    override func invokeTest() {
-      withMacroTesting(
-        record: false,
-        macros: ["Mockable": MockableMacro.self]
-      ) {
-        super.invokeTest()
-      }
-    }
-
+final class FunctionSignatureTests: MacroTestCase {
     func testSingleMethodNoEffects() {
         assertMacro {
            """
@@ -32,7 +23,8 @@ final class FunctionSignatureTests: XCTestCase {
             class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -66,7 +58,8 @@ final class FunctionSignatureTests: XCTestCase {
             class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -100,7 +93,8 @@ final class FunctionSignatureTests: XCTestCase {
             class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -134,7 +128,8 @@ final class FunctionSignatureTests: XCTestCase {
             class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
                 typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -170,7 +165,8 @@ final class FunctionSignatureTests: XCTestCase {
             class FeedServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = FeedServiceWitness<FeedServiceMock>
                 typealias Conformance = FeedServiceWitness<FeedServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -208,7 +204,8 @@ final class FunctionSignatureTests: XCTestCase {
             class ServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = ServiceWitness<ServiceMock>
                 typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -242,7 +239,8 @@ final class FunctionSignatureTests: XCTestCase {
             class ServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = ServiceWitness<ServiceMock>
                 typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -276,7 +274,8 @@ final class FunctionSignatureTests: XCTestCase {
             class ServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = ServiceWitness<ServiceMock>
                 typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -311,7 +310,8 @@ final class FunctionSignatureTests: XCTestCase {
             class LoggerMock: Mock, MockWitnessContainer {
                 typealias Witness = LoggerWitness<LoggerMock>
                 typealias Conformance = LoggerWitness<LoggerMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
@@ -346,7 +346,8 @@ final class FunctionSignatureTests: XCTestCase {
             class AnalyticsProtocolMock: Mock, MockWitnessContainer {
                 typealias Witness = AnalyticsProtocolWitness<AnalyticsProtocolMock>
                 typealias Conformance = AnalyticsProtocolWitness<AnalyticsProtocolMock>.Synthesized
-                required override init() {super.init()
+                required override init() {
+                    super.init()
                     self.setup()
                 }
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
