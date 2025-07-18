@@ -23,5 +23,15 @@ public struct Interaction<each Input, Eff: Effect, Output> {
         self.invocationMatcher = InvocationMatcher(matchers: repeat each matchers)
         self.spy = spy
     }
+
+    public func invocations() -> [(repeat each Input)]{
+        var arguments = [(repeat each Input)]()
+        for invocation in spy.invocations {
+            if invocationMatcher.isMatchedBy(invocation) {
+                arguments.append(invocation.arguments)
+            }
+        }
+        return arguments
+    }
 }
 

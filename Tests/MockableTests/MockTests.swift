@@ -80,4 +80,42 @@ final class MockTests: XCTestCase {
         XCTAssertEqual(LoggerMock.spies.values.count, 1)
         XCTAssertEqual(PrinterMock.spies.values.count, 1)
     }
+
+    func testLogger() async throws {
+        let printExpectation = XCTestExpectation(description: "print called")
+        let logExpectation = XCTestExpectation(description: "log should not be called")
+        logExpectation.isInverted = true
+
+        class LoggerMock: Mock {
+            func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
+                Interaction(message, spy: super.log)
+            }
+        }
+
+        class PrinterMock: Mock {
+            func print(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
+                Interaction(message, spy: super.print)
+            }
+        }
+
+        let loggerMock = LoggerMock()
+        let printerMock = PrinterMock()
+        printerMock.isLoggingEnabled = true
+        let logInteraction = loggerMock.log(.any)
+        let printInteraction = printerMock.print(.any)
+        printInteraction.spy.logger = { _ in
+            printExpectation.fulfill()
+        }
+
+        logInteraction.spy.logger = { _ in
+            logExpectation.fulfill()
+        }
+
+        when(logInteraction).thenReturn(())
+        when(printInteraction).thenReturn(())
+        logInteraction.spy.call("")
+        printInteraction.spy.call("")
+
+        await fulfillment(of: [printExpectation, logExpectation], timeout: 1)
+    }
 }

@@ -6,9 +6,10 @@
 //
 import Foundation
 
-protocol AnySpy {
+protocol AnySpy: AnyObject {
     var defaultProviderRegistry: DefaultProvidableRegistry? { get set }
     var invocationCount: Int { get }
+    var isLoggingEnabled: Bool { get set }
     func clear()
 }
 
@@ -22,15 +23,25 @@ protocol AnySpy {
 public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     public private(set) var invocations: [Invocation<repeat each Input>] = []
+    public var isLoggingEnabled: Bool = false
+
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
     var defaultProviderRegistry: DefaultProvidableRegistry?
-
+    var logger: ((Invocation<repeat each Input>) -> Void)?
     var invocationCount: Int {
         invocations.count
     }
 
+    func configureLogger(label: String) {
+        logger = { invocation in
+            print("\(label)\(invocation.debugDescription)")
+        }
+    }
+
     /// Initializes a new `Spy` instance.
-    public init() { }
+    public init() {
+        self.configureLogger(label: "")
+    }
 
     /// Records an invocation and attempts to find a matching stub to return a value or throw an error.
     /// - Parameter input: The arguments of the invocation.
@@ -39,6 +50,11 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     func invoke(_ input: repeat each Input) throws -> Return<Output> {
         let invocation = Invocation(arguments: repeat each input)
         invocations.append(invocation)
+
+        // Log invocations
+        if isLoggingEnabled {
+            logger?(invocation)
+        }
 
         // search through stub for a return value
         var matchingStub: Stub<repeat each Input, Effects, Output>?

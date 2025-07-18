@@ -16,7 +16,17 @@
 /// let invocation = Invocation(arguments: 1, "test")
 /// print(invocation.arguments) // prints "(1, "test")"
 /// ```
-public struct Invocation<each Input> {
+public struct Invocation<each Input>: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        var argStrings = [String]()
+        for argument in repeat each arguments {
+            argStrings.append("\(argument)")
+        }
+        let formattedDescription = "(" + argStrings.joined(separator: ", ") + ")"
+        return formattedDescription
+
+    }
+
     /// The arguments passed to the function.
     public let arguments: (repeat each Input)
 
