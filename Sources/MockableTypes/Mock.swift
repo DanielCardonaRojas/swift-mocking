@@ -33,6 +33,20 @@ open class Mock: DefaultProvider {
     /// keys in the inner dictionary are function or variable names. This enables tracking spies for static requirements.
     static private var spies_: [String: [String: AnySpy]] = [:]
 
+    public var isLoggingEnabled: Bool = false {
+        didSet {
+            spies.values.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
+        }
+    }
+
+    public static var isLoggingEnabled: Bool = false {
+        didSet {
+            for dict in spies_.values {
+                dict.values.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
+            }
+        }
+    }
+
     public init() { }
 
     static var spies: [String: AnySpy] {
@@ -53,6 +67,8 @@ open class Mock: DefaultProvider {
             return existingSpy
         } else {
             let spy = Spy<repeat each Input, Eff, Output>()
+            spy.configureLogger(label: "\(Self.self).\(member)")
+            spy.isLoggingEnabled = isLoggingEnabled
             spies[member] = spy
             return spy
         }
@@ -77,6 +93,8 @@ open class Mock: DefaultProvider {
             return existingSpy
         } else {
             let spy = Spy<repeat each Input, Eff, Output>()
+            spy.configureLogger(label: "\(Self.self).\(member)")
+            spy.isLoggingEnabled = isLoggingEnabled
             spies_[thisType]?[member] = spy
             return spy
         }
