@@ -123,12 +123,13 @@ The `@Mockable` macro generates the following code:
 ```swift
 struct PricingServiceMock {
     typealias Witness = PricingServiceWitness<Self>
+
     var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(price: adapt(\.price)))
+        .init(context: self, witness: .init(price: adapt(self, super.price)))
     }
-    let price = Spy<String, None, Int>()
-    func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-        Interaction(item, spy: price)
+
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
+        Interaction(item, spy: super.price)
     }
 }
 ```
@@ -321,14 +322,21 @@ protocol PricingService {
     func price(_ item: String) throws -> Int
 }
 
-struct PricingServiceMock {
-    typealias Witness = PricingServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(price: adapt(\.price)))
+class PricingServiceMock: Mock, MockWitnessContainer {
+    typealias Witness = PricingServiceWitness<PricingServiceMock>
+    typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
-    let price = Spy<String, Throws, Int>()
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            price: adaptThrows(self, super.price)
+        )
+    }
     func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
-        Interaction(item, spy: price)
+        Interaction(item, spy: super.price)
     }
 }
 ```
@@ -350,14 +358,21 @@ protocol PricingService {
     func price(_ item: String) async -> Int
 }
 
-struct PricingServiceMock {
-    typealias Witness = PricingServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(price: adapt(\.price)))
+class PricingServiceMock: Mock, MockWitnessContainer {
+    typealias Witness = PricingServiceWitness<PricingServiceMock>
+    typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
-    let price = Spy<String, Async, Int>()
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            price: adaptAsync(self, super.price)
+        )
+    }
     func price(_ item: ArgMatcher<String>) -> Interaction<String, Async, Int> {
-        Interaction(item, spy: price)
+        Interaction(item, spy: super.price)
     }
 }
 ```
@@ -379,14 +394,21 @@ protocol PricingService {
     func price(_ item: String) async throws -> Int
 }
 
-struct PricingServiceMock {
-    typealias Witness = PricingServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(price: adapt(\.price)))
+class PricingServiceMock: Mock, MockWitnessContainer {
+    typealias Witness = PricingServiceWitness<PricingServiceMock>
+    typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
-    let price = Spy<String, AsyncThrows, Int>()
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            price: adaptAsyncThrows(self, super.price)
+        )
+    }
     func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncThrows, Int> {
-        Interaction(item, spy: price)
+        Interaction(item, spy: super.price)
     }
 }
 ```
@@ -410,18 +432,27 @@ protocol FeedService {
     func post(to url: URL, data: Data) async throws
 }
 
-struct FeedServiceMock {
-    typealias Witness = FeedServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(fetch: adapt(\.fetch), post: adapt(\.post)))
+class FeedServiceMock: Mock, MockWitnessContainer {
+    typealias Witness = FeedServiceWitness<FeedServiceMock>
+    typealias Conformance = FeedServiceWitness<FeedServiceMock>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
+    }
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            fetch: adaptAsyncThrows(self, super.fetch),
+            post: adaptAsyncThrows(self, super.post)
+        )
     }
     let fetch = Spy<URL, AsyncThrows, Data>()
     func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
-        Interaction(url, spy: fetch)
+        Interaction(url, spy: super.fetch)
     }
     let post = Spy<URL, Data, AsyncThrows, Void>()
     func post(to url: ArgMatcher<URL>, data: ArgMatcher<Data>) -> Interaction<URL, Data, AsyncThrows, Void> {
-        Interaction(url, data, spy: post)
+        Interaction(url, data, spy: super.post)
     }
 }
 ```
@@ -443,14 +474,21 @@ protocol Service {
     func doSomething()
 }
 
-struct ServiceMock {
-    typealias Witness = ServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+class ServiceMock: Mock, MockWitnessContainer {
+    typealias Witness = ServiceWitness<ServiceMock>
+    typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
-    let doSomething_ = Spy<None, Void>()
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            doSomething: adaptNone(self, super.doSomething)
+        )
+    }
     func doSomething() -> Interaction<None, Void> {
-        Interaction(spy: doSomething_)
+        Interaction(spy: super.doSomething)
     }
 }
 ```
@@ -472,14 +510,21 @@ protocol MyService {
     func doSomething()
 }
 
-struct MockMyService {
-    typealias Witness = MyServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+class MockMyService: Mock, MockWitnessContainer {
+    typealias Witness = MyServiceWitness<MockMyService>
+    typealias Conformance = MyServiceWitness<MockMyService>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
-    let doSomething_ = Spy<None, Void>()
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            doSomething: adaptNone(self, super.doSomething)
+        )
+    }
     func doSomething() -> Interaction<None, Void> {
-        Interaction(spy: doSomething_)
+        Interaction(spy: super.doSomething)
     }
 }
 ```
@@ -503,17 +548,23 @@ protocol MyService {
     func item() -> Item
 }
 
-struct MyServiceMock {
-    typealias Witness = MyServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(item: adapt(\.item_)))
+class MyServiceMock<Item>: Mock, MockWitnessContainer {
+    typealias Witness = MyServiceWitness<Item, MyServiceMock<Item>>
+    typealias Conformance = MyServiceWitness<Item, MyServiceMock<Item>>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
-    let item_ = Spy<None, Item>()
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            item: adaptNone(self, super.item)
+        )
+    }
     func item() -> Interaction<None, Item> {
-        Interaction(spy: item_)
+        Interaction(spy: super.item)
     }
 }
-```
 </details>
 
 #### Protocol with Property
@@ -532,13 +583,21 @@ protocol MyService {
     var value: Int { get }
 }
 
-struct MyServiceMock {
-    typealias Witness = MyServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init())
+class MyServiceMock: Mock, MockWitnessContainer {
+    typealias Witness = MyServiceWitness<MyServiceMock>
+    typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            value: adaptProperty(self, \.value)
+        )
+    }
+    let value = Spy<None, Int>()
 }
-```
 </details>
 
 #### Protocol with Initializer
@@ -557,13 +616,21 @@ protocol MyService {
     init(value: Int)
 }
 
-struct MyServiceMock {
-    typealias Witness = MyServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init())
+class MyServiceMock: Mock, MockWitnessContainer {
+    typealias Witness = MyServiceWitness<MyServiceMock>
+    typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            init_value: adaptInitializer(self, super.init)
+        )
+    }
+    let init_value = Spy<Int, Void>()
 }
-```
 </details>
 
 #### Protocol with Subscript
@@ -582,13 +649,21 @@ protocol MyService {
     subscript(index: Int) -> String { get }
 }
 
-struct MyServiceMock {
-    typealias Witness = MyServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init())
+class MyServiceMock: Mock, MockWitnessContainer {
+    typealias Witness = MyServiceWitness<MyServiceMock>
+    typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+    required override init() {
+        super.init()
+        self.setup()
     }
+    lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    var witness: Witness {
+        .init(
+            subscript_index: adaptSubscript(self, \.[])
+        )
+    }
+    let subscript_index = Spy<Int, String>()
 }
-```
 </details>
 
 #### Public Protocol
@@ -607,17 +682,23 @@ public protocol Service {
     func doSomething()
 }
 
-struct ServiceMock {
-    typealias Witness = ServiceWitness<Self>
-    var instance: Witness.Synthesized {
-        .init(context: self, witness: .init(doSomething: adapt(\.doSomething_)))
+public class ServiceMock: Mock, MockWitnessContainer {
+    public typealias Witness = ServiceWitness<ServiceMock>
+    public typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+    public required override init() {
+        super.init()
+        self.setup()
     }
-    let doSomething_ = Spy<None, Void>()
-    func doSomething() -> Interaction<None, Void> {
-        Interaction(spy: doSomething_)
+    public lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+    public var witness: Witness {
+        .init(
+            doSomething: adaptNone(self, super.doSomething)
+        )
+    }
+    public func doSomething() -> Interaction<None, Void> {
+        Interaction(spy: super.doSomething)
     }
 }
-```
 </details>
 
 
