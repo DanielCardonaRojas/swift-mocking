@@ -20,9 +20,9 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething()
             }
 
-            class MockMyService: Mock, MockWitnessContainer {
+            class MockMyService: Mocking {
                 typealias Witness = MyServiceWitness<MockMyService>
-                typealias Conformance = MyServiceWitness<MockMyService>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -55,9 +55,9 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething()
             }
 
-            class MyServiceMock: Mock, MockWitnessContainer {
+            class MyServiceMock: Mocking {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()

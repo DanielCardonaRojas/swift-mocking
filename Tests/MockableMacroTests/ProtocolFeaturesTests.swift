@@ -21,9 +21,9 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: Mock, MockWitnessContainer {
+            class ServiceMock: Mocking {
                 typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -56,9 +56,9 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 var value: Int { get }
             }
 
-            class MyServiceMock: Mock, MockWitnessContainer {
+            class MyServiceMock: Mocking {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -87,9 +87,9 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 init(value: Int)
             }
 
-            class MyServiceMock: Mock, MockWitnessContainer {
+            class MyServiceMock: Mocking {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -118,9 +118,9 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 subscript(index: Int) -> String { get }
             }
 
-            class MyServiceMock: Mock, MockWitnessContainer {
+            class MyServiceMock: Mocking {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -151,9 +151,9 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func item() -> Item
             }
 
-            class MyServiceMock: Mock, MockWitnessContainer {
+            class MyServiceMock: Mocking {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()

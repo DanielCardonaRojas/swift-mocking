@@ -20,9 +20,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mock, MockWitnessContainer {
+            class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -55,9 +55,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) throws -> Int
             }
 
-            class PricingServiceMock: Mock, MockWitnessContainer {
+            class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -90,9 +90,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) async -> Int
             }
 
-            class PricingServiceMock: Mock, MockWitnessContainer {
+            class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -125,9 +125,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) async throws -> Int
             }
 
-            class PricingServiceMock: Mock, MockWitnessContainer {
+            class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -162,9 +162,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func post(to url: URL, data: Data) async throws
             }
 
-            class FeedServiceMock: Mock, MockWitnessContainer {
+            class FeedServiceMock: Mocking {
                 typealias Witness = FeedServiceWitness<FeedServiceMock>
-                typealias Conformance = FeedServiceWitness<FeedServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -201,9 +201,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething() -> String
             }
 
-            class ServiceMock: Mock, MockWitnessContainer {
+            class ServiceMock: Mocking {
                 typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -236,9 +236,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething(with value: Int)
             }
 
-            class ServiceMock: Mock, MockWitnessContainer {
+            class ServiceMock: Mocking {
                 typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -271,9 +271,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: Mock, MockWitnessContainer {
+            class ServiceMock: Mocking {
                 typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -307,9 +307,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 static func log(_ message: String)
             }
 
-            class LoggerMock: Mock, MockWitnessContainer {
+            class LoggerMock: Mocking {
                 typealias Witness = LoggerWitness<LoggerMock>
-                typealias Conformance = LoggerWitness<LoggerMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
@@ -343,9 +343,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func logEvent<E: Identifiable>(_ event: E) -> Bool
             }
 
-            class AnalyticsProtocolMock: Mock, MockWitnessContainer {
+            class AnalyticsProtocolMock: Mocking {
                 typealias Witness = AnalyticsProtocolWitness<AnalyticsProtocolMock>
-                typealias Conformance = AnalyticsProtocolWitness<AnalyticsProtocolMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()

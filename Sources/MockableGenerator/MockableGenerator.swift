@@ -58,12 +58,8 @@ public enum MockableGenerator {
 inheritedTypes: [
                 InheritedTypeSyntax(
                     type: IdentifierTypeSyntax(
-                        name: .identifier("Mock")
-                    ),
-                    trailingComma: .commaToken()
-                ),
-                InheritedTypeSyntax(
-                    type: IdentifierTypeSyntax(name: .identifier("MockWitnessContainer"))
+                        name: .identifier("Mocking")
+                    )
                 )
             ]
 ),

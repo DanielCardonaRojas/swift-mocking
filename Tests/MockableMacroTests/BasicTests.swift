@@ -20,9 +20,9 @@ final class BasicTests: MacroTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mock, MockWitnessContainer {
+            class PricingServiceMock: Mocking {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                typealias Conformance = Witness.Synthesized
                 required override init() {
                     super.init()
                     self.setup()
