@@ -46,6 +46,10 @@ public struct ArgMatcher<Argument> {
         matcher(value) == nil
     }
 
+    public func callAsFunction(_ value: Argument) -> String? {
+        matcher(value)
+    }
+
     /// A matcher that matches any argument of the specified type.
     ///
     /// Use this when you don't care about the specific value of an argument.
