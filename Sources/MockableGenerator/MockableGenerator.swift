@@ -54,11 +54,19 @@ public enum MockableGenerator {
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
             name: TokenSyntax.identifier(mockName),
-            inheritanceClause: InheritanceClauseSyntax(inheritedTypes: [
+            inheritanceClause: InheritanceClauseSyntax(
+inheritedTypes: [
                 InheritedTypeSyntax(
-                    type: IdentifierTypeSyntax(name: .identifier("Mock"))
+                    type: IdentifierTypeSyntax(
+                        name: .identifier("Mock")
+                    ),
+                    trailingComma: .commaToken()
+                ),
+                InheritedTypeSyntax(
+                    type: IdentifierTypeSyntax(name: .identifier("MockWitnessContainer"))
                 )
-            ]),
+            ]
+),
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
                 members.append(MemberBlockItemSyntax(decl: typealiasDecl))
