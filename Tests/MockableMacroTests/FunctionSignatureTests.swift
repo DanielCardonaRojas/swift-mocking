@@ -30,7 +30,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        price: adaptNone(self, super.price)
+                        price: adaptNone(super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
@@ -65,7 +65,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        price: adaptThrows(self, super.price)
+                        price: adaptThrows(super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
@@ -100,7 +100,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        price: adaptAsync(self, super.price)
+                        price: adaptAsync(super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Async, Int> {
@@ -135,7 +135,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        price: adaptAsyncThrows(self, super.price)
+                        price: adaptAsyncThrows(super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncThrows, Int> {
@@ -172,8 +172,8 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        fetch: adaptAsyncThrows(self, super.fetch),
-                        post: adaptAsyncThrows(self, super.post)
+                        fetch: adaptAsyncThrows(super.fetch),
+                        post: adaptAsyncThrows(super.post)
                     )
                 }
                 func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
@@ -211,7 +211,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        doSomething: adaptNone(self, super.doSomething)
+                        doSomething: adaptNone(super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, String> {
@@ -246,7 +246,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        doSomething: adaptNone(self, super.doSomething)
+                        doSomething: adaptNone(super.doSomething)
                     )
                 }
                 func doSomething(with value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
@@ -281,7 +281,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        doSomething: adaptNone(self, super.doSomething)
+                        doSomething: adaptNone(super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {
@@ -317,7 +317,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        log: adaptNone(Super.log)
+                        log: Super.adaptNone(Super.log)
                     )
                 }
                 static func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
@@ -353,7 +353,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        logEvent: adaptNone(self, super.logEvent)
+                        logEvent: adaptNone(super.logEvent)
                     )
                 }
                 func logEvent(_ event: ArgMatcher<any Identifiable>) -> Interaction<any Identifiable, None, Bool> {

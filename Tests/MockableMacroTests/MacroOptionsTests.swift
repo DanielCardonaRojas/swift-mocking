@@ -30,7 +30,7 @@ final class MacroOptionsTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        doSomething: adaptNone(self, super.doSomething)
+                        doSomething: adaptNone(super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {
@@ -65,7 +65,7 @@ final class MacroOptionsTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        doSomething: adaptNone(self, super.doSomething)
+                        doSomething: adaptNone(super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {

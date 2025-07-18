@@ -30,7 +30,7 @@ final class BasicTests: MacroTestCase {
                 lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
-                        price: adaptNone(self, super.price)
+                        price: adaptNone(super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
