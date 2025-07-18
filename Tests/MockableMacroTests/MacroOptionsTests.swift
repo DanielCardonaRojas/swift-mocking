@@ -5,16 +5,7 @@ import XCTest
 import MockableMacro
 import MacroTesting
 
-final class MacroOptionsTests: XCTestCase {
-    override func invokeTest() {
-      withMacroTesting(
-        record: false,
-        macros: ["Mockable": MockableMacro.self]
-      ) {
-        super.invokeTest()
-      }
-    }
-
+final class MacroOptionsTests: MacroTestCase {
     func testPrefixMockOption() {
         assertMacro {
             """
@@ -29,14 +20,17 @@ final class MacroOptionsTests: XCTestCase {
                 func doSomething()
             }
 
-            class MockMyService: Mock {
+            class MockMyService: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MockMyService>
-                var instance: Witness.Synthesized {
+                typealias Conformance = MyServiceWitness<MockMyService>.Synthesized
+                required override init() {
+                    super.init()
+                    self.setup()
+                }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            doSomething: adaptNone(self, super.doSomething)
-                        )
+                        doSomething: adaptNone(self, super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {
@@ -61,14 +55,17 @@ final class MacroOptionsTests: XCTestCase {
                 func doSomething()
             }
 
-            class MyServiceMock: Mock {
+            class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                var instance: Witness.Synthesized {
+                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                required override init() {
+                    super.init()
+                    self.setup()
+                }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            doSomething: adaptNone(self, super.doSomething)
-                        )
+                        doSomething: adaptNone(self, super.doSomething)
                     )
                 }
                 func doSomething() -> Interaction<None, Void> {

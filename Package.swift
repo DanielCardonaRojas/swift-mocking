@@ -37,7 +37,9 @@ let package = Package(
             dependencies: [
                 "MockableMacro",
             ]),
-        .target(name: "MockableTypes"),
+        .target(name: "MockableTypes", dependencies: [
+            .product(name: "WitnessTypes", package: "swift-witness"),
+        ]),
         .target(
             name: "MockableGenerator",
             dependencies: [

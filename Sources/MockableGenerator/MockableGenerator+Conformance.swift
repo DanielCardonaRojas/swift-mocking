@@ -17,34 +17,103 @@ extension MockableGenerator {
     /// - Parameter protocolDecl: The `ProtocolDeclSyntax` to generate the property for.
     /// - Returns: A `DeclSyntax` representing the computed `instance` property.
     static func makeInstanceComputedProperty(protocolDecl: ProtocolDeclSyntax) -> DeclSyntax {
-        let mockWitnessTypeName = "Witness"
+        let returnType = IdentifierTypeSyntax(name: .identifier("Conformance"))
+        let contextArgument = DeclReferenceExprSyntax(baseName: .keyword(.`self`))
 
-        let returnType = MemberTypeSyntax(
-            baseType: IdentifierTypeSyntax(name: .identifier(mockWitnessTypeName)),
-            name: .identifier("Synthesized")
+        let outerInitArguments = LabeledExprListSyntax {
+            LabeledExprSyntax(
+                label: "context",
+                colon: .colonToken(trailingTrivia: .space),
+                expression: contextArgument
+            )
+            LabeledExprSyntax(
+                label: "strategy",
+                colon: .colonToken(trailingTrivia: .space),
+                expression: ExprSyntax(literal: "mocking")
+            )
+        }
+
+        let outerInit = FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
+            leftParen: .leftParenToken(),
+            arguments: outerInitArguments,
+            rightParen: .rightParenToken()
         )
 
+        let instanceVar = VariableDeclSyntax(
+            modifiers: .init([
+                DeclModifierSyntax(name: .keyword(.lazy))
+            ]),
+            bindingSpecifier: .keyword(.var),
+            bindings: [
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier("instance")),
+                    typeAnnotation: TypeAnnotationSyntax(type: returnType),
+                    initializer: .init(value: ExprSyntax(outerInit))
+                )
+            ]
+        )
+
+        return DeclSyntax(instanceVar)
+    }
+
+    static func makeWitnessProperty(protocolDecl: ProtocolDeclSyntax) -> DeclSyntax {
+        let instanceVar = makeWitnessVar(protocolDecl: protocolDecl)
+        return DeclSyntax(instanceVar)
+    }
+
+    private static func makeWitnessVar(protocolDecl: ProtocolDeclSyntax, modifiers: DeclModifierListSyntax = []) -> VariableDeclSyntax {
+        let returnType = IdentifierTypeSyntax(name: .identifier("Witness"))
+        return VariableDeclSyntax(
+            modifiers: modifiers,
+            bindingSpecifier: .keyword(.var),
+            bindings: [
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier("witness")),
+                    typeAnnotation: TypeAnnotationSyntax(type: returnType),
+                    accessorBlock: AccessorBlockSyntax(accessors: .getter( CodeBlockItemListSyntax {
+                        makeWitnessInit(protocolDecl: protocolDecl)
+                    }))
+                )
+            ]
+        )
+    }
+
+
+    static func makeWitnessInit(protocolDecl: ProtocolDeclSyntax) -> FunctionCallExprSyntax {
         let funcDecls = protocolDecl.memberBlock.members.compactMap { $0.decl.as(FunctionDeclSyntax.self) }
         var functionNames = [String: Int]()
-
         let witnessArguments = LabeledExprListSyntax {
             for funcDecl in funcDecls {
                 let funcName = funcDecl.name.text
                 let spyPropertyName = spyPropertyName(for: funcDecl, functionNames: &functionNames)
                 let effectType = getFunctionEffectType(funcDecl)
+                let isStatic = funcDecl.modifiers.contains(where: { $0.isStatic })
 
                 let adaptCall = FunctionCallExprSyntax(
                     callee: DeclReferenceExprSyntax(baseName: .identifier("adapt\(effectType)"))
                 ) {
-                    LabeledExprSyntax(
-                        expression: DeclReferenceExprSyntax(baseName: .identifier("self"))
-                    )
-                    LabeledExprSyntax(
-                        expression: MemberAccessExprSyntax(
-                            base: SuperExprSyntax(),
-                            name: .identifier(spyPropertyName)
+                    if !isStatic {
+                        LabeledExprSyntax(
+                            expression: DeclReferenceExprSyntax(baseName: .identifier("self"))
                         )
-                    )
+                    }
+                    if !isStatic {
+                        LabeledExprSyntax(
+                            expression: MemberAccessExprSyntax(
+                                base: SuperExprSyntax(),
+                                name: .identifier(spyPropertyName)
+                            )
+                        )
+                    } else {
+                        LabeledExprSyntax(
+                            expression: MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(baseName: .identifier("Super")),
+                                name: .identifier(spyPropertyName)
+                            )
+                        )
+
+                    }
                 }
 
                 LabeledExprSyntax(
@@ -55,56 +124,14 @@ extension MockableGenerator {
                 )
             }
         }
-
-        let witnessInit = FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
+        return FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(
+                name: .keyword(.`init`)
+            ),
             leftParen: .leftParenToken(),
             arguments: witnessArguments,
             rightParen: .rightParenToken(leadingTrivia: .newline)
         )
-
-        let contextArgument = DeclReferenceExprSyntax(baseName: .keyword(.`self`))
-
-        let outerInitArguments = LabeledExprListSyntax {
-            LabeledExprSyntax(
-                leadingTrivia: .newline,
-                label: "context",
-                colon: .colonToken(trailingTrivia: .space),
-                expression: contextArgument
-            )
-            LabeledExprSyntax(
-                leadingTrivia: .newline,
-                label: "witness",
-                colon: .colonToken(trailingTrivia: .space),
-                expression: witnessInit
-            )
-        }
-
-        let outerInit = FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(name: .keyword(.`init`)),
-            leftParen: .leftParenToken(),
-            arguments: outerInitArguments,
-            rightParen: .rightParenToken(leadingTrivia: .newline)
-        )
-
-        let getterBody = CodeBlockSyntax(
-            statements: [
-                CodeBlockItemSyntax(item: .expr(ExprSyntax(outerInit)))
-            ]
-        )
-
-        let instanceVar = VariableDeclSyntax(
-            bindingSpecifier: .keyword(.var),
-            bindings: [
-                PatternBindingSyntax(
-                    pattern: IdentifierPatternSyntax(identifier: .identifier("instance")),
-                    typeAnnotation: TypeAnnotationSyntax(type: returnType),
-                    accessorBlock: AccessorBlockSyntax(accessors: .getter(getterBody.statements))
-                )
-            ]
-        )
-
-        return DeclSyntax(instanceVar)
     }
 }
 

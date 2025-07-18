@@ -54,18 +54,10 @@ public extension MockableGenerator {
         let funcName = funcDecl.name.text
         let spyPropertyName = MockableGenerator.spyPropertyName(for: funcDecl, functionNames: &functionNames)
 
-        let (inputTypes, parameterNames, parameterLabels) = getFunctionParameters(funcDecl)
-        let outputType = getFunctionReturnType(funcDecl)
-        let effectType = getFunctionEffectType(funcDecl)
-
         let stubFunction = try createStubFunction(
             name: funcName,
             spyPropertyName: spyPropertyName,
-            inputTypes: inputTypes,
-            outputType: outputType,
-            effectType: effectType,
-            parameterNames: parameterNames,
-            parameterLabels: parameterLabels,
+            funcDecl: funcDecl,
             genericParameterClause: funcDecl.genericParameterClause,
             genericWhereClause: funcDecl.genericWhereClause
         )
@@ -158,19 +150,21 @@ public extension MockableGenerator {
     private static func createStubFunction(
         name: String,
         spyPropertyName: String,
-        inputTypes: [TypeSyntax],
-        outputType: TypeSyntax,
-        effectType: String,
-        parameterNames: [TokenSyntax],
-        parameterLabels: [TokenSyntax?],
+        funcDecl: FunctionDeclSyntax,
         genericParameterClause: GenericParameterClauseSyntax?,
         genericWhereClause: GenericWhereClauseSyntax?
     ) throws -> FunctionDeclSyntax {
+
+        let (inputTypes, parameterNames, parameterLabels) = getFunctionParameters(funcDecl)
+        let outputType = getFunctionReturnType(funcDecl)
+        let effectType = getFunctionEffectType(funcDecl)
+
         let parameterList = createParameterList(inputTypes: inputTypes, parameterNames: parameterNames, parameterLabels: parameterLabels, genericParameterClause: genericParameterClause)
         let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType, genericParameterClause: genericParameterClause)
         let body = createFunctionBody(spyPropertyName: spyPropertyName, parameterNames: parameterNames)
 
         return FunctionDeclSyntax(
+            modifiers: funcDecl.modifiers.trimmed,
             name: TokenSyntax.identifier(name),
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax { parameterList },

@@ -5,16 +5,7 @@ import XCTest
 import MockableMacro
 import MacroTesting
 
-final class BasicTests: XCTestCase {
-    override func invokeTest() {
-      withMacroTesting(
-        record: false,
-        macros: ["Mockable": MockableMacro.self]
-      ) {
-        super.invokeTest()
-      }
-    }
-
+final class BasicTests: MacroTestCase {
     func testSingleMethodNoEffects() {
         assertMacro {
            """
@@ -29,14 +20,17 @@ final class BasicTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mock {
+            class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var instance: Witness.Synthesized {
+                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                required override init() {
+                    super.init()
+                    self.setup()
+                }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+                var witness: Witness {
                     .init(
-                        context: self,
-                        witness: .init(
-                            price: adaptNone(self, super.price)
-                        )
+                        price: adaptNone(self, super.price)
                     )
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {

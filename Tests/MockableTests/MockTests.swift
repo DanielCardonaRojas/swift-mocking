@@ -61,4 +61,23 @@ final class MockTests: XCTestCase {
         XCTAssertEqual(spy1.stubs.count, 0)
         XCTAssertEqual(spy2.stubs.count, 0)
     }
+
+    func testStatic() {
+        class LoggerMock: Mock {
+            static func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
+                Interaction(message, spy: super.log)
+            }
+        }
+
+        class PrinterMock: Mock {
+            static func print(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
+                Interaction(message, spy: super.print)
+            }
+        }
+
+        _ = LoggerMock.log(.any)
+        _ = PrinterMock.print(.any)
+        XCTAssertEqual(LoggerMock.spies.values.count, 1)
+        XCTAssertEqual(PrinterMock.spies.values.count, 1)
+    }
 }
