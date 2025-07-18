@@ -12,13 +12,13 @@ protocol AnySpy {
     func clear()
 }
 
-/// A ``Spy`` is a type of test double that captures calls to its methods, allowing you to inspect them later.
+/// A ``Spy`` is a type of captures calls to a single method, enabling inspections.
 ///
 /// You can use a ``Spy`` to verify that a method was called with specific arguments, or to check how many times it was called.
 /// Spies are useful for testing interactions between objects.
 ///
-/// You don't create spies manually. Instead, you use the `@Mockable` macro to generate a spy for a protocol.
-/// The generated mock will have a `context` property that provides access to the spy.
+/// You don't create spies manually. Instead, you use the `@Mockable` macro to generate a spy for a protocol, or a `Mock` to create them
+/// through dynamic member lookup subscripts.
 public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     public private(set) var invocations: [Invocation<repeat each Input>] = []
