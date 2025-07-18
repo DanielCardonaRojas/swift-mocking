@@ -29,12 +29,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mock {
+            class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         price: adaptNone(self, super.price)
@@ -62,12 +63,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) throws -> Int
             }
 
-            class PricingServiceMock: Mock {
+            class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         price: adaptThrows(self, super.price)
@@ -95,12 +97,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) async -> Int
             }
 
-            class PricingServiceMock: Mock {
+            class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         price: adaptAsync(self, super.price)
@@ -128,12 +131,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func price(_ item: String) async throws -> Int
             }
 
-            class PricingServiceMock: Mock {
+            class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         price: adaptAsyncThrows(self, super.price)
@@ -163,12 +167,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func post(to url: URL, data: Data) async throws
             }
 
-            class FeedServiceMock: Mock {
+            class FeedServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = FeedServiceWitness<FeedServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = FeedServiceWitness<FeedServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         fetch: adaptAsyncThrows(self, super.fetch),
@@ -200,12 +205,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething() -> String
             }
 
-            class ServiceMock: Mock {
+            class ServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = ServiceWitness<ServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         doSomething: adaptNone(self, super.doSomething)
@@ -233,12 +239,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething(with value: Int)
             }
 
-            class ServiceMock: Mock {
+            class ServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = ServiceWitness<ServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         doSomething: adaptNone(self, super.doSomething)
@@ -266,12 +273,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: Mock {
+            class ServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = ServiceWitness<ServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         doSomething: adaptNone(self, super.doSomething)
@@ -283,6 +291,42 @@ final class FunctionSignatureTests: XCTestCase {
             }
             """
         }
+    }
+
+    func testStaticFunctionRequirement() {
+
+        assertMacro {
+            """
+            @Mockable
+            protocol Logger {
+                static func log(_ message: String)
+            }
+            """
+        } expansion: {
+            """
+            protocol Logger {
+                static func log(_ message: String)
+            }
+
+            class LoggerMock: Mock, MockWitnessContainer {
+                typealias Witness = LoggerWitness<LoggerMock>
+                typealias Conformance = LoggerWitness<LoggerMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
+                }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
+                var witness: Witness {
+                    .init(
+                        log: adaptNone(Super.log)
+                    )
+                }
+                static func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
+                    Interaction(message, spy: super.log)
+                }
+            }
+            """
+        }
+
     }
 
     func testGenericParameter() {
@@ -299,12 +343,13 @@ final class FunctionSignatureTests: XCTestCase {
                 func logEvent<E: Identifiable>(_ event: E) -> Bool
             }
 
-            class AnalyticsProtocolMock: Mock {
+            class AnalyticsProtocolMock: Mock, MockWitnessContainer {
                 typealias Witness = AnalyticsProtocolWitness<AnalyticsProtocolMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = AnalyticsProtocolWitness<AnalyticsProtocolMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         logEvent: adaptNone(self, super.logEvent)

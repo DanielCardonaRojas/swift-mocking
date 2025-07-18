@@ -29,12 +29,13 @@ final class BasicTests: XCTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mock {
+            class PricingServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = PricingServiceWitness<PricingServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         price: adaptNone(self, super.price)

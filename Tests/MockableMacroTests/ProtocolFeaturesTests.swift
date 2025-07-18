@@ -29,12 +29,13 @@ final class ProtocolFeaturesTests: XCTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: Mock {
+            class ServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = ServiceWitness<ServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         doSomething: adaptNone(self, super.doSomething)
@@ -62,12 +63,13 @@ final class ProtocolFeaturesTests: XCTestCase {
                 var value: Int { get }
             }
 
-            class MyServiceMock: Mock {
+            class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                     )
@@ -91,12 +93,13 @@ final class ProtocolFeaturesTests: XCTestCase {
                 init(value: Int)
             }
 
-            class MyServiceMock: Mock {
+            class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                     )
@@ -120,12 +123,13 @@ final class ProtocolFeaturesTests: XCTestCase {
                 subscript(index: Int) -> String { get }
             }
 
-            class MyServiceMock: Mock {
+            class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                     )
@@ -151,12 +155,13 @@ final class ProtocolFeaturesTests: XCTestCase {
                 func item() -> Item
             }
 
-            class MyServiceMock: Mock {
+            class MyServiceMock: Mock, MockWitnessContainer {
                 typealias Witness = MyServiceWitness<MyServiceMock>
-                var instance: Witness.Synthesized {
-                    witness.register(strategy: "mocking")
-                    return .init(context: self, strategy: "mocking")
+                typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+                required override init() {super.init()
+                    self.setup()
                 }
+                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
                 var witness: Witness {
                     .init(
                         item: adaptNone(self, super.item)
