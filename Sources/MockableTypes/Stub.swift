@@ -5,7 +5,7 @@
 //  Created by Daniel Cardona on 4/07/25.
 //
 
-/// A ``Stub`` a provides pre-canned answers for a single method with a specific configuration.
+/// A ``Stub`` is a type that provides a pre-canned answer for a single method.
 ///
 /// You use stubs to control the behavior of a dependency during a test. For example, you can stub a method to return a specific value, or to throw an error.
 /// Stubs are created by calling the `when(calledWith:)` method on a ``Spy`` and are recorded to intercept invocations on a method and

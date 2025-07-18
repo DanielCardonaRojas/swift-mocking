@@ -13,7 +13,7 @@ protocol AnySpy: AnyObject {
     func clear()
 }
 
-/// A ``Spy`` is a type of captures calls to a single method, enabling inspections.
+/// A ``Spy`` is a type that captures calls to a single method, enabling inspections.
 ///
 /// You can use a ``Spy`` to verify that a method was called with specific arguments, or to check how many times it was called.
 /// Spies are useful for testing interactions between objects.

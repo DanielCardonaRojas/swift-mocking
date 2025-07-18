@@ -88,15 +88,16 @@ final class StoreTests: XCTestCase {
 
 ---
 
+## 📚 Documentation
+
+For more detailed information, please refer to the official [documentation](https://danielcardonarojas.github.io/swift-mocking/documentation/mockabletypes/).
+
+---
+
 ## ⚙️ How it Works
 
-`SwiftMocking` builds upon the powerful [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) library to do the heavy lifting. `swift-witness` generates a struct with closures representing the protocol requirements. It also generates the code necessary to synthesize a protocol conformance (witness + Self). `swift-testing` takes advantage of this since it now only needs to create an instance of the witness and provide the correct context (the set of method spies that should be invoked).
+`SwiftMocking` builds upon [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) which generates a struct with closures representing the protocol requirements. It also generates the code necessary to synthesize a protocol conformance (witness + Self). `swift-mocking` then creates a witness struct injecting spies into each closure. Finally a conformance to the protocol is synthesized and available as an instance property on the generated Mock.
 
-1.  **Protocol Analysis with `@Witnessed`**: The `@Witnessed` macro from the [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) is responsible for analyzing the protocol and providing a mechanism for synthesizing protocol conformances.
-
-2.  **Mock Generation with `@Mockable`**: The `@Mockable` macro in this library then builds a witness value by passing in spies for each protocol requirement. These will power stubbing and spying of each protocol requirement.
-
-This two-step process also enables different workflows. For example, you can annotate the protocol in your main target and generate both the witness which is useful for things other than testing and choose to generate the mock only in your test target. Or you can decide to generate both things in your main target. This enables that the core logic of protocol analysis is separate from the mock generation, and that your project only contains the code it needs for each specific target.
 
 For a deeper understanding of protocol witnesses, please refer to the [swift-witness documentation](https://github.com/DanielCardonaRojas/ProtocolWitnessMacro?tab=readme-ov-file#-what-is-a-protocol-witness).
 
@@ -336,9 +337,9 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-class PricingServiceMock: Mock, MockWitnessContainer {
+class PricingServiceMock: Mocking {
     typealias Witness = PricingServiceWitness<PricingServiceMock>
-    typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+    typealias Conformance = Witness.Synthesized
     required override init() {
         super.init()
         self.setup()
@@ -368,9 +369,9 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-class PricingServiceMock: Mock, MockWitnessContainer {
+class PricingServiceMock: Mocking {
     typealias Witness = PricingServiceWitness<PricingServiceMock>
-    typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+    typealias Conformance = Witness.Synthesized
     required override init() {
         super.init()
         self.setup()
@@ -400,9 +401,9 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-class PricingServiceMock: Mock, MockWitnessContainer {
+class PricingServiceMock: Mocking {
     typealias Witness = PricingServiceWitness<PricingServiceMock>
-    typealias Conformance = PricingServiceWitness<PricingServiceMock>.Synthesized
+    typealias Conformance = Witness.Synthesized
     required override init() {
         super.init()
         self.setup()
@@ -433,9 +434,9 @@ protocol FeedService {
 <summary>Generated Code</summary>
 
 ```swift
-class FeedServiceMock: Mock, MockWitnessContainer {
+class FeedServiceMock: Mocking {
     typealias Witness = FeedServiceWitness<FeedServiceMock>
-    typealias Conformance = FeedServiceWitness<FeedServiceMock>.Synthesized
+    typealias Conformance = Witness.Synthesized
     required override init() {
         super.init()
         self.setup()
@@ -469,9 +470,9 @@ protocol Service {
 <summary>Generated Code</summary>
 
 ```swift
-class ServiceMock: Mock, MockWitnessContainer {
+class ServiceMock: Mocking {
     typealias Witness = ServiceWitness<ServiceMock>
-    typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+    typealias Conformance = Witness.Synthesized
     required override init() {
         super.init()
         self.setup()
@@ -501,7 +502,7 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MockMyService: Mock, MockWitnessContainer {
+class MockMyService: Mocking {
     typealias Witness = MyServiceWitness<MockMyService>
     typealias Conformance = MyServiceWitness<MockMyService>.Synthesized
     required override init() {
@@ -534,7 +535,7 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock<Item>: Mock, MockWitnessContainer {
+class MyServiceMock<Item>: Mocking {
     typealias Witness = MyServiceWitness<Item, MyServiceMock<Item>>
     typealias Conformance = MyServiceWitness<Item, MyServiceMock<Item>>.Synthesized
     required override init() {
@@ -566,9 +567,9 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock: Mock, MockWitnessContainer {
+class MyServiceMock: Mocking {
     typealias Witness = MyServiceWitness<MyServiceMock>
-    typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+    typealias Conformance = Witness.Synthesized
     required override init() {
         super.init()
         self.setup()
@@ -595,9 +596,9 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock: Mock, MockWitnessContainer {
+class MyServiceMock: Mocking {
     typealias Witness = MyServiceWitness<MyServiceMock>
-    typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+    typealias Conformance = Witness.Synthesized
     required override init() {
         super.init()
         self.setup()
@@ -624,9 +625,9 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock: Mock, MockWitnessContainer {
+class MyServiceMock: Mocking {
     typealias Witness = MyServiceWitness<MyServiceMock>
-    typealias Conformance = MyServiceWitness<MyServiceMock>.Synthesized
+    typealias Conformance = Witness.Synthesized
     required override init() {
         super.init()
         self.setup()
@@ -653,9 +654,9 @@ public protocol Service {
 <summary>Generated Code</summary>
 
 ```swift
-public class ServiceMock: Mock, MockWitnessContainer {
+public class ServiceMock: Mocking {
     public typealias Witness = ServiceWitness<ServiceMock>
-    public typealias Conformance = ServiceWitness<ServiceMock>.Synthesized
+    public typealias Conformance = Witness.Synthesized
     public required override init() {
         super.init()
         self.setup()
@@ -673,10 +674,6 @@ public class ServiceMock: Mock, MockWitnessContainer {
 ```
 </details>
 
-
-## 📚 Documentation
-
-For more detailed information, please refer to the official [documentation](https://danielcardonarojas.github.io/swift-mocking/documentation/mockabletypes/).
 
 ## 📜 License
 
