@@ -1,5 +1,5 @@
 //
-//  SpyAdapters.swift
+//  Mock+SpyAdapters.swift
 //  swift-mocking
 //
 //  Created by Daniel Cardona on 13/07/25.
