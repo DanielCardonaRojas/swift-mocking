@@ -143,8 +143,17 @@ inheritedTypes: [
                 statementsBuilder: {
                 CodeBlockItemSyntax(
                     item: .init(
-                    DeclSyntax(stringLiteral: "super.init()")
-                ))
+                        ExprSyntax(
+                            FunctionCallExprSyntax(
+                                callee: ExprSyntax(
+                                    DeclReferenceExprSyntax(
+                                        baseName: .identifier("super.init")
+                                    )
+                                )
+                            )
+                        )
+                )
+)
                 CodeBlockItemSyntax(item: .init(
                     ExprSyntax(stringLiteral: "self.setup()")
                 ))
