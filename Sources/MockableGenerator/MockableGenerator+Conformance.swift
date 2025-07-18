@@ -40,20 +40,16 @@ extension MockableGenerator {
             rightParen: .rightParenToken()
         )
 
-        let getterBody = CodeBlockSyntax(
-            statements: [
-                CodeBlockItemSyntax(stringLiteral: "witness.register(strategy: \"mocking\")"),
-                CodeBlockItemSyntax(item: .stmt(StmtSyntax(ReturnStmtSyntax(expression: ExprSyntax(outerInit))))),
-            ]
-        )
-
         let instanceVar = VariableDeclSyntax(
+            modifiers: .init([
+                DeclModifierSyntax(name: .keyword(.lazy))
+            ]),
             bindingSpecifier: .keyword(.var),
             bindings: [
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(identifier: .identifier("instance")),
                     typeAnnotation: TypeAnnotationSyntax(type: returnType),
-                    accessorBlock: AccessorBlockSyntax(accessors: .getter(getterBody.statements))
+                    initializer: .init(value: ExprSyntax(outerInit))
                 )
             ]
         )

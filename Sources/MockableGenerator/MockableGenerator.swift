@@ -71,6 +71,7 @@ inheritedTypes: [
                 var members = [MemberBlockItemSyntax]()
                 members.append(MemberBlockItemSyntax(decl: typealiasDecl))
                 members.append(MemberBlockItemSyntax(decl: conformanceTypealiasDecl))
+                members.append(MemberBlockItemSyntax(decl: initializer()))
                 members.append(MemberBlockItemSyntax(decl: instanceProperty))
                 members.append(MemberBlockItemSyntax(decl: witnessProperty))
                 members.append(contentsOf: spyMembers.map { MemberBlockItemSyntax(decl: $0) })
@@ -122,5 +123,32 @@ inheritedTypes: [
         functionNames[funcName] = count + 1
         let baseName = count > 0 ? "\(funcName)_\(count)" : funcName
         return baseName
+    }
+
+    static func initializer() -> InitializerDeclSyntax {
+        InitializerDeclSyntax(
+            attributes: AttributeListSyntax([
+//                AttributeSyntax(attributeName: IdentifierTypeSyntax(name: .identifier("discardableResult")))
+            ]),
+            modifiers: [
+                DeclModifierSyntax(name: .identifier("required")),
+                DeclModifierSyntax(name: .identifier("override"))
+            ],
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parameters: []
+                )
+            ),
+            body: CodeBlockSyntax(
+                statementsBuilder: {
+                CodeBlockItemSyntax(
+                    item: .init(
+                    DeclSyntax(stringLiteral: "super.init()")
+                ))
+                CodeBlockItemSyntax(item: .init(
+                    ExprSyntax(stringLiteral: "self.setup()")
+                ))
+            })
+        )
     }
 }
