@@ -648,6 +648,7 @@ public class ServiceMock: Mock, MockWitnessContainer {
         Interaction(spy: super.doSomething)
     }
 }
+```
 </details>
 
 
