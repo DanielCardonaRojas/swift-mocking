@@ -38,6 +38,16 @@ final class MockTests: XCTestCase {
         XCTAssertEqual(mock.spies.count, 2)
     }
 
+    func testSubscript_Supports_Overloaded_Functions() {
+        let mock = Mock()
+        let _: Spy<Int, None, Void> = mock.myFunction
+        let _: Spy<String, None, Void> = mock.myFunction
+        XCTAssertEqual(mock.spies.values.reduce(0, { $0 + $1.count }), 2)
+        let _: Spy<Int, None, Void> = Mock.myFunction
+        let _: Spy<String, None, Void> = Mock.myFunction
+        XCTAssertEqual(Mock.spies.values.reduce(0, { $0 + $1.count }), 2)
+    }
+
     func testClear_ClearsAllSpies() {
         let mock = Mock()
         let spy1: Spy<Int, None, Void> = mock.myFunction

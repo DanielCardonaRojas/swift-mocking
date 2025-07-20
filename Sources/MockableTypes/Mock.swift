@@ -27,29 +27,33 @@ open class Mock: DefaultProvider {
     public var defaultProviderRegistry: DefaultProvidableRegistry = .shared
 
     /// Stores spies per protocol  requirement. Keys are function or variable names.
-    private(set) var spies: [String: AnySpy] = [:]
+    private(set) var spies: [String: [AnySpy]] = [:]
 
     /// Stores spies per protocol requirement. Keys in the outermost dictionary correspond to the Mock type,
     /// keys in the inner dictionary are function or variable names. This enables tracking spies for static requirements.
-    static private var spies_: [String: [String: AnySpy]] = [:]
+    static private var spies_: [String: [String: [AnySpy]]] = [:]
 
     public var isLoggingEnabled: Bool = false {
         didSet {
-            spies.values.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
+            for spyGroup in spies.values {
+                spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled})
+            }
         }
     }
 
     public static var isLoggingEnabled: Bool = false {
         didSet {
             for dict in spies_.values {
-                dict.values.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
+                for spyGroup in dict.values {
+                    spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
+                }
             }
         }
     }
 
     public init() { }
 
-    static var spies: [String: AnySpy] {
+    static var spies: [String: [AnySpy]] {
         spies_["\(Self.self)"] ?? [:]
     }
 
@@ -63,13 +67,13 @@ open class Mock: DefaultProvider {
     /// - Parameter member: The name of the member being accessed.
     /// - Returns: A ``Spy`` instance configured for the member's signature.
     public subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
-        if let existingSpy = spies[member] as? Spy<repeat each Input, Eff, Output> {
+        if let existingSpy = spies[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> })  {
             return existingSpy
         } else {
             let spy = Spy<repeat each Input, Eff, Output>()
             spy.configureLogger(label: "\(Self.self).\(member)")
             spy.isLoggingEnabled = isLoggingEnabled
-            spies[member] = spy
+            spies[member, default: []].append(spy)
             return spy
         }
     }
@@ -89,13 +93,13 @@ open class Mock: DefaultProvider {
             spies_[thisType] = [:]
         }
 
-        if let existingSpy = spies_[thisType]?[member] as? Spy<repeat each Input, Eff, Output> {
+        if let spyGroup = spies_[thisType]?[member], let existingSpy = spyGroup.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> }) {
             return existingSpy
         } else {
             let spy = Spy<repeat each Input, Eff, Output>()
             spy.configureLogger(label: "\(Self.self).\(member)")
             spy.isLoggingEnabled = isLoggingEnabled
-            spies_[thisType]?[member] = spy
+            spies_[thisType]?[member, default: []].append(spy)
             return spy
         }
     }
@@ -105,7 +109,8 @@ open class Mock: DefaultProvider {
     /// Call this method in your test's `tearDown` to ensure that each test starts with a
     /// clean mock object, free from any interactions or stubs from previous tests.
     public func clear() {
-        spies.values.forEach { $0.clear() }
+        for spyGroup in spies.values {
+            spyGroup.forEach { $0.clear() }
+        }
     }
 }
-
