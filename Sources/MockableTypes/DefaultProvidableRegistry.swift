@@ -27,6 +27,9 @@ public class DefaultProvidableRegistry {
     }
 
     public func getDefaultForType<T>(_ type: T.Type) -> T? {
+        if type == Void.self {
+            return () as? T
+        }
         if let providableType = type as? any DefaultProvidable.Type,
            registeredTypes.contains(ObjectIdentifier(providableType)) {
             return providableType.defaultValue as? T

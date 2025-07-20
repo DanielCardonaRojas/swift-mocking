@@ -53,16 +53,11 @@ final class MockTests: XCTestCase {
         let spy1: Spy<Int, None, Void> = mock.myFunction
         let spy2: Spy<String, None, Void> = mock.anotherFunction
 
-        spy1.when(calledWith: 42).thenReturn(())
         spy1.call(42)
-
-        spy2.when(calledWith: "test").thenReturn(())
         spy2.call("test")
 
         XCTAssertEqual(spy1.invocations.count, 1)
         XCTAssertEqual(spy2.invocations.count, 1)
-        XCTAssertEqual(spy1.stubs.count, 1)
-        XCTAssertEqual(spy2.stubs.count, 1)
 
         mock.clear()
 
@@ -121,8 +116,6 @@ final class MockTests: XCTestCase {
             logExpectation.fulfill()
         }
 
-        when(logInteraction).thenReturn(())
-        when(printInteraction).thenReturn(())
         logInteraction.spy.call("")
         printInteraction.spy.call("")
 

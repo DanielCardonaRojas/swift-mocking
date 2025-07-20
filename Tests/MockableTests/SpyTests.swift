@@ -1,6 +1,6 @@
 
 import XCTest
-import MockableTypes
+@testable import MockableTypes
 @testable import Mockable
 
 final class SpyTests: XCTestCase {
@@ -40,8 +40,7 @@ final class SpyTests: XCTestCase {
 
     func test_spy_withVoidOutput_recordsInvocations() {
         let spy = Spy<String, None, Void>()
-        spy.when(calledWith:.any).thenReturn(())
-
+        spy.defaultProviderRegistry = .shared
         spy.call("action1")
         spy.call("action2")
 

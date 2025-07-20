@@ -25,6 +25,7 @@ open class Mock: DefaultProvider {
     }
 
     public var defaultProviderRegistry: DefaultProvidableRegistry = .shared
+    public static var defaultProviderRegistry: DefaultProvidableRegistry = .shared
 
     /// Stores spies per protocol  requirement. Keys are function or variable names.
     private(set) var spies: [String: [AnySpy]] = [:]
@@ -73,6 +74,7 @@ open class Mock: DefaultProvider {
             let spy = Spy<repeat each Input, Eff, Output>()
             spy.configureLogger(label: "\(Self.self).\(member)")
             spy.isLoggingEnabled = isLoggingEnabled
+            spy.defaultProviderRegistry = defaultProviderRegistry
             spies[member, default: []].append(spy)
             return spy
         }
@@ -99,6 +101,7 @@ open class Mock: DefaultProvider {
             let spy = Spy<repeat each Input, Eff, Output>()
             spy.configureLogger(label: "\(Self.self).\(member)")
             spy.isLoggingEnabled = isLoggingEnabled
+            spy.defaultProviderRegistry = defaultProviderRegistry
             spies_[thisType]?[member, default: []].append(spy)
             return spy
         }

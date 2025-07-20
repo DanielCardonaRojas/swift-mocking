@@ -124,13 +124,11 @@ final class MockitoTests: XCTestCase {
         }
         let mock = AnalyticsProtocolMock()
         let event = TestEvent()
-        when(mock.logEvent(.any)).thenReturn(())
         mock.instance.logEvent(event)
         verify(mock.logEvent(.as(TestEvent.self))).called()
     }
 
     func testStatic() {
-        when(LoggerMock.log(.any)).thenReturn(())
         LoggerMock.Conformance.log("hello")
         LoggerMock.Conformance.log("hello")
         verify(LoggerMock.log("hello")).called(2)
