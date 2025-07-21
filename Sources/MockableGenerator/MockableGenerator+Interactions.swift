@@ -52,7 +52,7 @@ public extension MockableGenerator {
     /// ```
     private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) throws -> DeclSyntax {
         let funcName = funcDecl.name.text
-        let spyPropertyName = MockableGenerator.spyPropertyName(for: funcDecl, functionNames: &functionNames)
+        let spyPropertyName = funcDecl.name.text
 
         let stubFunction = try createStubFunction(
             name: funcName,

@@ -46,10 +46,7 @@ public enum MockableGenerator {
 
         // Generate the spy properties and methods using SpyGenerator
         let spyMembers = try makeInteractions(protocolDecl: protocolDecl)
-        let typealiasDecl = makeTypealiasDecl(protocolName: protocolName, mockName: mockName)
-        let conformanceTypealiasDecl = makeConformanceTypealias(protocolName: protocolName, mockName: mockName)
-        let instanceProperty = makeInstanceComputedProperty(protocolDecl: protocolDecl)
-        let witnessProperty = makeWitnessProperty(protocolDecl: protocolDecl)
+        let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
 
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
@@ -58,19 +55,19 @@ public enum MockableGenerator {
 inheritedTypes: [
                 InheritedTypeSyntax(
                     type: IdentifierTypeSyntax(
-                        name: .identifier("Mocking")
-                    )
+                        name: .identifier("Mock")
+                    ),
+                    trailingComma: .commaToken()
+                ),
+                InheritedTypeSyntax(
+                    type: IdentifierTypeSyntax(name: protocolDecl.name)
                 )
             ]
 ),
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
-                members.append(MemberBlockItemSyntax(decl: typealiasDecl))
-                members.append(MemberBlockItemSyntax(decl: conformanceTypealiasDecl))
-                members.append(MemberBlockItemSyntax(decl: initializer()))
-                members.append(MemberBlockItemSyntax(decl: instanceProperty))
-                members.append(MemberBlockItemSyntax(decl: witnessProperty))
                 members.append(contentsOf: spyMembers.map { MemberBlockItemSyntax(decl: $0) })
+                members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)
             }
         )
@@ -111,49 +108,5 @@ inheritedTypes: [
             }
         }
         return []
-    }
-
-    public static func spyPropertyName(for funcDecl: FunctionDeclSyntax, functionNames: inout [String: Int]) -> String {
-        let funcName = funcDecl.name.text
-        let count = functionNames[funcName, default: 0]
-        functionNames[funcName] = count + 1
-        let baseName = count > 0 ? "\(funcName)_\(count)" : funcName
-        return baseName
-    }
-
-    static func initializer() -> InitializerDeclSyntax {
-        InitializerDeclSyntax(
-            attributes: AttributeListSyntax([
-//                AttributeSyntax(attributeName: IdentifierTypeSyntax(name: .identifier("discardableResult")))
-            ]),
-            modifiers: [
-                DeclModifierSyntax(name: .identifier("required")),
-                DeclModifierSyntax(name: .identifier("override"))
-            ],
-            signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax(
-                    parameters: []
-                )
-            ),
-            body: CodeBlockSyntax(
-                statementsBuilder: {
-                CodeBlockItemSyntax(
-                    item: .init(
-                        ExprSyntax(
-                            FunctionCallExprSyntax(
-                                callee: ExprSyntax(
-                                    DeclReferenceExprSyntax(
-                                        baseName: .identifier("super.init")
-                                    )
-                                )
-                            )
-                        )
-                )
-)
-                CodeBlockItemSyntax(item: .init(
-                    ExprSyntax(stringLiteral: "self.setup()")
-                ))
-            })
-        )
     }
 }

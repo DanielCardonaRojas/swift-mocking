@@ -38,17 +38,8 @@ public enum MockableMacro: PeerMacro {
 
         let codeGenOptions = MockableGenerator.codeGenOptions(protocolDecl: protocolDecl)
 
-        let witnessDecls = try WitnessGenerator.processProtocol(
-            protocolDecl: protocolDecl,
-            options: .synthesizedConformance
-        )
         let mockableDecls = try MockableGenerator.processProtocol(protocolDecl: protocolDecl)
         var allDecls: [DeclSyntax] = []
-
-        if codeGenOptions.contains(.includeWitness) {
-            allDecls.append(contentsOf: witnessDecls)
-
-        }
 
         allDecls.append(contentsOf: mockableDecls)
         return allDecls
