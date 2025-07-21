@@ -101,44 +101,6 @@ public extension MockableGenerator {
         }
     }
 
-    /// Creates a `Spy` property declaration.
-    ///
-    /// For example, for a function `doSomething(with value: String) -> Int`, this will generate:
-    /// ```swift
-    /// let doSomething = Spy<String, None, Int>()
-    /// ```
-    private static func createSpyProperty(name: String, inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String) throws -> VariableDeclSyntax {
-        var genericArgs = [GenericArgumentSyntax]()
-        for inputType in inputTypes {
-            genericArgs.append(GenericArgumentSyntax(argument: inputType))
-        }
-        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType)))
-        genericArgs.append(GenericArgumentSyntax(argument: outputType))
-
-        let genericSpy = GenericSpecializationExprSyntax(
-            expression: DeclReferenceExprSyntax(baseName: .identifier("Spy")),
-            genericArgumentClause: GenericArgumentClauseSyntax(
-                leftAngle: .leftAngleToken(),
-                arguments: GenericArgumentListSyntax(
-                    genericArgs.enumerated().map { (index, arg) in
-                        if index < genericArgs.count - 1 {
-                            return arg.with(\.trailingComma, .commaToken())
-                        }
-                        return arg
-                    }
-                ),
-                rightAngle: .rightAngleToken()
-            )
-        )
-
-        let initializer = InitializerClauseSyntax(value: FunctionCallExprSyntax(callee: genericSpy) { LabeledExprListSyntax() })
-        let binding = PatternBindingSyntax(pattern: IdentifierPatternSyntax(identifier: .identifier(name)), initializer: initializer)
-        return VariableDeclSyntax(
-            bindingSpecifier: .keyword(.let, trailingTrivia: .space),
-            bindings: [binding]
-        )
-    }
-
     /// Creates a stubbing function declaration.
     ///
     /// For example, for a function `doSomething(with value: String) -> Int`, this will generate:
@@ -166,6 +128,7 @@ public extension MockableGenerator {
         return FunctionDeclSyntax(
             modifiers: funcDecl.modifiers.trimmed,
             name: TokenSyntax.identifier(name),
+            genericParameterClause: genericParameterClause,
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax { parameterList },
                 returnClause: returnType
@@ -210,20 +173,7 @@ public extension MockableGenerator {
                 secondName = parameterName
             }
 
-            let argMatcherType: TypeSyntax
-            if let identifierType = type.as(IdentifierTypeSyntax.self),
-               let constraint = genericParameterConstraints[identifierType.name.text] {
-                // This is a generic parameter with a constraint, use 'any Constraint'
-                argMatcherType = TypeSyntax(
-                    SomeOrAnyTypeSyntax(
-                        someOrAnySpecifier: .keyword(.any),
-                        constraint: constraint
-                    )
-                )
-            } else {
-                // Not a generic parameter or no constraint, use the original type
-                argMatcherType = type
-            }
+            let argMatcherType = type
 
             let param = FunctionParameterSyntax(
                 firstName: parameterLabel ?? .wildcardToken(),
@@ -260,20 +210,7 @@ public extension MockableGenerator {
         }
 
         for inputType in inputTypes {
-            let argType: TypeSyntax
-            if let identifierType = inputType.as(IdentifierTypeSyntax.self),
-               let constraint = genericParameterConstraints[identifierType.name.text] {
-                // This is a generic parameter with a constraint, use 'any Constraint'
-                argType = TypeSyntax(
-                    SomeOrAnyTypeSyntax(
-                        someOrAnySpecifier: .keyword(.any),
-                        constraint: constraint
-                    )
-                )
-            } else {
-                // Not a generic parameter or no constraint, use the original type
-                argType = inputType
-            }
+            let argType = inputType
             genericArgs.append(GenericArgumentSyntax(argument: argType))
         }
         genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType)))
