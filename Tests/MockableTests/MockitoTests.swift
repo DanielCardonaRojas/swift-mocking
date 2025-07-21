@@ -156,28 +156,28 @@ class Store {
     }
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol PricingService {
     func price(_ item: String) throws -> Int
 }
 
-@Mockable([.includeWitness, .prefixMock])
+@Mockable([.prefixMock])
 protocol DataFetcherService {
     func fetchData(id: String) async -> String
     func fetchDataThrows(id: String) async throws -> String
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol Calculator {
     func calculate(_ a: Int, _ b: Int) -> Int
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol AnalyticsProtocol {
     func logEvent<E: Identifiable>(_ event: E)
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol Logger {
     static func log(_ message: String)
 }

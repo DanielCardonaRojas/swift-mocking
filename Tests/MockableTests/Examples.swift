@@ -5,79 +5,79 @@ import MockableTypes
 
 // MARK: - Function Signature Variations
 
-@Mockable([.includeWitness])
+@Mockable
 protocol ThrowingService {
     func process() throws
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol AsyncService {
     func load() async -> String
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol AsyncThrowingService {
     func perform() async throws -> Data
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol FeedService {
     func fetch(from url: URL) async throws -> Data
     func post(to url: URL, data: Data) async throws
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol ParameterlessService {
     func doSomething() -> String
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol ReturnlessService {
     func doSomething(with value: Int)
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol SimpleService {
     func doSomething()
 }
 
 // MARK: - Macro Options
 
-@Mockable([.includeWitness, .prefixMock])
+@Mockable([.prefixMock])
 protocol PrefixMockService {
     func doSomething()
 }
 
-@Mockable([.includeWitness, .suffixMock])
+@Mockable([.suffixMock])
 protocol SuffixMockService {
     func doSomething()
 }
 
 // MARK: - Protocol Features
 
-@Mockable([.includeWitness])
+@Mockable
 public protocol PublicService {
     func doSomething()
 }
 
 // TODO: Missing support
 /*
-@Mockable([.includeWitness])
+@Mockable
 protocol PropertyService {
     var value: Int { get }
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol InitializerService {
     init(value: Int)
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol SubscriptService {
     subscript(index: Int) -> String { get }
 }
 
-@Mockable([.includeWitness])
+@Mockable
 protocol AssociatedTypeService {
     associatedtype Item
     func item() -> Item

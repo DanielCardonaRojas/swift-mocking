@@ -21,16 +21,13 @@
 /// ```
 public struct MockableOptions: OptionSet {
     public let rawValue: Int
-    public static var `default`: MockableOptions = [.includeWitness, .prefixMock]
-
-    /// Includes a Witness type alongside the generated mock.
-    public static let includeWitness = MockableOptions(rawValue: 1 << 0)
+    public static var `default`: MockableOptions = [.prefixMock]
 
     /// Suffixes the generated mock type name with "Mock" (e.g., `MyServiceMock`).
-    public static let suffixMock = MockableOptions(rawValue: 1 << 1)
+    public static let suffixMock = MockableOptions(rawValue: 1 << 0)
 
     /// Prefixes the generated mock type name with "Mock" (e.g., `MockMyService`).
-    public static let prefixMock = MockableOptions(rawValue: 1 << 2)
+    public static let prefixMock = MockableOptions(rawValue: 1 << 1)
 
     /// Initializes a `MockableOptions` instance with the given raw value.
     /// - Parameter rawValue: The raw integer value representing the option set.
@@ -51,8 +48,6 @@ public struct MockableOptions: OptionSet {
 
         for component in components {
             switch component {
-            case "includeWitness":
-                combinedOptions.formUnion(.includeWitness)
             case "suffixMock":
                 combinedOptions.formUnion(.suffixMock)
             case "prefixMock":
@@ -70,7 +65,6 @@ public struct MockableOptions: OptionSet {
     /// Returns an array of string identifiers for the options currently set.
     public var identifiers: [String] {
         var names: [String] = []
-        if contains(.includeWitness) { names.append("includeWitness") }
         if contains(.prefixMock) { names.append("prefixMock") }
         if contains(.suffixMock) { names.append("suffixMock") }
         return names
