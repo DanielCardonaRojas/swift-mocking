@@ -30,7 +30,10 @@ extension MockableGenerator {
     
     static func functionRequirement(_ functionDecl: FunctionDeclSyntax) -> FunctionDeclSyntax {
         return FunctionDeclSyntax(
+            attributes: functionDecl.attributes,
+            modifiers: functionDecl.modifiers,
             name: functionDecl.name,
+            genericParameterClause: functionDecl.genericParameterClause,
             signature: functionDecl.signature,
             body: functionRequirementBody(functionDecl)
         )
@@ -49,20 +52,26 @@ extension MockableGenerator {
         return CodeBlockSyntax {
             switch effectType {
             case "None":
-                baseFunctionRequirementBody(funcDecl)
+                ReturnStmtSyntax(expression: baseFunctionRequirementBody(funcDecl))
             case "AsyncThrows":
-                TryExprSyntax(
-                    expression: AwaitExprSyntax(
-                        expression: baseFunctionRequirementBody(funcDecl)
+                ReturnStmtSyntax(
+                    expression: TryExprSyntax(
+                        expression: AwaitExprSyntax(
+                            expression: baseFunctionRequirementBody(funcDecl)
+                        )
                     )
                 )
             case "Throws":
-                TryExprSyntax(
-                    expression: baseFunctionRequirementBody(funcDecl)
+                ReturnStmtSyntax(
+                    expression: TryExprSyntax(
+                        expression: baseFunctionRequirementBody(funcDecl)
+                    )
                 )
             case "Async":
-                AwaitExprSyntax(
-                    expression: baseFunctionRequirementBody(funcDecl)
+                ReturnStmtSyntax(
+                    expression: AwaitExprSyntax(
+                        expression: baseFunctionRequirementBody(funcDecl)
+                    )
                 )
             default:
                 baseFunctionRequirementBody(funcDecl)
@@ -73,7 +82,7 @@ extension MockableGenerator {
     
     private static func baseFunctionRequirementBody(_ functionDecl: FunctionDeclSyntax) -> FunctionCallExprSyntax {
         let effectType = getFunctionEffectType(functionDecl)
-        let adaptingName = "adapting" + (effectType.contains("Throws") ? "Throws" : "")
+        let adaptingName = "adapt" + (effectType.contains("Throws") ? "Throwing" : "")
         return FunctionCallExprSyntax(
             calledExpression: DeclReferenceExprSyntax(
                 baseName: .identifier(adaptingName)
