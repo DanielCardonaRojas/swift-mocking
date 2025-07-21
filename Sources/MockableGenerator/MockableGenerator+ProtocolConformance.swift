@@ -21,13 +21,36 @@ extension MockableGenerator {
             } else if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
                 declarations.append(DeclSyntax(variableRequirement(variableDecl)))
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
-                declarations.append(DeclSyntax(subscriptDecl))
+                declarations.append(DeclSyntax(subscriptRequirement(subscriptDecl)))
+            } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
+                declarations.append(DeclSyntax(initializerRequirement(initDecl)))
+
             }
         }
         
         return declarations
     }
-    
+
+    static func initializerRequirement(
+        _ initDecl: InitializerDeclSyntax
+    ) -> InitializerDeclSyntax {
+        let modifiers = DeclModifierListSyntax {
+            DeclModifierSyntax(name: .keyword(.required))
+            for modifier in initDecl.modifiers {
+                modifier
+            }
+        }
+        return InitializerDeclSyntax(
+            attributes: initDecl.attributes,
+            modifiers: modifiers,
+            genericParameterClause: initDecl.genericParameterClause,
+            signature: initDecl.signature,
+            body: CodeBlockSyntax {
+
+            }
+        )
+    }
+
     static func functionRequirement(_ functionDecl: FunctionDeclSyntax) -> FunctionDeclSyntax {
         return FunctionDeclSyntax(
             attributes: functionDecl.attributes,
@@ -130,7 +153,6 @@ extension MockableGenerator {
     
     private static func baseFunctionRequirementBody(_ functionDecl: FunctionDeclSyntax) -> FunctionCallExprSyntax {
         let effectType = getFunctionEffectType(functionDecl)
-        let adaptingName = "adapt" + (effectType.contains("Throws") ? "Throwing" : "")
         return adaptCall(
             effectType: effectType,
             requirementName: functionDecl.name,
