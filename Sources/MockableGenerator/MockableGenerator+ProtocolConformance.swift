@@ -7,11 +7,6 @@
 
 import SwiftSyntax
 
-func todo(_ function: StaticString = #function) -> Never {
-    fatalError("Unimplemented \(function)")
-}
-
-
 extension MockableGenerator {
     static func makeConformanceRequirements(for protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
         var declarations = [DeclSyntax]()
@@ -115,9 +110,32 @@ extension MockableGenerator {
     }
     
     static func subscriptRequirement(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
-        todo()
+        SubscriptDeclSyntax(
+            attributes: subscriptDecl.attributes,
+            modifiers: subscriptDecl.modifiers,
+            parameterClause: subscriptDecl.parameterClause,
+            returnClause: subscriptDecl.returnClause,
+            genericWhereClause: subscriptDecl.genericWhereClause,
+            accessorBlock: AccessorBlockSyntax(
+                accessors: .accessors(
+                    AccessorDeclListSyntax {
+                        AccessorDeclSyntax(
+                            accessorSpecifier: .keyword(.get),
+                            bodyBuilder: {
+                                ReturnStmtSyntax(
+                                    expression: adaptCall(
+                                        effectType: "None",
+                                        requirementName: .identifier("subscript"),
+                                        parameters: subscriptDecl.parameterClause.parameters.map({ $0.secondName ?? $0.firstName })
+                                    )
+                                )
+                            }
+                        )
+                    })
+            )
+        )
     }
-    
+
     static func functionRequirementBody(_ funcDecl: FunctionDeclSyntax) -> CodeBlockSyntax {
         let effectType = getFunctionEffectType(funcDecl)
         return CodeBlockSyntax {
