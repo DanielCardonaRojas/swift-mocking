@@ -11,13 +11,9 @@ import XCTest
 import WitnessTypes
 
 final class MockitoTests: XCTestCase {
-    override class func setUp() {
-        LoggerMock.setup()
-    }
-
     func testMockitoBuilder() {
         let mock = PricingServiceMock()
-        let store = Store(pricingService: mock.instance)
+        let store = Store(pricingService: mock)
         when(mock.price("apple")).thenReturn(13)
         when(mock.price("banana")).thenReturn(17)
 
@@ -32,14 +28,14 @@ final class MockitoTests: XCTestCase {
         let registry = DefaultProvidableRegistry([Int.self])
         let mock = PricingServiceMock()
         mock.defaultProviderRegistry = registry
-        let store = Store(pricingService: mock.instance)
+        let store = Store(pricingService: mock)
         store.register("apple")
         XCTAssertEqual(store.prices["apple"], .zero)
     }
 
     func test_verifyInOrder() {
         let mock = PricingServiceMock()
-        let store = Store(pricingService: mock.instance)
+        let store = Store(pricingService: mock)
         when(mock.price(.any)).thenReturn(13)
 
         store.register("apple")
@@ -52,7 +48,7 @@ final class MockitoTests: XCTestCase {
 
     func test_verifyThrows() {
         let mock = PricingServiceMock()
-        let store = Store(pricingService: mock.instance)
+        let store = Store(pricingService: mock)
         when(mock.price(.any)).thenReturn(13)
         when(mock.price("rotten")).thenThrow(TestError.example)
 
@@ -71,8 +67,8 @@ final class MockitoTests: XCTestCase {
             return priceDict[item] ?? .zero
         }
 
-        XCTAssertEqual(try mock.instance.price("apple"), 13)
-        XCTAssertEqual(try mock.instance.price("banana"), 5)
+        XCTAssertEqual(try mock.price("apple"), 13)
+        XCTAssertEqual(try mock.price("banana"), 5)
     }
 
     func test_asyncDataFetcher() async throws {
@@ -80,14 +76,14 @@ final class MockitoTests: XCTestCase {
 
         // Stub async method
         when(mock.fetchData(id: .any)).thenReturn("async_data_1")
-        let data1 = await mock.instance.fetchData(id: "id1")
+        let data1 = await mock.fetchData(id: "id1")
         XCTAssertEqual(data1, "async_data_1")
         verify(mock.fetchData(id: "id1")).called(1)
 
         // Stub async throws method
         when(mock.fetchDataThrows(id: "error_id")).thenThrow(TestError.example)
         do {
-            _ = try await mock.instance.fetchDataThrows(id: "error_id")
+            _ = try await mock.fetchDataThrows(id: "error_id")
             XCTFail("Should have thrown an error")
         } catch {
             XCTAssert(error is TestError)
@@ -96,7 +92,7 @@ final class MockitoTests: XCTestCase {
 
         // Stub async throws method with success
         when(mock.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
-        let data2 = try await mock.instance.fetchDataThrows(id: "success_id")
+        let data2 = try await mock.fetchDataThrows(id: "success_id")
         XCTAssertEqual(data2, "async_data_2")
         verify(mock.fetchDataThrows(id: "success_id")).called(1)
     }
@@ -109,9 +105,9 @@ final class MockitoTests: XCTestCase {
         when(mockCalculator.calculate(even, even)).thenReturn(-)
         when(mockCalculator.calculate(.any, .any)).thenReturn(+)
 
-        XCTAssertEqual(mockCalculator.instance.calculate(3, 3), 9, "Multiplies because both are odd")
-        XCTAssertEqual(mockCalculator.instance.calculate(3, 4), 7, "Sums because one is odd the other even")
-        XCTAssertEqual(mockCalculator.instance.calculate(18, 4), 14, "Subtracts because both are even")
+        XCTAssertEqual(mockCalculator.calculate(3, 3), 9, "Multiplies because both are odd")
+        XCTAssertEqual(mockCalculator.calculate(3, 4), 7, "Sums because one is odd the other even")
+        XCTAssertEqual(mockCalculator.calculate(18, 4), 14, "Subtracts because both are even")
     }
 
     func testAnalyticsEvent() {
@@ -124,13 +120,13 @@ final class MockitoTests: XCTestCase {
         }
         let mock = AnalyticsProtocolMock()
         let event = TestEvent()
-        mock.instance.logEvent(event)
-        verify(mock.logEvent(.as(TestEvent.self))).called()
+        mock.logEvent(event)
+        verify(mock.logEvent(.any(TestEvent.self))).called()
     }
 
     func testStatic() {
-        LoggerMock.Conformance.log("hello")
-        LoggerMock.Conformance.log("hello")
+        LoggerMock.log("hello")
+        LoggerMock.log("hello")
         verify(LoggerMock.log("hello")).called(2)
     }
 
@@ -186,3 +182,10 @@ protocol AnalyticsProtocol {
 protocol Logger {
     static func log(_ message: String)
 }
+
+
+@Mockable
+protocol Countable {
+    var totalCount: Int { get set }
+}
+
