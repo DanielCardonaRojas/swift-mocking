@@ -8,7 +8,6 @@
 import Mockable
 import MockableTypes
 import XCTest
-import WitnessTypes
 
 final class MockitoTests: XCTestCase {
     func testMockitoBuilder() {

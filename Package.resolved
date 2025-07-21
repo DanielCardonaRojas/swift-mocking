@@ -55,15 +55,6 @@
       }
     },
     {
-      "identity" : "swift-witness",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DanielCardonaRojas/swift-witness",
-      "state" : {
-        "branch" : "main",
-        "revision" : "ff2c486752a4b4613286aaf4840ad2192bb3a1d8"
-      }
-    },
-    {
       "identity" : "xctest-dynamic-overlay",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",

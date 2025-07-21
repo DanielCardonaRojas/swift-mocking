@@ -10,14 +10,12 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import MockableGenerator
-import WitnessGenerator
 import MockableTypes
 
 @main
 struct MockablePlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         MockableMacro.self,
-        WitnessMacro.self,
     ]
 }
 
@@ -45,23 +43,3 @@ public enum MockableMacro: PeerMacro {
         return allDecls
     }
 }
-
-public enum WitnessMacro: PeerMacro {
-    public static func expansion(
-        of node: AttributeSyntax,
-        providingPeersOf declaration: some DeclSyntaxProtocol,
-        in context: some MacroExpansionContext
-    ) throws -> [DeclSyntax] {
-        guard let protocolDecl = declaration.as(ProtocolDeclSyntax.self) else {
-            throw MacroError(message: "@WitnessMacro only works on protocols declarations")
-        }
-
-        let witnessDecls = try WitnessGenerator.processProtocol(
-            protocolDecl: protocolDecl,
-            options: .synthesizedConformance
-        )
-        return witnessDecls
-    }
-
-}
-
