@@ -20,21 +20,12 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething()
             }
 
-            class MockMyService: Mocking {
-                typealias Witness = MyServiceWitness<MockMyService>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        doSomething: adaptNone(super.doSomething)
-                    )
-                }
+            class MockMyService: Mock, MyService {
                 func doSomething() -> Interaction<None, Void> {
                     Interaction(spy: super.doSomething)
+                }
+                func doSomething() {
+                    return adapt(super.doSomething)
                 }
             }
             """
@@ -55,21 +46,12 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething()
             }
 
-            class MyServiceMock: Mocking {
-                typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        doSomething: adaptNone(super.doSomething)
-                    )
-                }
+            class MyServiceMock: Mock, MyService {
                 func doSomething() -> Interaction<None, Void> {
                     Interaction(spy: super.doSomething)
+                }
+                func doSomething() {
+                    return adapt(super.doSomething)
                 }
             }
             """

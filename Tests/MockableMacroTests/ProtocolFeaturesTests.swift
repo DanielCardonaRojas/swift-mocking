@@ -21,21 +21,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: Mocking {
-                typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        doSomething: adaptNone(super.doSomething)
-                    )
-                }
+            class ServiceMock: Mock, Service {
                 func doSomething() -> Interaction<None, Void> {
                     Interaction(spy: super.doSomething)
+                }
+                func doSomething() {
+                    return adapt(super.doSomething)
                 }
             }
             """
@@ -56,17 +47,11 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 var value: Int { get }
             }
 
-            class MyServiceMock: Mocking {
-                typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                    )
+            class MyServiceMock: Mock, MyService {
+                var value: Int {
+                    get {
+                        adapt(super.value)
+                    }
                 }
             }
             """
@@ -87,18 +72,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 init(value: Int)
             }
 
-            class MyServiceMock: Mocking {
-                typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                    )
-                }
+            class MyServiceMock: Mock, MyService {
             }
             """
         }
@@ -118,17 +92,9 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 subscript(index: Int) -> String { get }
             }
 
-            class MyServiceMock: Mocking {
-                typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                    )
+            class MyServiceMock: Mock, MyService {
+                subscript(index: Int) -> String {
+                    get
                 }
             }
             """
@@ -151,21 +117,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func item() -> Item
             }
 
-            class MyServiceMock: Mocking {
-                typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        item: adaptNone(super.item)
-                    )
-                }
+            class MyServiceMock: Mock, MyService {
                 func item() -> Interaction<None, Item> {
                     Interaction(spy: super.item)
+                }
+                func item() -> Item {
+                    return adapt(super.item)
                 }
             }
             """
