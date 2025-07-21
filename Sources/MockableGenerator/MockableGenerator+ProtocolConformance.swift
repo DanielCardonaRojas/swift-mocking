@@ -40,7 +40,55 @@ extension MockableGenerator {
     }
     
     static func variableRequirement(_ variableDecl: VariableDeclSyntax) -> VariableDeclSyntax {
-        todo()
+
+        return VariableDeclSyntax(
+            attributes: variableDecl.attributes,
+            modifiers: variableDecl.modifiers,
+            bindingSpecifier: variableDecl.bindingSpecifier,
+            bindings: PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(
+                        identifier: variableDecl.name
+                    ),
+                    typeAnnotation: variableDecl.bindings.first?.typeAnnotation,
+                    accessorBlock: AccessorBlockSyntax(
+                        accessors: .accessors(
+                            AccessorDeclListSyntax(
+                                itemsBuilder: {
+                                    // Setter
+                                    if variableDecl.hasSetter {
+                                        AccessorDeclSyntax(
+                                            accessorSpecifier: .keyword(.set),
+                                            bodyBuilder: {
+                                                ReturnStmtSyntax(
+                                                    expression: adaptCall(
+                                                        effectType: "None",
+                                                        requirementName: .identifier(variableDecl.name.text + "Set"),
+                                                        parameters: [.identifier("newValue")]
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    }
+                                    // Getter
+                                    AccessorDeclSyntax(
+                                        accessorSpecifier: .keyword(.get),
+                                        bodyBuilder: {
+                                            adaptCall(
+                                                effectType: "None",
+                                                requirementName: variableDecl.name,
+                                                parameters: []
+                                            )
+                                        }
+                                    )
+
+                            })
+                        )
+                    )
+                )
+
+            }
+        )
     }
     
     static func subscriptRequirement(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
@@ -83,32 +131,42 @@ extension MockableGenerator {
     private static func baseFunctionRequirementBody(_ functionDecl: FunctionDeclSyntax) -> FunctionCallExprSyntax {
         let effectType = getFunctionEffectType(functionDecl)
         let adaptingName = "adapt" + (effectType.contains("Throws") ? "Throwing" : "")
+        return adaptCall(
+            effectType: effectType,
+            requirementName: functionDecl.name,
+            parameters: functionDecl.signature.parameterClause.parameters
+                .map({ $0.secondName ?? $0.firstName})
+        )
+    }
+
+    private static func adaptCall(effectType: String, requirementName: TokenSyntax, parameters: [TokenSyntax]) -> FunctionCallExprSyntax {
+        let adaptingName = "adapt" + (effectType.contains("Throws") ? "Throwing" : "")
         return FunctionCallExprSyntax(
             calledExpression: DeclReferenceExprSyntax(
                 baseName: .identifier(adaptingName)
             ),
             leftParen: .leftParenToken(),
             arguments: LabeledExprListSyntax {
-                // super.log
+                // super.myMethoName
                 LabeledExprSyntax(
                     expression: MemberAccessExprSyntax(
                         base: SuperExprSyntax(),
-                        name: functionDecl.name
+                        name: requirementName
                     )
                 )
-                
+
                 // param1, param2...
-                for parameter in functionDecl.signature.parameterClause.parameters {
+                for parameter in parameters {
                     LabeledExprSyntax(
                         expression: DeclReferenceExprSyntax.init(
-                            baseName: parameter.secondName ?? parameter.firstName
+                            baseName: parameter
                         )
                     )
                 }
             },
             rightParen: .rightParenToken()
         )
-        
+
     }
 }
 
