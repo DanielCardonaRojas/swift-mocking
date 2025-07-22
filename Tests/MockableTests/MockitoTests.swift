@@ -5,7 +5,8 @@
 //  Created by Daniel Cardona on 7/07/25.
 //
 
-import Mockable
+import SwiftMocking
+import SwiftMockingTestSupport
 import MockableTypes
 import XCTest
 

@@ -1,6 +1,6 @@
 
 import Foundation
-import Mockable
+import SwiftMocking
 import MockableTypes
 
 // MARK: - Function Signature Variations
