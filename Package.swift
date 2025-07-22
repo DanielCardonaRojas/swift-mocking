@@ -23,6 +23,10 @@ let package = Package(
             name: "MockableTypes",
             targets: ["MockableTypes"]
         ),
+        .library(
+            name: "SwiftMockingTestSupport",
+            targets: ["SwiftMockingTestSupport"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-syntax.git", from: "600.0.1"),
@@ -37,6 +41,7 @@ let package = Package(
                 "MockableMacro",
             ]),
         .target(name: "MockableTypes"),
+        .target(name: "SwiftMockingTestSupport"),
         .target(
             name: "MockableGenerator",
             dependencies: [
