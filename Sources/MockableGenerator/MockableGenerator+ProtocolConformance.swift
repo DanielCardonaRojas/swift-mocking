@@ -140,9 +140,9 @@ extension MockableGenerator {
         let effectType = getFunctionEffectType(funcDecl)
         return CodeBlockSyntax {
             switch effectType {
-            case "None":
+            case .none:
                 ReturnStmtSyntax(expression: baseFunctionRequirementBody(funcDecl))
-            case "AsyncThrows":
+            case .asyncThrows:
                 ReturnStmtSyntax(
                     expression: TryExprSyntax(
                         expression: AwaitExprSyntax(
@@ -150,21 +150,18 @@ extension MockableGenerator {
                         )
                     )
                 )
-            case "Throws":
+            case .throws:
                 ReturnStmtSyntax(
                     expression: TryExprSyntax(
                         expression: baseFunctionRequirementBody(funcDecl)
                     )
                 )
-            case "Async":
+            case .async:
                 ReturnStmtSyntax(
                     expression: AwaitExprSyntax(
                         expression: baseFunctionRequirementBody(funcDecl)
                     )
                 )
-            default:
-                baseFunctionRequirementBody(funcDecl)
-
             }
         }
     }
@@ -172,7 +169,7 @@ extension MockableGenerator {
     private static func baseFunctionRequirementBody(_ functionDecl: FunctionDeclSyntax) -> FunctionCallExprSyntax {
         let effectType = getFunctionEffectType(functionDecl)
         return adaptCall(
-            effectType: effectType,
+            effectType: effectType.rawValue,
             requirementName: functionDecl.name,
             parameters: functionDecl.signature.parameterClause.parameters
                 .map({ $0.secondName ?? $0.firstName})

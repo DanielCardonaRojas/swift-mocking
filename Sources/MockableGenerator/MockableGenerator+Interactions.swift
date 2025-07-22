@@ -7,6 +7,13 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
+public enum EffectType: String {
+    case asyncThrows = "AsyncThrows"
+    case `throws` = "Throws"
+    case `async` = "Async"
+    case none = "None"
+}
+
 public extension MockableGenerator {
     /// Processes a protocol declaration to generate a spy struct.
     ///
@@ -88,16 +95,16 @@ public extension MockableGenerator {
     /// Extracts the effect type (throws, async, etc.) from a function declaration.
     ///
     /// For example, for `async throws -> Int`, this will return `AsyncThrows`.
-    static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> String {
+    static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> EffectType {
         let effects = funcDecl.signature.effectSpecifiers
         if effects?.throwsClause != nil && effects?.asyncSpecifier != nil {
-            return "AsyncThrows"
+            return .asyncThrows
         } else if effects?.throwsClause != nil {
-            return "Throws"
+            return .throws
         } else if effects?.asyncSpecifier != nil {
-            return "Async"
+            return .async
         } else {
-            return "None"
+            return .none
         }
     }
 
@@ -197,7 +204,7 @@ public extension MockableGenerator {
     /// ```swift
     /// -> Interaction<String, None, Int>
     /// ```
-    private static func createInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String, genericParameterClause: GenericParameterClauseSyntax?) -> ReturnClauseSyntax {
+    private static func createInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: EffectType, genericParameterClause: GenericParameterClauseSyntax?) -> ReturnClauseSyntax {
         var genericArgs = [GenericArgumentSyntax]()
         // Map generic parameter names to their first type constraint
         var genericParameterConstraints: [String: TypeSyntax] = [:]
@@ -213,7 +220,7 @@ public extension MockableGenerator {
             let argType = inputType
             genericArgs.append(GenericArgumentSyntax(argument: argType))
         }
-        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType)))
+        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.rawValue)))
         genericArgs.append(GenericArgumentSyntax(argument: outputType))
 
         let genericStubType = IdentifierTypeSyntax(
