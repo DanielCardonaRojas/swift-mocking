@@ -46,7 +46,7 @@ let package = Package(
             name: "SwiftMockingTestSupport",
             dependencies: [
                 "SwiftMocking",
-                "MockableTypes"
+                "MockableTypes",
             ]),
         .target(
             name: "MockableGenerator",
@@ -65,8 +65,9 @@ let package = Package(
         .testTarget(
             name: "MockableTests",
             dependencies: [
-                "MockableGenerator",
                 "SwiftMocking",
+                "SwiftMockingTestSupport",
+                "MockableGenerator",
                 "MockableTypes"
             ]
         ),
