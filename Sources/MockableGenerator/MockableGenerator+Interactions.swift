@@ -76,8 +76,77 @@ public extension MockableGenerator {
     }
 
     private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
-        // TODO: Analyze if we need to create 1 or 2 declarations. Depending on if the the variable is set and get or just get.
-        return []
+        var decls = [DeclSyntax]()
+        for binding in varDecl.bindings {
+            guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
+                continue
+            }
+            let varName = pattern.identifier.text
+            guard let type = binding.typeAnnotation?.type else {
+                continue
+            }
+
+            let hasSetter = varDecl.hasSetter
+
+            // Getter
+            let getter = createGetterInteraction(
+                varName: varName,
+                type: type,
+                modifiers: varDecl.modifiers
+            )
+            decls.append(DeclSyntax(getter))
+
+            if hasSetter {
+                let setter = createSetterInteraction(
+                    varName: varName,
+                    type: type,
+                    modifiers: varDecl.modifiers
+                )
+                decls.append(DeclSyntax(setter))
+            }
+        }
+        return decls
+    }
+
+    private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+        let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
+        let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])
+        return FunctionDeclSyntax(
+            modifiers: modifiers.trimmed,
+            name: .identifier("get\(varName.capitalized)"),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(parameters: []),
+                returnClause: interactionReturnType
+            ),
+            body: body
+        )
+    }
+
+    private static func createSetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+        let setterName = "set" + varName.capitalized
+        let parameter = FunctionParameterSyntax(
+            firstName: .identifier("newValue"),
+            colon: .colonToken(trailingTrivia: .space),
+            type: TypeSyntax(
+                IdentifierTypeSyntax(
+                    name: .identifier("ArgMatcher"),
+                    genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: type) }
+                )
+            )
+        )
+        let parameterList = FunctionParameterListSyntax([parameter])
+        let interactionReturnType = createInteractionReturnType(inputTypes: [type], outputType: TypeSyntax(stringLiteral: "Void"), effectType: .none, genericParameterClause: nil)
+        let body = createFunctionBody(spyPropertyName: setterName, parameterNames: [.identifier("newValue")])
+
+        return FunctionDeclSyntax(
+            modifiers: modifiers.trimmed,
+            name: .identifier(setterName),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(parameters: parameterList),
+                returnClause: interactionReturnType
+            ),
+            body: body
+        )
     }
 
     /// Extracts the parameter types, internal names, and external labels from a function declaration.

@@ -31,7 +31,6 @@ public enum MockableGenerator {
     /// }
     /// ```
     public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
-        let hasStaticRequirements = hasStaticMembers(protocolDecl: protocolDecl)
         let protocolName = protocolDecl.name.text
         let codeGenOptions = MockableGenerator.codeGenOptions(protocolDecl: protocolDecl)
         let mockName: String
@@ -45,29 +44,29 @@ public enum MockableGenerator {
         }
 
         // Generate the spy properties and methods using SpyGenerator
-        let spyMembers = makeInteractions(protocolDecl: protocolDecl)
+        let interactions = makeInteractions(protocolDecl: protocolDecl)
         let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
 
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
             name: TokenSyntax.identifier(mockName),
             inheritanceClause: InheritanceClauseSyntax(
-inheritedTypes: [
-                InheritedTypeSyntax(
-                    type: IdentifierTypeSyntax(
-                        name: .identifier("Mock")
+                inheritedTypes: [
+                    InheritedTypeSyntax(
+                        type: IdentifierTypeSyntax(
+                            name: .identifier("Mock")
+                        ),
+                        trailingComma: .commaToken()
                     ),
-                    trailingComma: .commaToken()
-                ),
-                InheritedTypeSyntax(
-                    type: IdentifierTypeSyntax(name: protocolDecl.name)
-                )
-            ]
-),
+                    InheritedTypeSyntax(
+                        type: IdentifierTypeSyntax(name: protocolDecl.name)
+                    )
+                ]
+            ),
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
-                members.append(contentsOf: spyMembers.map { MemberBlockItemSyntax(decl: $0) })
                 members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
+                members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)
             }
         )

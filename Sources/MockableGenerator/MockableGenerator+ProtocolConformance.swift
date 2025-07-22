@@ -58,10 +58,10 @@ extension MockableGenerator {
     }
     
     static func variableRequirement(_ variableDecl: VariableDeclSyntax) -> VariableDeclSyntax {
-
         return VariableDeclSyntax(
+            leadingTrivia: .newline,
             attributes: variableDecl.attributes,
-            modifiers: variableDecl.modifiers,
+            modifiers: variableDecl.modifiers.trimmed,
             bindingSpecifier: variableDecl.bindingSpecifier,
             bindings: PatternBindingListSyntax {
                 PatternBindingSyntax(
@@ -80,8 +80,8 @@ extension MockableGenerator {
                                             bodyBuilder: {
                                                 ReturnStmtSyntax(
                                                     expression: adaptCall(
-                                                        effectType: "None",
-                                                        requirementName: .identifier(variableDecl.name.text + "Set"),
+                                                        effectType: .none,
+                                                        requirementName: .identifier("set\(variableDecl.name.text.capitalized)"),
                                                         parameters: [.identifier("newValue")]
                                                     )
                                                 )
@@ -93,7 +93,7 @@ extension MockableGenerator {
                                         accessorSpecifier: .keyword(.get),
                                         bodyBuilder: {
                                             adaptCall(
-                                                effectType: "None",
+                                                effectType: .none,
                                                 requirementName: variableDecl.name,
                                                 parameters: []
                                             )
@@ -124,7 +124,7 @@ extension MockableGenerator {
                             bodyBuilder: {
                                 ReturnStmtSyntax(
                                     expression: adaptCall(
-                                        effectType: "None",
+                                        effectType: .none,
                                         requirementName: .identifier("subscript"),
                                         parameters: subscriptDecl.parameterClause.parameters.map({ $0.secondName ?? $0.firstName })
                                     )
@@ -169,15 +169,15 @@ extension MockableGenerator {
     private static func baseFunctionRequirementBody(_ functionDecl: FunctionDeclSyntax) -> FunctionCallExprSyntax {
         let effectType = getFunctionEffectType(functionDecl)
         return adaptCall(
-            effectType: effectType.rawValue,
+            effectType: effectType,
             requirementName: functionDecl.name,
             parameters: functionDecl.signature.parameterClause.parameters
                 .map({ $0.secondName ?? $0.firstName})
         )
     }
 
-    private static func adaptCall(effectType: String, requirementName: TokenSyntax, parameters: [TokenSyntax]) -> FunctionCallExprSyntax {
-        let adaptingName = "adapt" + (effectType.contains("Throws") ? "Throwing" : "")
+    private static func adaptCall(effectType: EffectType, requirementName: TokenSyntax, parameters: [TokenSyntax]) -> FunctionCallExprSyntax {
+        let adaptingName = "adapt" + (effectType.rawValue.contains("Throws") ? "Throwing" : "")
         return FunctionCallExprSyntax(
             calledExpression: DeclReferenceExprSyntax(
                 baseName: .identifier(adaptingName)
