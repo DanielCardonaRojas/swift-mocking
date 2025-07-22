@@ -48,7 +48,34 @@ To add `SwiftMocking` to your Swift package, add it as a dependency in your `Pac
 
 ---
 
-### Usage
+## 🚀 Usage
+
+Here's an example of how to use `Mockable` to mock a `PricingService` protocol:
+
+```swift
+import SwiftMocking
+
+
+@Mockable
+protocol PricingService {
+    func price(_ item: String) throws -> Int
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class PricingServiceMock: Mock, PricingService {
+    func price(_ item: String) throws -> Int {
+        return try adaptThrowing(super.price, item)
+    }
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
+        Interaction(item, spy: super.price)
+    }
+}
+```
+</details>
+
 
 Here is an example of a `Store` class that uses the `PricingService`.
 
@@ -116,39 +143,9 @@ This approach eliminates the need for manual mock implementations and provides a
 ---
 
 
-## 🚀 Example
-
-Here's an example of how to use `Mockable` to mock a `PricingService` protocol:
-
-```swift
-import SwiftMocking
-
-@Mockable
-protocol PricingService {
-    func price(for item: String) -> Int
-}
-```
-
-### Generated Code
-
-The `@Mockable` macro generates the following code:
-
-```swift
-class PricingServiceMock: Mock, PricingService {
-    func price(_ item: String) -> Int {
-        return adapt(super.price, item)
-    }
-    func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-        Interaction(item, spy: super.price)
-    }
-}
-```
-
----
-
 ## ⚡️ Advanced Usage
 
-### Advanced Argument Matching
+### Argument Matching
 
 `Mockable` provides a rich set of argument matchers to precisely control stubbing and verification.
 
