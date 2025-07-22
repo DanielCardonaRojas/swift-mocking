@@ -134,10 +134,6 @@ protocol PricingService {
 The `@Mockable` macro generates the following code:
 
 ```swift
-protocol PricingService {
-    func price(_ item: String) -> Int
-}
-
 class PricingServiceMock: Mock, PricingService {
     func price(_ item: String) -> Int {
         return adapt(super.price, item)
@@ -335,10 +331,6 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol PricingService {
-    func price(_ item: String) throws -> Int
-}
-
 class PricingServiceMock: Mock, PricingService {
     func price(_ item: String) throws -> Int {
         return try adaptThrowing(super.price, item)
@@ -362,10 +354,6 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol PricingService {
-    func price(_ item: String) async -> Int
-}
-
 class PricingServiceMock: Mock, PricingService {
     func price(_ item: String) async -> Int {
         return await adapt(super.price, item)
@@ -389,10 +377,6 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol PricingService {
-    func price(_ item: String) async throws -> Int
-}
-
 class PricingServiceMock: Mock, PricingService {
     func price(_ item: String) async throws -> Int {
         return try await adaptThrowing(super.price, item)
@@ -417,11 +401,6 @@ protocol FeedService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol FeedService {
-    func fetch(from url: URL) async throws -> Data
-    func post(to url: URL, data: Data) async throws
-}
-
 class FeedServiceMock: Mock, FeedService {
     func fetch(from url: URL) async throws -> Data {
         return try await adaptThrowing(super.fetch, url)
@@ -451,10 +430,6 @@ protocol Service {
 <summary>Generated Code</summary>
 
 ```swift
-protocol Service {
-    func doSomething()
-}
-
 class ServiceMock: Mock, Service {
     func doSomething() {
         return adapt(super.doSomething)
@@ -478,10 +453,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    func doSomething()
-}
-
 class MockMyService: Mock, MyService {
     func doSomething() {
         return adapt(super.doSomething)
@@ -506,11 +477,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    associatedtype Item
-    func item() -> Item
-}
-
 class MyServiceMock<Item>: Mock, MyService {
     typealias Item = Item
     func item() -> Item {
@@ -535,10 +501,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    var value: Int { get }
-}
-
 class MyServiceMock: Mock, MyService {
 
     var value: Int {
@@ -565,10 +527,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    init(value: Int)
-}
-
 class MyServiceMock: Mock, MyService {
     required init(value: Int) {
     }
@@ -588,10 +546,6 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-protocol MyService {
-    subscript(index: Int) -> String { get }
-}
-
 class MyServiceMock: Mock, MyService {
     subscript(index: Int) -> String {
         get {
@@ -619,10 +573,6 @@ public protocol Service {
 <summary>Generated Code</summary>
 
 ```swift
-public protocol Service {
-    func doSomething()
-}
-
 class ServiceMock: Mock, Service {
     func doSomething() {
         return adapt(super.doSomething)
