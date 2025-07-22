@@ -21,6 +21,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func doSomething()
             }
 
+            #if DEBUG
             class ServiceMock: Mock, Service {
                 func doSomething() {
                     return adapt(super.doSomething)
@@ -29,6 +30,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                     Interaction(.any, spy: super.doSomething)
                 }
             }
+            #endif
             """
         }
     }
@@ -47,6 +49,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 var value: Int { get }
             }
 
+            #if DEBUG
             class MyServiceMock: Mock, MyService {
 
                 var value: Int {
@@ -58,6 +61,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                     Interaction(.any, spy: super.value)
                 }
             }
+            #endif
             """
         }
     }
@@ -76,10 +80,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 init(value: Int)
             }
 
+            #if DEBUG
             class MyServiceMock: Mock, MyService {
                 required init(value: Int) {
                 }
             }
+            #endif
             """
         }
     }
@@ -98,6 +104,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 subscript(index: Int) -> String { get }
             }
 
+            #if DEBUG
             class MyServiceMock: Mock, MyService {
                 subscript(index: Int) -> String {
                     get {
@@ -110,6 +117,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                     }
                 }
             }
+            #endif
             """
         }
     }
@@ -130,6 +138,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func item() -> Item
             }
 
+            #if DEBUG
             class MyServiceMock<Item>: Mock, MyService {
                 typealias Item = Item
                 func item() -> Item {
@@ -139,6 +148,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                     Interaction(.any, spy: super.item)
                 }
             }
+            #endif
             """
         }
     }

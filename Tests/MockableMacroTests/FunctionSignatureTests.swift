@@ -20,6 +20,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) -> Int
             }
 
+            #if DEBUG
             class PricingServiceMock: Mock, PricingService {
                 func price(_ item: String) -> Int {
                     return adapt(super.price, item)
@@ -28,6 +29,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(item, spy: super.price)
                 }
             }
+            #endif
             """
         }
     }
@@ -46,6 +48,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) throws -> Int
             }
 
+            #if DEBUG
             class PricingServiceMock: Mock, PricingService {
                 func price(_ item: String) throws -> Int {
                     return try adaptThrowing(super.price, item)
@@ -54,6 +57,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(item, spy: super.price)
                 }
             }
+            #endif
             """
         }
     }
@@ -72,6 +76,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) async -> Int
             }
 
+            #if DEBUG
             class PricingServiceMock: Mock, PricingService {
                 func price(_ item: String) async -> Int {
                     return await adapt(super.price, item)
@@ -80,6 +85,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(item, spy: super.price)
                 }
             }
+            #endif
             """
         }
     }
@@ -98,6 +104,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) async throws -> Int
             }
 
+            #if DEBUG
             class PricingServiceMock: Mock, PricingService {
                 func price(_ item: String) async throws -> Int {
                     return try await adaptThrowing(super.price, item)
@@ -106,6 +113,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(item, spy: super.price)
                 }
             }
+            #endif
             """
         }
     }
@@ -126,6 +134,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func post(to url: URL, data: Data) async throws
             }
 
+            #if DEBUG
             class FeedServiceMock: Mock, FeedService {
                 func fetch(from url: URL) async throws -> Data {
                     return try await adaptThrowing(super.fetch, url)
@@ -140,6 +149,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(url, data, spy: super.post)
                 }
             }
+            #endif
             """
         }
     }
@@ -158,6 +168,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething() -> String
             }
 
+            #if DEBUG
             class ServiceMock: Mock, Service {
                 func doSomething() -> String {
                     return adapt(super.doSomething)
@@ -166,6 +177,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(.any, spy: super.doSomething)
                 }
             }
+            #endif
             """
         }
     }
@@ -184,6 +196,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething(with value: Int)
             }
 
+            #if DEBUG
             class ServiceMock: Mock, Service {
                 func doSomething(with value: Int) {
                     return adapt(super.doSomething, value)
@@ -192,6 +205,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(value, spy: super.doSomething)
                 }
             }
+            #endif
             """
         }
     }
@@ -210,6 +224,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething()
             }
 
+            #if DEBUG
             class ServiceMock: Mock, Service {
                 func doSomething() {
                     return adapt(super.doSomething)
@@ -218,6 +233,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(.any, spy: super.doSomething)
                 }
             }
+            #endif
             """
         }
     }
@@ -237,6 +253,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 static func log(_ message: String)
             }
 
+            #if DEBUG
             class LoggerMock: Mock, Logger {
                 static func log(_ message: String) {
                     return adapt(super.log, message)
@@ -245,6 +262,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(message, spy: super.log)
                 }
             }
+            #endif
             """
         }
 
@@ -264,6 +282,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 func logEvent<E: Identifiable>(_ event: E) -> Bool
             }
 
+            #if DEBUG
             class AnalyticsProtocolMock: Mock, AnalyticsProtocol {
                 func logEvent<E: Identifiable>(_ event: E) -> Bool {
                     return adapt(super.logEvent, event)
@@ -272,6 +291,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(event, spy: super.logEvent)
                 }
             }
+            #endif
             """
         }
     }

@@ -20,6 +20,7 @@ final class BasicTests: MacroTestCase {
                 func price(_ item: String) -> Int
             }
 
+            #if DEBUG
             class PricingServiceMock: Mock, PricingService {
                 func price(_ item: String) -> Int {
                     return adapt(super.price, item)
@@ -28,6 +29,7 @@ final class BasicTests: MacroTestCase {
                     Interaction(item, spy: super.price)
                 }
             }
+            #endif
             """
         }
     }

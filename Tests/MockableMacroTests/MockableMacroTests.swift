@@ -25,6 +25,7 @@ final class MockableMacroTests: MacroTestCase {
                 func price(_ item: String) -> Int
             }
 
+            #if DEBUG
             class PricingServiceMock: Mock, PricingService {
                 func price(_ item: String) -> Int {
                     return adapt(super.price, item)
@@ -33,6 +34,7 @@ final class MockableMacroTests: MacroTestCase {
                     Interaction(item, spy: super.price)
                 }
             }
+            #endif
             """
         }
     }
