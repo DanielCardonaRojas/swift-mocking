@@ -333,9 +333,9 @@ public extension MockableGenerator {
 
     /// Creates a return type for a stubbing function.
     ///
-    /// For example, for a function that returns `Int`, this will generate:
+    /// For example, for a function that `throws` and  returns an `Int`, this will generate:
     /// ```swift
-    /// -> Interaction<String, None, Int>
+    /// -> Interaction<String, Throws, Int>
     /// ```
     private static func createInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: EffectType, genericParameterClause: GenericParameterClauseSyntax?) -> ReturnClauseSyntax {
         var genericArgs = [GenericArgumentSyntax]()
@@ -387,7 +387,8 @@ public extension MockableGenerator {
     ///
     /// For example, for a function `doSomething(with value: String)`, this will generate:
     /// ```swift
-    /// { Interaction(value, spy: doSomething)
+    /// {
+    ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
     private static func createFunctionBody(spyPropertyName: String, parameterNames: [TokenSyntax]) -> CodeBlockSyntax {

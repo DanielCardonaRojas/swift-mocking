@@ -17,18 +17,14 @@ public enum MockableGenerator {
     /// ```
     /// This function will generate the following structure:
     /// ```swift
-    /// struct PricingServiceMock {
-    ///     typealias Witness = PricingServiceWitness<Self>
-    ///
-    ///     var instance: Witness.Synthesized {
-    ///         .init(context: self, witness: .init(price: adapt(\.price)))
+    ///class PricingServiceMock: Mock, PricingService {
+    ///     func price(_ item: String) throws -> Int {
+    ///         return try adaptThrowing(super.price, item)
     ///     }
-    ///
-    ///     let price = Spy<String, Throws, Int>()
     ///     func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
-    ///         Interaction(item, spy: price)
+    ///         Interaction(item, spy: super.price)
     ///     }
-    /// }
+    ///}
     /// ```
     public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
         let protocolName = protocolDecl.name.text
