@@ -6,6 +6,7 @@
 //
 
 import MockableTypes
+@_exported import SwiftMocking
 #if canImport(XCTest)
 import XCTest
 
