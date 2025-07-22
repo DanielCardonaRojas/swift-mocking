@@ -241,7 +241,9 @@ public extension MockableGenerator {
         let outputType = getFunctionReturnType(funcDecl)
         let effectType = getFunctionEffectType(funcDecl)
 
-        let parameterList = createParameterList(inputTypes: inputTypes, parameterNames: parameterNames, parameterLabels: parameterLabels, genericParameterClause: genericParameterClause)
+        let functionParamClause = createArgMatcherParameters(
+            funcDecl.signature.parameterClause
+        )
         let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType, genericParameterClause: genericParameterClause)
         let body = createFunctionBody(spyPropertyName: spyPropertyName, parameterNames: parameterNames)
 
@@ -250,7 +252,7 @@ public extension MockableGenerator {
             name: TokenSyntax.identifier(name),
             genericParameterClause: genericParameterClause,
             signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax { parameterList },
+                parameterClause: functionParamClause,
                 returnClause: returnType
             ),
             genericWhereClause: genericWhereClause,
@@ -258,6 +260,12 @@ public extension MockableGenerator {
         )
     }
 
+    /// Creates a parameter list for a stubbing function.
+    ///
+    /// For example, for a function `doSomething(with value: String)`, this will generate:
+    /// ```swift
+    /// (with value: ArgMatcher<String>)
+    /// ```
     private static func createArgMatcherParameters(_ parameterClause: FunctionParameterClauseSyntax) -> FunctionParameterClauseSyntax {
         let paramList = FunctionParameterListSyntax {
             for parameter in parameterClause.parameters {
@@ -277,58 +285,6 @@ public extension MockableGenerator {
 
         return FunctionParameterClauseSyntax(parameters: paramList)
 
-    }
-    /// Creates a parameter list for a stubbing function.
-    ///
-    /// For example, for a function `doSomething(with value: String)`, this will generate:
-    /// ```swift
-    /// (with value: ArgMatcher<String>)
-    /// ```
-    private static func createParameterList(inputTypes: [TypeSyntax], parameterNames: [TokenSyntax], parameterLabels: [TokenSyntax?], genericParameterClause: GenericParameterClauseSyntax?) -> FunctionParameterListSyntax {
-        var parameters = [FunctionParameterSyntax]()
-        // Map generic parameter names to their first type constraint
-        var genericParameterConstraints: [String: TypeSyntax] = [:]
-        if let genericParams = genericParameterClause?.parameters {
-            for param in genericParams {
-                if let constrainedType = param.inheritedType {
-                    genericParameterConstraints[param.name.text] = constrainedType
-                }
-            }
-        }
-
-        for (index, type) in inputTypes.enumerated() {
-            let parameterName = parameterNames[index]
-            let parameterLabel = parameterLabels[index]
-
-            let secondName: TokenSyntax?
-            if parameterLabel?.text == "_" {
-                if parameterName.text != "_" { // External is '_', internal is not '_'
-                    secondName = parameterName
-                } else { // Both are '_'
-                    secondName = nil
-                }
-            } else if parameterLabel?.text == parameterName.text { // External and internal are the same
-                secondName = nil
-            } else { // External and internal are different, or only external name exists
-                secondName = parameterName
-            }
-
-            let argMatcherType = type
-
-            let param = FunctionParameterSyntax(
-                firstName: parameterLabel ?? .wildcardToken(),
-                secondName: secondName,
-                colon: .colonToken(trailingTrivia: .space),
-                type: TypeSyntax(
-                    IdentifierTypeSyntax(
-                        name: .identifier("ArgMatcher"),
-                        genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: argMatcherType) }
-                    )
-                )
-            )
-            parameters.append(param)
-        }
-        return FunctionParameterListSyntax(parameters)
     }
 
     /// Creates a return type for a stubbing function.
