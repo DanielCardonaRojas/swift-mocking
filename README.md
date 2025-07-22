@@ -23,6 +23,19 @@
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
 | **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what and how code gets generated. |
 
+### Protocol Feature Support
+
+| Feature | Supported |
+| --- | :---: |
+| Associated Types | ✅ |
+| Variables | ✅ |
+| Static Methods | ✅ |
+| Generics | ✅ |
+| Subscripts | ✅ |
+| Initializers | ✅ |
+| `async` Methods | ✅ |
+| `throws` Methods | ✅ |
+
 ---
 
 ## 📦 Installation
