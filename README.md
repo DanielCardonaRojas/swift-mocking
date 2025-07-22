@@ -7,7 +7,7 @@
 [![CI Status](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml/badge.svg)](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml)
 
 
-`SwiftMocking` is a modern, type-safe mocking library for Swift that uses macros to provide a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) and protocol witness structs provided by the companion package called [swift-witness](https://github.com/DanielCardonaRojas/swift-witness).
+`SwiftMocking` is a modern, type-safe mocking library for Swift that uses macros to provide a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of parameter packs and `@dynamicMemberLookup`.
 
 ---
 
@@ -17,13 +17,11 @@
 | --- | --- |
 | **Type-Safe Mocking** | Uses [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) to keep mocks synchronized with protocol definitions, preventing runtime errors. |
 | **Clean, Readable API** | Provides a Mockito-style API that makes tests expressive and easy to maintain. |
-| **No Preprocessor Macros** | Avoids `#if DEBUG` by using macros to generate code only where needed, resulting in a cleaner build process. |
-| **Target-Specific Generation**| Allows generates protocol witnesses for your main target and synthesizes mock conformances for your test target. |
 | **Flexible Argument Matching**| Offers powerful argument matchers like `.any` and `.equal`, with `ExpressibleBy...Literal` conformance for cleaner syntax. |
 | **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. |
 | **Compact Code Generation** | Keeps the generated code as small and compact as possible. |
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
-| **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what code gets generated . |
+| **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what and how code gets generated. |
 
 ---
 
@@ -68,7 +66,7 @@ import XCTest
 final class StoreTests: XCTestCase {
     func testItemRegistration() {
         let mock = PricingServiceMock()
-        let store = Store(pricingService: mock.instance)
+        let store = Store(pricingService: mock)
 
         // Stub specific calls
         when(mock.price(for: "apple")).thenReturn(13)
@@ -96,10 +94,11 @@ For more detailed information, please refer to the official [documentation](http
 
 ## ⚙️ How it Works
 
-`SwiftMocking` builds upon [swift-witness](https://github.com/DanielCardonaRojas/swift-witness) which generates a struct with closures representing the protocol requirements. It also generates the code necessary to synthesize a protocol conformance (witness + Self). `swift-mocking` then creates a witness struct injecting spies into each closure. Finally a conformance to the protocol is synthesized and available as an instance property on the generated Mock.
+`SwiftMocking` leverages the power of Swift macros to generate mock implementations of your protocols. When you apply the `@Mockable` macro to a protocol, it generates a new class that inherits from a `Mock` base class. This generated mock class conforms to the original protocol.
 
+The `Mock` base class uses `@dynamicMemberLookup` to intercept method calls. This allows `SwiftMocking` to provide a dynamic and flexible mocking experience. The use of parameter packs ensures that all method calls are type-safe and that the mock stays in sync with the protocol definition.
 
-For a deeper understanding of protocol witnesses, please refer to the [swift-witness documentation](https://github.com/DanielCardonaRojas/ProtocolWitnessMacro?tab=readme-ov-file#-what-is-a-protocol-witness).
+This approach eliminates the need for manual mock implementations and provides a clean, expressive, and type-safe API for your tests.
 
 ---
 
