@@ -297,6 +297,11 @@ public extension MockableGenerator {
             let argType = inputType
             genericArgs.append(GenericArgumentSyntax(argument: argType))
         }
+
+        if inputTypes.isEmpty {
+            genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: "Void")))
+        }
+
         genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.rawValue)))
         genericArgs.append(GenericArgumentSyntax(argument: outputType))
 
