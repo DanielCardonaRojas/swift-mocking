@@ -16,8 +16,8 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "Mockable",
-            targets: ["Mockable"]
+            name: "SwiftMocking",
+            targets: ["SwiftMocking"]
         ),
         .library(
             name: "MockableTypes",
@@ -36,7 +36,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Mockable",
+            name: "SwiftMocking",
             dependencies: [
                 "MockableMacro",
                 "MockableTypes"
@@ -61,13 +61,13 @@ let package = Package(
             name: "MockableTests",
             dependencies: [
                 "MockableGenerator",
-                "Mockable",
+                "SwiftMocking",
                 "MockableTypes"
             ]
         ),
         .testTarget(name: "MockableMacroTests", dependencies: [
             "MockableGenerator",
-            "Mockable",
+            "SwiftMocking",
             "MockableMacro",
             "MockableTypes",
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
