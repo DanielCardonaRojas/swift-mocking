@@ -20,6 +20,7 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething()
             }
 
+            #if DEBUG
             class MockMyService: Mock, MyService {
                 func doSomething() {
                     return adapt(super.doSomething)
@@ -28,6 +29,7 @@ final class MacroOptionsTests: MacroTestCase {
                     Interaction(.any, spy: super.doSomething)
                 }
             }
+            #endif
             """
         }
     }
@@ -46,6 +48,7 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething()
             }
 
+            #if DEBUG
             class MyServiceMock: Mock, MyService {
                 func doSomething() {
                     return adapt(super.doSomething)
@@ -54,6 +57,7 @@ final class MacroOptionsTests: MacroTestCase {
                     Interaction(.any, spy: super.doSomething)
                 }
             }
+            #endif
             """
         }
     }
