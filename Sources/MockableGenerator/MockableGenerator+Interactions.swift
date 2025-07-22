@@ -15,7 +15,7 @@ public enum EffectType: String {
 }
 
 public extension MockableGenerator {
-    /// Processes a protocol declaration to generate a spy struct.
+    /// Processes a protocol declaration to generate interaction members.
     ///
     /// This function takes a `ProtocolDeclSyntax` and generates a corresponding spy struct that conforms to the protocol.
     /// The generated struct will have a `Spy` property for each function in the protocol, and a stubbing method that uses `ArgMatcher`s.
@@ -26,13 +26,10 @@ public extension MockableGenerator {
     ///     func doSomething(with value: String) -> Int
     /// }
     /// ```
-    /// This function will generate the following struct:
+    /// This function will generate the following members:
     /// ```swift
-    /// struct Spying {
-    ///     let doSomething = Spy<String, None, Int>()
-    ///     func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
-    ///         Interaction(value, spy: doSomething)
-    ///     }
+    /// func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
+    ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
     static func makeInteractions(protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
@@ -78,6 +75,13 @@ public extension MockableGenerator {
         return DeclSyntax(stubFunction)
     }
 
+    /// Processes a variable declaration to generate getter and setter interaction functions.
+    ///
+    /// For a variable `var name: String { get set }`, this will generate:
+    /// ```swift
+    /// func getName() -> Interaction<Void, None, String> { ... }
+    /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
+    /// ```
     private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
         var decls = [DeclSyntax]()
         for binding in varDecl.bindings {
@@ -110,6 +114,15 @@ public extension MockableGenerator {
         }
         return decls
     }
+
+    /// Processes a subscript declaration to generate an interaction function.
+    ///
+    /// For a subscript `subscript(index: Int) -> String`, this will generate:
+    /// ```swift
+    /// subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String> {
+    ///     get { ... }
+    /// }
+    /// ```
     private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> DeclSyntax {
         let subscriptDecl = SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
@@ -144,6 +157,12 @@ public extension MockableGenerator {
         return DeclSyntax(subscriptDecl)
     }
 
+    /// Creates a getter interaction function for a variable.
+    ///
+    /// For a variable `var name: String`, this will generate:
+    /// ```swift
+    /// func getName() -> Interaction<Void, None, String> { ... }
+    /// ```
     private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
         let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
         let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])
@@ -158,6 +177,12 @@ public extension MockableGenerator {
         )
     }
 
+    /// Creates a setter interaction function for a variable.
+    ///
+    /// For a variable `var name: String`, this will generate:
+    /// ```swift
+    /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
+    /// ```
     private static func createSetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
         let setterName = "set" + varName.capitalized
         let parameter = FunctionParameterSyntax(

@@ -8,6 +8,19 @@
 import SwiftSyntax
 
 extension MockableGenerator {
+    /// Generates the necessary declarations to conform to a protocol.
+    ///
+    /// This function iterates through the members of a protocol and generates the corresponding
+    /// function, variable, subscript, and initializer requirements.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     func doSomething()
+    ///     var value: Int { get }
+    /// }
+    /// ```
+    /// This function will generate the `doSomething()` function and the `value` computed property.
     static func makeConformanceRequirements(for protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
         var declarations = [DeclSyntax]()
         for member in protocolDecl.memberBlock.members {
@@ -26,6 +39,14 @@ extension MockableGenerator {
         return declarations
     }
 
+    /// Generates a `required` initializer declaration.
+    ///
+    /// For an initializer `init(value: Int)`, this will generate:
+    /// ```swift
+    /// required init(value: Int) {
+    ///     // ...
+    /// }
+    /// ```
     static func initializerRequirement(
         _ initDecl: InitializerDeclSyntax
     ) -> InitializerDeclSyntax {
@@ -46,6 +67,9 @@ extension MockableGenerator {
         )
     }
 
+    /// Generates a function declaration that fulfills a protocol requirement.
+    ///
+    /// For a function `func doSomething()`, this will generate a function with a body that calls the mock's `adapt` function.
     static func functionRequirement(_ functionDecl: FunctionDeclSyntax) -> FunctionDeclSyntax {
         return FunctionDeclSyntax(
             attributes: functionDecl.attributes,
@@ -57,6 +81,9 @@ extension MockableGenerator {
         )
     }
     
+    /// Generates a variable declaration that fulfills a protocol requirement.
+    ///
+    /// For a variable `var value: Int { get }`, this will generate a computed property with a getter that calls the mock's `adapt` function.
     static func variableRequirement(_ variableDecl: VariableDeclSyntax) -> VariableDeclSyntax {
         return VariableDeclSyntax(
             leadingTrivia: .newline,
@@ -109,6 +136,9 @@ extension MockableGenerator {
         )
     }
     
+    /// Generates a subscript declaration that fulfills a protocol requirement.
+    ///
+    /// For a subscript `subscript(index: Int) -> String`, this will generate a subscript with a getter that calls the mock's `adapt` function.
     static func subscriptRequirement(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
         SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
@@ -136,6 +166,14 @@ extension MockableGenerator {
         )
     }
 
+    /// Generates the body of a function requirement.
+    ///
+    /// This function generates a `CodeBlockSyntax` that contains the appropriate `adapt` call based on the function's effects (async, throws).
+    ///
+    /// For a function `func doSomething() throws -> Int`, this will generate:
+    /// ```swift
+    /// { try adaptThrowing(super.doSomething) }
+    /// ```
     static func functionRequirementBody(_ funcDecl: FunctionDeclSyntax) -> CodeBlockSyntax {
         let effectType = getFunctionEffectType(funcDecl)
         return CodeBlockSyntax {
@@ -166,6 +204,9 @@ extension MockableGenerator {
         }
     }
     
+    /// Generates the base function call for a function requirement body.
+    ///
+    /// This function creates a `FunctionCallExprSyntax` that calls the appropriate `adapt` function.
     private static func baseFunctionRequirementBody(_ functionDecl: FunctionDeclSyntax) -> FunctionCallExprSyntax {
         let effectType = getFunctionEffectType(functionDecl)
         return adaptCall(
@@ -176,6 +217,14 @@ extension MockableGenerator {
         )
     }
 
+    /// Creates a call to the appropriate `adapt` function.
+    ///
+    /// This function constructs a `FunctionCallExprSyntax` for `adapt`, `adaptThrowing`, etc., based on the `EffectType`.
+    ///
+    /// For a function `myMethod(param1: Int)` with `effectType: .none`, this will generate:
+    /// ```swift
+    /// adapt(super.myMethod, param1)
+    /// ```
     private static func adaptCall(effectType: EffectType, requirementName: TokenSyntax, parameters: [TokenSyntax]) -> FunctionCallExprSyntax {
         let adaptingName = "adapt" + (effectType.rawValue.contains("Throws") ? "Throwing" : "")
         return FunctionCallExprSyntax(

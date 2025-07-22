@@ -76,6 +76,17 @@ public enum MockableGenerator {
         return [DeclSyntax(mockStruct)]
     }
 
+    /// Checks if a protocol has any static members.
+    ///
+    /// This function iterates through the members of a protocol and returns `true` if any of them are declared as `static`.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     static func doSomething()
+    /// }
+    /// ```
+    /// This function will return `true`.
     private static func hasStaticMembers(protocolDecl: ProtocolDeclSyntax) -> Bool {
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
@@ -91,6 +102,18 @@ public enum MockableGenerator {
         return false
     }
 
+    /// Extracts mock generation options from a protocol's attributes.
+    ///
+    /// This function looks for a `@Mockable` attribute on a protocol and parses its arguments to determine code generation options.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// @Mockable(.prefixMock)
+    /// protocol MyService {
+    ///     // ...
+    /// }
+    /// ```
+    /// This function will return `[.prefixMock]`.
     public static func codeGenOptions(protocolDecl: ProtocolDeclSyntax) -> MockableOptions {
         for attribute in protocolDecl.attributes {
             guard let attr = attribute.as(AttributeSyntax.self) else {
@@ -111,10 +134,33 @@ public enum MockableGenerator {
         return []
     }
 
+    /// Extracts all associated type declarations from a protocol.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     associatedtype Item
+    /// }
+    /// ```
+    /// This function will return an array containing the `AssociatedTypeDeclSyntax` for `Item`.
     static func associatedTypes(protocolDecl: ProtocolDeclSyntax) -> [AssociatedTypeDeclSyntax] {
         protocolDecl.memberBlock.members.compactMap({ $0.decl.as(AssociatedTypeDeclSyntax.self)})
     }
 
+    /// Converts associated types of a protocol into a generic parameter clause.
+    ///
+    /// This is used to make the generated mock class generic over the associated types of the protocol.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     associatedtype Item: Equatable
+    /// }
+    /// ```
+    /// This function will generate the following clause:
+    /// ```swift
+    /// <Item: Equatable>
+    /// ```
     static func associatedTypesToGenericArguments(protocolDecl: ProtocolDeclSyntax) -> GenericParameterClauseSyntax? {
         let paramList = GenericParameterListSyntax {
             for associatedType in associatedTypes(protocolDecl: protocolDecl) {
@@ -133,12 +179,38 @@ public enum MockableGenerator {
         return GenericParameterClauseSyntax(parameters: paramList)
     }
 
+    /// Creates type aliases for the associated types of a protocol.
+    ///
+    /// This is used within the generated mock to map the generic parameters of the mock to the associated types of the protocol.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     associatedtype Item
+    /// }
+    /// ```
+    /// This function will generate the following type alias:
+    /// ```swift
+    /// typealias Item = Item
+    /// ```
     static func makeTypeAliases(_ protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
         typeAliasesForAssociatedTypes(protocolDecl: protocolDecl).map({
             DeclSyntax($0)
         })
     }
 
+    /// Creates type alias declarations for each associated type in a protocol.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     associatedtype Item
+    /// }
+    /// ```
+    /// This function will generate the following type alias declaration:
+    /// ```swift
+    /// typealias Item = Item
+    /// ```
     static func typeAliasesForAssociatedTypes(protocolDecl: ProtocolDeclSyntax) -> [TypeAliasDeclSyntax] {
         var result = [TypeAliasDeclSyntax]()
         for associatedType in associatedTypes(protocolDecl: protocolDecl) {
