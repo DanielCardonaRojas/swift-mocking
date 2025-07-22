@@ -73,7 +73,11 @@ public enum MockableGenerator {
             }
         )
 
-        return [DeclSyntax(mockStruct)]
+        let ifConfigDecl = ifConfig(MemberBlockItemListSyntax {
+            mockStruct
+        })
+
+        return [DeclSyntax(ifConfigDecl)]
     }
 
     /// Checks if a protocol has any static members.
@@ -224,5 +228,16 @@ public enum MockableGenerator {
         }
 
         return result
+    }
+
+    static func ifConfig(_ members: MemberBlockItemListSyntax) -> IfConfigDeclSyntax {
+        IfConfigDeclSyntax(clauses: IfConfigClauseListSyntax(itemsBuilder: {
+            IfConfigClauseSyntax(
+                poundKeyword: .poundIfToken(),
+                condition: ExprSyntax("DEBUG"),
+                elements: IfConfigClauseSyntax.Elements
+                    .decls(members)
+            )
+        }))
     }
 }
