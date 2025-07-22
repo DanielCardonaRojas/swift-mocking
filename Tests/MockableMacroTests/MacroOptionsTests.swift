@@ -21,11 +21,11 @@ final class MacroOptionsTests: MacroTestCase {
             }
 
             class MockMyService: Mock, MyService {
-                func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: super.doSomething)
-                }
                 func doSomething() {
                     return adapt(super.doSomething)
+                }
+                func doSomething() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: super.doSomething)
                 }
             }
             """
@@ -47,11 +47,11 @@ final class MacroOptionsTests: MacroTestCase {
             }
 
             class MyServiceMock: Mock, MyService {
-                func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: super.doSomething)
-                }
                 func doSomething() {
                     return adapt(super.doSomething)
+                }
+                func doSomething() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: super.doSomething)
                 }
             }
             """

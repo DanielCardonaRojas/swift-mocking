@@ -22,11 +22,11 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             class ServiceMock: Mock, Service {
-                func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: super.doSomething)
-                }
                 func doSomething() {
                     return adapt(super.doSomething)
+                }
+                func doSomething() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: super.doSomething)
                 }
             }
             """
@@ -48,10 +48,14 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             class MyServiceMock: Mock, MyService {
+
                 var value: Int {
                     get {
                         adapt(super.value)
                     }
+                }
+                func getValue() -> Interaction<Void, None, Int > {
+                    Interaction(.any, spy: super.value)
                 }
             }
             """
@@ -73,6 +77,8 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             class MyServiceMock: Mock, MyService {
+                required init(value: Int) {
+                }
             }
             """
         }
@@ -94,7 +100,14 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             class MyServiceMock: Mock, MyService {
                 subscript(index: Int) -> String {
-                    get
+                    get {
+                        return adapt(super.subscript, index)
+                    }
+                }
+                subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
+                    get {
+                        Interaction(index, spy: super.subscript)
+                    }
                 }
             }
             """
@@ -118,11 +131,11 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             class MyServiceMock: Mock, MyService {
-                func item() -> Interaction<None, Item> {
-                    Interaction(spy: super.item)
-                }
                 func item() -> Item {
                     return adapt(super.item)
+                }
+                func item() -> Interaction<Void, None, Item> {
+                    Interaction(.any, spy: super.item)
                 }
             }
             """
