@@ -46,6 +46,9 @@ public extension MockableGenerator {
             } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
                 let stubFunctions = processVar(varDecl)
                 members.append(contentsOf: stubFunctions)
+            } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
+                let stubFunction = processSubscript(subscriptDecl)
+                members.append(stubFunction)
             }
         }
 
@@ -106,6 +109,39 @@ public extension MockableGenerator {
             }
         }
         return decls
+    }
+    private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> DeclSyntax {
+        let subscriptDecl = SubscriptDeclSyntax(
+            attributes: subscriptDecl.attributes,
+            modifiers: subscriptDecl.modifiers,
+            parameterClause: createArgMatcherParameters(
+                subscriptDecl.parameterClause
+            ),
+            returnClause: createInteractionReturnType(
+                inputTypes: subscriptDecl.parameterClause.parameters.map(\.type),
+                outputType: subscriptDecl.returnClause.type,
+                effectType: .none,
+                genericParameterClause: subscriptDecl.genericParameterClause
+            ),
+            accessorBlock: AccessorBlockSyntax(
+                accessors: .accessors(AccessorDeclListSyntax {
+                    // Get
+                    AccessorDeclSyntax(
+                        accessorSpecifier: .keyword(.get),
+                        bodyBuilder: {
+                            createFunctionBody(
+                                spyPropertyName: "subscript",
+                                parameterNames: subscriptDecl.parameterClause.parameters.map({ $0.secondName ?? $0.firstName})
+                            ).statements
+                        }
+                    )
+                    //
+
+                })
+            )
+        )
+
+        return DeclSyntax(subscriptDecl)
     }
 
     private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
@@ -222,6 +258,26 @@ public extension MockableGenerator {
         )
     }
 
+    private static func createArgMatcherParameters(_ parameterClause: FunctionParameterClauseSyntax) -> FunctionParameterClauseSyntax {
+        let paramList = FunctionParameterListSyntax {
+            for parameter in parameterClause.parameters {
+                FunctionParameterSyntax(
+                    firstName: parameter.firstName,
+                    secondName: parameter.secondName,
+                    colon: .colonToken(trailingTrivia: .space),
+                    type: TypeSyntax(
+                        IdentifierTypeSyntax(
+                            name: .identifier("ArgMatcher"),
+                            genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: parameter.type) }
+                        )
+                    )
+                )
+            }
+        }
+
+        return FunctionParameterClauseSyntax(parameters: paramList)
+
+    }
     /// Creates a parameter list for a stubbing function.
     ///
     /// For example, for a function `doSomething(with value: String)`, this will generate:
@@ -340,6 +396,12 @@ public extension MockableGenerator {
         ) {
             for name in parameterNames {
                 LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: name))
+            }
+
+            if parameterNames.isEmpty {
+                LabeledExprSyntax(
+                    expression: DeclReferenceExprSyntax(baseName: .identifier(".any"))
+                )
             }
 
             LabeledExprSyntax(
