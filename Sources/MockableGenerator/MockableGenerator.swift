@@ -45,7 +45,7 @@ public enum MockableGenerator {
         }
 
         // Generate the spy properties and methods using SpyGenerator
-        let spyMembers = try makeInteractions(protocolDecl: protocolDecl)
+        let spyMembers = makeInteractions(protocolDecl: protocolDecl)
         let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
 
         // Create the Mock struct

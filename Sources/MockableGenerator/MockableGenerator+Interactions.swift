@@ -28,13 +28,13 @@ public extension MockableGenerator {
     ///     }
     /// }
     /// ```
-    static func makeInteractions(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
+    static func makeInteractions(protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
         var members = [DeclSyntax]()
         var functionNames = [String: Int]()
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let stubFunction = try processFunc(funcDecl, &functionNames)
+                let stubFunction = processFunc(funcDecl, &functionNames)
                 members.append(stubFunction)
             }
         }
@@ -50,11 +50,11 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: super.doSomething)
     /// }
     /// ```
-    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) throws -> DeclSyntax {
+    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) -> DeclSyntax {
         let funcName = funcDecl.name.text
         let spyPropertyName = funcDecl.name.text
 
-        let stubFunction = try createStubFunction(
+        let stubFunction = createStubFunction(
             name: funcName,
             spyPropertyName: spyPropertyName,
             funcDecl: funcDecl,
@@ -115,7 +115,7 @@ public extension MockableGenerator {
         funcDecl: FunctionDeclSyntax,
         genericParameterClause: GenericParameterClauseSyntax?,
         genericWhereClause: GenericWhereClauseSyntax?
-    ) throws -> FunctionDeclSyntax {
+    ) -> FunctionDeclSyntax {
 
         let (inputTypes, parameterNames, parameterLabels) = getFunctionParameters(funcDecl)
         let outputType = getFunctionReturnType(funcDecl)
