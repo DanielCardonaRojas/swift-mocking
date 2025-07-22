@@ -60,11 +60,9 @@ public protocol PublicService {
     func doSomething()
 }
 
-// TODO: Missing support
-/*
 @Mockable
 protocol PropertyService {
-    var value: Int { get }
+    var value: Int { get set }
 }
 
 @Mockable
@@ -77,9 +75,11 @@ protocol SubscriptService {
     subscript(index: Int) -> String { get }
 }
 
+
 @Mockable
 protocol AssociatedTypeService {
-    associatedtype Item
+    associatedtype Item: Equatable
+    associatedtype Payload
     func item() -> Item
+    func data() -> Payload
 }
-*/
