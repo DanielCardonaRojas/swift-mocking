@@ -44,12 +44,17 @@ public enum MockableGenerator {
         }
 
         // Generate the spy properties and methods using SpyGenerator
+        let genericParameters = associatedTypesToGenericArguments(
+            protocolDecl: protocolDecl
+        )
+        let typeAliases = makeTypeAliases(protocolDecl)
         let interactions = makeInteractions(protocolDecl: protocolDecl)
         let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
 
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
             name: TokenSyntax.identifier(mockName),
+            genericParameterClause: genericParameters,
             inheritanceClause: InheritanceClauseSyntax(
                 inheritedTypes: [
                     InheritedTypeSyntax(
@@ -65,6 +70,7 @@ public enum MockableGenerator {
             ),
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
+                members.append(contentsOf: typeAliases.map({ MemberBlockItemSyntax(decl: $0)}))
                 members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
                 members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)
@@ -107,5 +113,48 @@ public enum MockableGenerator {
             }
         }
         return []
+    }
+
+    static func associatedTypes(protocolDecl: ProtocolDeclSyntax) -> [AssociatedTypeDeclSyntax] {
+        protocolDecl.memberBlock.members.compactMap({ $0.decl.as(AssociatedTypeDeclSyntax.self)})
+    }
+
+    static func associatedTypesToGenericArguments(protocolDecl: ProtocolDeclSyntax) -> GenericParameterClauseSyntax? {
+        let paramList = GenericParameterListSyntax {
+            for associatedType in associatedTypes(protocolDecl: protocolDecl) {
+                GenericParameterSyntax(
+                    name: associatedType.name,
+                    colon: associatedType.inheritanceClause != nil ? .colonToken() : nil,
+                    inheritedType: associatedType.inheritanceClause?.inheritedTypes.first?.type
+                )
+            }
+        }
+
+        if paramList.isEmpty {
+            return nil
+        }
+
+        return GenericParameterClauseSyntax(parameters: paramList)
+    }
+
+    static func makeTypeAliases(_ protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
+        typeAliasesForAssociatedTypes(protocolDecl: protocolDecl).map({
+            DeclSyntax($0)
+        })
+    }
+
+    static func typeAliasesForAssociatedTypes(protocolDecl: ProtocolDeclSyntax) -> [TypeAliasDeclSyntax] {
+        var result = [TypeAliasDeclSyntax]()
+        for associatedType in associatedTypes(protocolDecl: protocolDecl) {
+            let alias = TypeAliasDeclSyntax(
+                name: associatedType.name,
+                initializer: TypeInitializerClauseSyntax(
+                    value: TypeSyntax(stringLiteral: associatedType.name.text)
+                )
+            )
+            result.append(alias)
+        }
+
+        return result
     }
 }

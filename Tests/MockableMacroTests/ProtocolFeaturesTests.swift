@@ -130,7 +130,8 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func item() -> Item
             }
 
-            class MyServiceMock: Mock, MyService {
+            class MyServiceMock<Item>: Mock, MyService {
+                typealias Item = Item
                 func item() -> Item {
                     return adapt(super.item)
                 }
