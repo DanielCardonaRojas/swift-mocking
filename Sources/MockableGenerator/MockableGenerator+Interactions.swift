@@ -43,6 +43,9 @@ public extension MockableGenerator {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
                 let stubFunction = processFunc(funcDecl, &functionNames)
                 members.append(stubFunction)
+            } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
+                let stubFunctions = processVar(varDecl)
+                members.append(contentsOf: stubFunctions)
             }
         }
 
@@ -70,6 +73,11 @@ public extension MockableGenerator {
         )
 
         return DeclSyntax(stubFunction)
+    }
+
+    private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
+        // TODO: Analyze if we need to create 1 or 2 declarations. Depending on if the the variable is set and get or just get.
+        return []
     }
 
     /// Extracts the parameter types, internal names, and external labels from a function declaration.
