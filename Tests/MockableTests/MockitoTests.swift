@@ -129,6 +129,13 @@ final class MockitoTests: XCTestCase {
         verify(LoggerMock.log("hello")).called(2)
     }
 
+    func testSubscript() {
+        let mock = SubscriptServiceMock()
+        when(mock[.any]).thenReturn("hello")
+        XCTAssertEqual(mock[3], "hello")
+        verify(mock[3]).called()
+    }
+
 }
 
 class Store {
