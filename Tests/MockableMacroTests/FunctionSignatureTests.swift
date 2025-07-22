@@ -20,18 +20,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mocking {
-                typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        price: adaptNone(super.price)
-                    )
+            class PricingServiceMock: Mock, PricingService {
+                func price(_ item: String) -> Int {
+                    return adapt(super.price, item)
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)
@@ -55,18 +46,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) throws -> Int
             }
 
-            class PricingServiceMock: Mocking {
-                typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        price: adaptThrows(super.price)
-                    )
+            class PricingServiceMock: Mock, PricingService {
+                func price(_ item: String) throws -> Int {
+                    return try adaptThrowing(super.price, item)
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
                     Interaction(item, spy: super.price)
@@ -90,18 +72,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) async -> Int
             }
 
-            class PricingServiceMock: Mocking {
-                typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        price: adaptAsync(super.price)
-                    )
+            class PricingServiceMock: Mock, PricingService {
+                func price(_ item: String) async -> Int {
+                    return await adapt(super.price, item)
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Async, Int> {
                     Interaction(item, spy: super.price)
@@ -125,18 +98,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func price(_ item: String) async throws -> Int
             }
 
-            class PricingServiceMock: Mocking {
-                typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        price: adaptAsyncThrows(super.price)
-                    )
+            class PricingServiceMock: Mock, PricingService {
+                func price(_ item: String) async throws -> Int {
+                    return try await adaptThrowing(super.price, item)
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncThrows, Int> {
                     Interaction(item, spy: super.price)
@@ -162,19 +126,12 @@ final class FunctionSignatureTests: MacroTestCase {
                 func post(to url: URL, data: Data) async throws
             }
 
-            class FeedServiceMock: Mocking {
-                typealias Witness = FeedServiceWitness<FeedServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
+            class FeedServiceMock: Mock, FeedService {
+                func fetch(from url: URL) async throws -> Data {
+                    return try await adaptThrowing(super.fetch, url)
                 }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        fetch: adaptAsyncThrows(super.fetch),
-                        post: adaptAsyncThrows(super.post)
-                    )
+                func post(to url: URL, data: Data) async throws {
+                    return try await adaptThrowing(super.post, url, data)
                 }
                 func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
                     Interaction(url, spy: super.fetch)
@@ -201,21 +158,12 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething() -> String
             }
 
-            class ServiceMock: Mocking {
-                typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
+            class ServiceMock: Mock, Service {
+                func doSomething() -> String {
+                    return adapt(super.doSomething)
                 }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        doSomething: adaptNone(super.doSomething)
-                    )
-                }
-                func doSomething() -> Interaction<None, String> {
-                    Interaction(spy: super.doSomething)
+                func doSomething() -> Interaction<Void, None, String> {
+                    Interaction(.any, spy: super.doSomething)
                 }
             }
             """
@@ -236,18 +184,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething(with value: Int)
             }
 
-            class ServiceMock: Mocking {
-                typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        doSomething: adaptNone(super.doSomething)
-                    )
+            class ServiceMock: Mock, Service {
+                func doSomething(with value: Int) {
+                    return adapt(super.doSomething, value)
                 }
                 func doSomething(with value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
                     Interaction(value, spy: super.doSomething)
@@ -271,21 +210,12 @@ final class FunctionSignatureTests: MacroTestCase {
                 func doSomething()
             }
 
-            class ServiceMock: Mocking {
-                typealias Witness = ServiceWitness<ServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
+            class ServiceMock: Mock, Service {
+                func doSomething() {
+                    return adapt(super.doSomething)
                 }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        doSomething: adaptNone(super.doSomething)
-                    )
-                }
-                func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: super.doSomething)
+                func doSomething() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: super.doSomething)
                 }
             }
             """
@@ -307,18 +237,9 @@ final class FunctionSignatureTests: MacroTestCase {
                 static func log(_ message: String)
             }
 
-            class LoggerMock: Mocking {
-                typealias Witness = LoggerWitness<LoggerMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        log: Self.adaptNone(Super.log)
-                    )
+            class LoggerMock: Mock, Logger {
+                static func log(_ message: String) {
+                    return adapt(super.log, message)
                 }
                 static func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
                     Interaction(message, spy: super.log)
@@ -343,20 +264,11 @@ final class FunctionSignatureTests: MacroTestCase {
                 func logEvent<E: Identifiable>(_ event: E) -> Bool
             }
 
-            class AnalyticsProtocolMock: Mocking {
-                typealias Witness = AnalyticsProtocolWitness<AnalyticsProtocolMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
+            class AnalyticsProtocolMock: Mock, AnalyticsProtocol {
+                func logEvent<E: Identifiable>(_ event: E) -> Bool {
+                    return adapt(super.logEvent, event)
                 }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        logEvent: adaptNone(super.logEvent)
-                    )
-                }
-                func logEvent(_ event: ArgMatcher<any Identifiable>) -> Interaction<any Identifiable, None, Bool> {
+                func logEvent<E: Identifiable>(_ event: ArgMatcher<E>) -> Interaction<E, None, Bool> {
                     Interaction(event, spy: super.logEvent)
                 }
             }

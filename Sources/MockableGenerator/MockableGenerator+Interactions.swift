@@ -7,8 +7,15 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
+public enum EffectType: String {
+    case asyncThrows = "AsyncThrows"
+    case `throws` = "Throws"
+    case `async` = "Async"
+    case none = "None"
+}
+
 public extension MockableGenerator {
-    /// Processes a protocol declaration to generate a spy struct.
+    /// Processes a protocol declaration to generate interaction members.
     ///
     /// This function takes a `ProtocolDeclSyntax` and generates a corresponding spy struct that conforms to the protocol.
     /// The generated struct will have a `Spy` property for each function in the protocol, and a stubbing method that uses `ArgMatcher`s.
@@ -19,22 +26,25 @@ public extension MockableGenerator {
     ///     func doSomething(with value: String) -> Int
     /// }
     /// ```
-    /// This function will generate the following struct:
+    /// This function will generate the following members:
     /// ```swift
-    /// struct Spying {
-    ///     let doSomething = Spy<String, None, Int>()
-    ///     func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
-    ///         Interaction(value, spy: doSomething)
-    ///     }
+    /// func doSomething(with value: ArgMatcher<String>) -> Interaction<String, None, Int> {
+    ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
-    static func makeInteractions(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
+    static func makeInteractions(protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
         var members = [DeclSyntax]()
         var functionNames = [String: Int]()
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let stubFunction = try processFunc(funcDecl, &functionNames)
+                let stubFunction = processFunc(funcDecl, &functionNames)
+                members.append(stubFunction)
+            } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
+                let stubFunctions = processVar(varDecl)
+                members.append(contentsOf: stubFunctions)
+            } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
+                let stubFunction = processSubscript(subscriptDecl)
                 members.append(stubFunction)
             }
         }
@@ -50,11 +60,11 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: super.doSomething)
     /// }
     /// ```
-    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) throws -> DeclSyntax {
+    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) -> DeclSyntax {
         let funcName = funcDecl.name.text
-        let spyPropertyName = MockableGenerator.spyPropertyName(for: funcDecl, functionNames: &functionNames)
+        let spyPropertyName = funcDecl.name.text
 
-        let stubFunction = try createStubFunction(
+        let stubFunction = createStubFunction(
             name: funcName,
             spyPropertyName: spyPropertyName,
             funcDecl: funcDecl,
@@ -63,6 +73,141 @@ public extension MockableGenerator {
         )
 
         return DeclSyntax(stubFunction)
+    }
+
+    /// Processes a variable declaration to generate getter and setter interaction functions.
+    ///
+    /// For a variable `var name: String { get set }`, this will generate:
+    /// ```swift
+    /// func getName() -> Interaction<Void, None, String> { ... }
+    /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
+    /// ```
+    private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
+        var decls = [DeclSyntax]()
+        for binding in varDecl.bindings {
+            guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
+                continue
+            }
+            let varName = pattern.identifier.text
+            guard let type = binding.typeAnnotation?.type else {
+                continue
+            }
+
+            let hasSetter = varDecl.hasSetter
+
+            // Getter
+            let getter = createGetterInteraction(
+                varName: varName,
+                type: type,
+                modifiers: varDecl.modifiers
+            )
+            decls.append(DeclSyntax(getter))
+
+            if hasSetter {
+                let setter = createSetterInteraction(
+                    varName: varName,
+                    type: type,
+                    modifiers: varDecl.modifiers
+                )
+                decls.append(DeclSyntax(setter))
+            }
+        }
+        return decls
+    }
+
+    /// Processes a subscript declaration to generate an interaction function.
+    ///
+    /// For a subscript `subscript(index: Int) -> String`, this will generate:
+    /// ```swift
+    /// subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String> {
+    ///     get { ... }
+    /// }
+    /// ```
+    private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> DeclSyntax {
+        let subscriptDecl = SubscriptDeclSyntax(
+            attributes: subscriptDecl.attributes,
+            modifiers: subscriptDecl.modifiers,
+            parameterClause: createArgMatcherParameters(
+                subscriptDecl.parameterClause
+            ),
+            returnClause: createInteractionReturnType(
+                inputTypes: subscriptDecl.parameterClause.parameters.map(\.type),
+                outputType: subscriptDecl.returnClause.type,
+                effectType: .none,
+                genericParameterClause: subscriptDecl.genericParameterClause
+            ),
+            accessorBlock: AccessorBlockSyntax(
+                accessors: .accessors(AccessorDeclListSyntax {
+                    // Get
+                    AccessorDeclSyntax(
+                        accessorSpecifier: .keyword(.get),
+                        bodyBuilder: {
+                            createFunctionBody(
+                                spyPropertyName: "subscript",
+                                parameterNames: subscriptDecl.parameterClause.parameters.map({ $0.secondName ?? $0.firstName})
+                            ).statements
+                        }
+                    )
+                    //
+
+                })
+            )
+        )
+
+        return DeclSyntax(subscriptDecl)
+    }
+
+    /// Creates a getter interaction function for a variable.
+    ///
+    /// For a variable `var name: String`, this will generate:
+    /// ```swift
+    /// func getName() -> Interaction<Void, None, String> { ... }
+    /// ```
+    private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+        let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
+        let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])
+        return FunctionDeclSyntax(
+            modifiers: modifiers.trimmed,
+            name: .identifier("get\(varName.capitalized)"),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(parameters: []),
+                returnClause: interactionReturnType
+            ),
+            body: body
+        )
+    }
+
+    /// Creates a setter interaction function for a variable.
+    ///
+    /// For a variable `var name: String`, this will generate:
+    /// ```swift
+    /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
+    /// ```
+    private static func createSetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+        let setterName = "set" + varName.capitalized
+        let parameter = FunctionParameterSyntax(
+            firstName: .identifier("newValue"),
+            colon: .colonToken(trailingTrivia: .space),
+            type: TypeSyntax(
+                IdentifierTypeSyntax(
+                    name: .identifier("ArgMatcher"),
+                    genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: type) }
+                )
+            )
+        )
+        let parameterList = FunctionParameterListSyntax([parameter])
+        let interactionReturnType = createInteractionReturnType(inputTypes: [type], outputType: TypeSyntax(stringLiteral: "Void"), effectType: .none, genericParameterClause: nil)
+        let body = createFunctionBody(spyPropertyName: setterName, parameterNames: [.identifier("newValue")])
+
+        return FunctionDeclSyntax(
+            modifiers: modifiers.trimmed,
+            name: .identifier(setterName),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(parameters: parameterList),
+                returnClause: interactionReturnType
+            ),
+            body: body
+        )
     }
 
     /// Extracts the parameter types, internal names, and external labels from a function declaration.
@@ -88,55 +233,17 @@ public extension MockableGenerator {
     /// Extracts the effect type (throws, async, etc.) from a function declaration.
     ///
     /// For example, for `async throws -> Int`, this will return `AsyncThrows`.
-    static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> String {
+    static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> EffectType {
         let effects = funcDecl.signature.effectSpecifiers
         if effects?.throwsClause != nil && effects?.asyncSpecifier != nil {
-            return "AsyncThrows"
+            return .asyncThrows
         } else if effects?.throwsClause != nil {
-            return "Throws"
+            return .throws
         } else if effects?.asyncSpecifier != nil {
-            return "Async"
+            return .async
         } else {
-            return "None"
+            return .none
         }
-    }
-
-    /// Creates a `Spy` property declaration.
-    ///
-    /// For example, for a function `doSomething(with value: String) -> Int`, this will generate:
-    /// ```swift
-    /// let doSomething = Spy<String, None, Int>()
-    /// ```
-    private static func createSpyProperty(name: String, inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String) throws -> VariableDeclSyntax {
-        var genericArgs = [GenericArgumentSyntax]()
-        for inputType in inputTypes {
-            genericArgs.append(GenericArgumentSyntax(argument: inputType))
-        }
-        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType)))
-        genericArgs.append(GenericArgumentSyntax(argument: outputType))
-
-        let genericSpy = GenericSpecializationExprSyntax(
-            expression: DeclReferenceExprSyntax(baseName: .identifier("Spy")),
-            genericArgumentClause: GenericArgumentClauseSyntax(
-                leftAngle: .leftAngleToken(),
-                arguments: GenericArgumentListSyntax(
-                    genericArgs.enumerated().map { (index, arg) in
-                        if index < genericArgs.count - 1 {
-                            return arg.with(\.trailingComma, .commaToken())
-                        }
-                        return arg
-                    }
-                ),
-                rightAngle: .rightAngleToken()
-            )
-        )
-
-        let initializer = InitializerClauseSyntax(value: FunctionCallExprSyntax(callee: genericSpy) { LabeledExprListSyntax() })
-        let binding = PatternBindingSyntax(pattern: IdentifierPatternSyntax(identifier: .identifier(name)), initializer: initializer)
-        return VariableDeclSyntax(
-            bindingSpecifier: .keyword(.let, trailingTrivia: .space),
-            bindings: [binding]
-        )
     }
 
     /// Creates a stubbing function declaration.
@@ -153,21 +260,24 @@ public extension MockableGenerator {
         funcDecl: FunctionDeclSyntax,
         genericParameterClause: GenericParameterClauseSyntax?,
         genericWhereClause: GenericWhereClauseSyntax?
-    ) throws -> FunctionDeclSyntax {
+    ) -> FunctionDeclSyntax {
 
         let (inputTypes, parameterNames, parameterLabels) = getFunctionParameters(funcDecl)
         let outputType = getFunctionReturnType(funcDecl)
         let effectType = getFunctionEffectType(funcDecl)
 
-        let parameterList = createParameterList(inputTypes: inputTypes, parameterNames: parameterNames, parameterLabels: parameterLabels, genericParameterClause: genericParameterClause)
+        let functionParamClause = createArgMatcherParameters(
+            funcDecl.signature.parameterClause
+        )
         let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType, genericParameterClause: genericParameterClause)
         let body = createFunctionBody(spyPropertyName: spyPropertyName, parameterNames: parameterNames)
 
         return FunctionDeclSyntax(
             modifiers: funcDecl.modifiers.trimmed,
             name: TokenSyntax.identifier(name),
+            genericParameterClause: genericParameterClause,
             signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax { parameterList },
+                parameterClause: functionParamClause,
                 returnClause: returnType
             ),
             genericWhereClause: genericWhereClause,
@@ -181,73 +291,34 @@ public extension MockableGenerator {
     /// ```swift
     /// (with value: ArgMatcher<String>)
     /// ```
-    private static func createParameterList(inputTypes: [TypeSyntax], parameterNames: [TokenSyntax], parameterLabels: [TokenSyntax?], genericParameterClause: GenericParameterClauseSyntax?) -> FunctionParameterListSyntax {
-        var parameters = [FunctionParameterSyntax]()
-        // Map generic parameter names to their first type constraint
-        var genericParameterConstraints: [String: TypeSyntax] = [:]
-        if let genericParams = genericParameterClause?.parameters {
-            for param in genericParams {
-                if let constrainedType = param.inheritedType {
-                    genericParameterConstraints[param.name.text] = constrainedType
-                }
+    private static func createArgMatcherParameters(_ parameterClause: FunctionParameterClauseSyntax) -> FunctionParameterClauseSyntax {
+        let paramList = FunctionParameterListSyntax {
+            for parameter in parameterClause.parameters {
+                FunctionParameterSyntax(
+                    firstName: parameter.firstName,
+                    secondName: parameter.secondName,
+                    colon: .colonToken(trailingTrivia: .space),
+                    type: TypeSyntax(
+                        IdentifierTypeSyntax(
+                            name: .identifier("ArgMatcher"),
+                            genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: parameter.type) }
+                        )
+                    )
+                )
             }
         }
 
-        for (index, type) in inputTypes.enumerated() {
-            let parameterName = parameterNames[index]
-            let parameterLabel = parameterLabels[index]
+        return FunctionParameterClauseSyntax(parameters: paramList)
 
-            let secondName: TokenSyntax?
-            if parameterLabel?.text == "_" {
-                if parameterName.text != "_" { // External is '_', internal is not '_'
-                    secondName = parameterName
-                } else { // Both are '_'
-                    secondName = nil
-                }
-            } else if parameterLabel?.text == parameterName.text { // External and internal are the same
-                secondName = nil
-            } else { // External and internal are different, or only external name exists
-                secondName = parameterName
-            }
-
-            let argMatcherType: TypeSyntax
-            if let identifierType = type.as(IdentifierTypeSyntax.self),
-               let constraint = genericParameterConstraints[identifierType.name.text] {
-                // This is a generic parameter with a constraint, use 'any Constraint'
-                argMatcherType = TypeSyntax(
-                    SomeOrAnyTypeSyntax(
-                        someOrAnySpecifier: .keyword(.any),
-                        constraint: constraint
-                    )
-                )
-            } else {
-                // Not a generic parameter or no constraint, use the original type
-                argMatcherType = type
-            }
-
-            let param = FunctionParameterSyntax(
-                firstName: parameterLabel ?? .wildcardToken(),
-                secondName: secondName,
-                colon: .colonToken(trailingTrivia: .space),
-                type: TypeSyntax(
-                    IdentifierTypeSyntax(
-                        name: .identifier("ArgMatcher"),
-                        genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: argMatcherType) }
-                    )
-                )
-            )
-            parameters.append(param)
-        }
-        return FunctionParameterListSyntax(parameters)
     }
 
     /// Creates a return type for a stubbing function.
     ///
-    /// For example, for a function that returns `Int`, this will generate:
+    /// For example, for a function that `throws` and  returns an `Int`, this will generate:
     /// ```swift
-    /// -> Interaction<String, None, Int>
+    /// -> Interaction<String, Throws, Int>
     /// ```
-    private static func createInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: String, genericParameterClause: GenericParameterClauseSyntax?) -> ReturnClauseSyntax {
+    private static func createInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: EffectType, genericParameterClause: GenericParameterClauseSyntax?) -> ReturnClauseSyntax {
         var genericArgs = [GenericArgumentSyntax]()
         // Map generic parameter names to their first type constraint
         var genericParameterConstraints: [String: TypeSyntax] = [:]
@@ -260,23 +331,15 @@ public extension MockableGenerator {
         }
 
         for inputType in inputTypes {
-            let argType: TypeSyntax
-            if let identifierType = inputType.as(IdentifierTypeSyntax.self),
-               let constraint = genericParameterConstraints[identifierType.name.text] {
-                // This is a generic parameter with a constraint, use 'any Constraint'
-                argType = TypeSyntax(
-                    SomeOrAnyTypeSyntax(
-                        someOrAnySpecifier: .keyword(.any),
-                        constraint: constraint
-                    )
-                )
-            } else {
-                // Not a generic parameter or no constraint, use the original type
-                argType = inputType
-            }
+            let argType = inputType
             genericArgs.append(GenericArgumentSyntax(argument: argType))
         }
-        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType)))
+
+        if inputTypes.isEmpty {
+            genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: "Void")))
+        }
+
+        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.rawValue)))
         genericArgs.append(GenericArgumentSyntax(argument: outputType))
 
         let genericStubType = IdentifierTypeSyntax(
@@ -305,7 +368,8 @@ public extension MockableGenerator {
     ///
     /// For example, for a function `doSomething(with value: String)`, this will generate:
     /// ```swift
-    /// { Interaction(value, spy: doSomething)
+    /// {
+    ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
     private static func createFunctionBody(spyPropertyName: String, parameterNames: [TokenSyntax]) -> CodeBlockSyntax {
@@ -314,6 +378,12 @@ public extension MockableGenerator {
         ) {
             for name in parameterNames {
                 LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: name))
+            }
+
+            if parameterNames.isEmpty {
+                LabeledExprSyntax(
+                    expression: DeclReferenceExprSyntax(baseName: .identifier(".any"))
+                )
             }
 
             LabeledExprSyntax(

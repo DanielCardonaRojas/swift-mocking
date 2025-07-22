@@ -17,21 +17,16 @@ public enum MockableGenerator {
     /// ```
     /// This function will generate the following structure:
     /// ```swift
-    /// struct PricingServiceMock {
-    ///     typealias Witness = PricingServiceWitness<Self>
-    ///
-    ///     var instance: Witness.Synthesized {
-    ///         .init(context: self, witness: .init(price: adapt(\.price)))
+    ///class PricingServiceMock: Mock, PricingService {
+    ///     func price(_ item: String) throws -> Int {
+    ///         return try adaptThrowing(super.price, item)
     ///     }
-    ///
-    ///     let price = Spy<String, Throws, Int>()
     ///     func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
-    ///         Interaction(item, spy: price)
+    ///         Interaction(item, spy: super.price)
     ///     }
-    /// }
+    ///}
     /// ```
     public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
-        let hasStaticRequirements = hasStaticMembers(protocolDecl: protocolDecl)
         let protocolName = protocolDecl.name.text
         let codeGenOptions = MockableGenerator.codeGenOptions(protocolDecl: protocolDecl)
         let mockName: String
@@ -45,32 +40,35 @@ public enum MockableGenerator {
         }
 
         // Generate the spy properties and methods using SpyGenerator
-        let spyMembers = try makeInteractions(protocolDecl: protocolDecl)
-        let typealiasDecl = makeTypealiasDecl(protocolName: protocolName, mockName: mockName)
-        let conformanceTypealiasDecl = makeConformanceTypealias(protocolName: protocolName, mockName: mockName)
-        let instanceProperty = makeInstanceComputedProperty(protocolDecl: protocolDecl)
-        let witnessProperty = makeWitnessProperty(protocolDecl: protocolDecl)
+        let genericParameters = associatedTypesToGenericArguments(
+            protocolDecl: protocolDecl
+        )
+        let typeAliases = makeTypeAliases(protocolDecl)
+        let interactions = makeInteractions(protocolDecl: protocolDecl)
+        let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
 
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
             name: TokenSyntax.identifier(mockName),
+            genericParameterClause: genericParameters,
             inheritanceClause: InheritanceClauseSyntax(
-inheritedTypes: [
-                InheritedTypeSyntax(
-                    type: IdentifierTypeSyntax(
-                        name: .identifier("Mocking")
+                inheritedTypes: [
+                    InheritedTypeSyntax(
+                        type: IdentifierTypeSyntax(
+                            name: .identifier("Mock")
+                        ),
+                        trailingComma: .commaToken()
+                    ),
+                    InheritedTypeSyntax(
+                        type: IdentifierTypeSyntax(name: protocolDecl.name)
                     )
-                )
-            ]
-),
+                ]
+            ),
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
-                members.append(MemberBlockItemSyntax(decl: typealiasDecl))
-                members.append(MemberBlockItemSyntax(decl: conformanceTypealiasDecl))
-                members.append(MemberBlockItemSyntax(decl: initializer()))
-                members.append(MemberBlockItemSyntax(decl: instanceProperty))
-                members.append(MemberBlockItemSyntax(decl: witnessProperty))
-                members.append(contentsOf: spyMembers.map { MemberBlockItemSyntax(decl: $0) })
+                members.append(contentsOf: typeAliases.map({ MemberBlockItemSyntax(decl: $0)}))
+                members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
+                members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)
             }
         )
@@ -78,6 +76,17 @@ inheritedTypes: [
         return [DeclSyntax(mockStruct)]
     }
 
+    /// Checks if a protocol has any static members.
+    ///
+    /// This function iterates through the members of a protocol and returns `true` if any of them are declared as `static`.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     static func doSomething()
+    /// }
+    /// ```
+    /// This function will return `true`.
     private static func hasStaticMembers(protocolDecl: ProtocolDeclSyntax) -> Bool {
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
@@ -93,6 +102,18 @@ inheritedTypes: [
         return false
     }
 
+    /// Extracts mock generation options from a protocol's attributes.
+    ///
+    /// This function looks for a `@Mockable` attribute on a protocol and parses its arguments to determine code generation options.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// @Mockable(.prefixMock)
+    /// protocol MyService {
+    ///     // ...
+    /// }
+    /// ```
+    /// This function will return `[.prefixMock]`.
     public static func codeGenOptions(protocolDecl: ProtocolDeclSyntax) -> MockableOptions {
         for attribute in protocolDecl.attributes {
             guard let attr = attribute.as(AttributeSyntax.self) else {
@@ -113,47 +134,95 @@ inheritedTypes: [
         return []
     }
 
-    public static func spyPropertyName(for funcDecl: FunctionDeclSyntax, functionNames: inout [String: Int]) -> String {
-        let funcName = funcDecl.name.text
-        let count = functionNames[funcName, default: 0]
-        functionNames[funcName] = count + 1
-        let baseName = count > 0 ? "\(funcName)_\(count)" : funcName
-        return baseName
+    /// Extracts all associated type declarations from a protocol.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     associatedtype Item
+    /// }
+    /// ```
+    /// This function will return an array containing the `AssociatedTypeDeclSyntax` for `Item`.
+    static func associatedTypes(protocolDecl: ProtocolDeclSyntax) -> [AssociatedTypeDeclSyntax] {
+        protocolDecl.memberBlock.members.compactMap({ $0.decl.as(AssociatedTypeDeclSyntax.self)})
     }
 
-    static func initializer() -> InitializerDeclSyntax {
-        InitializerDeclSyntax(
-            attributes: AttributeListSyntax([
-//                AttributeSyntax(attributeName: IdentifierTypeSyntax(name: .identifier("discardableResult")))
-            ]),
-            modifiers: [
-                DeclModifierSyntax(name: .identifier("required")),
-                DeclModifierSyntax(name: .identifier("override"))
-            ],
-            signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax(
-                    parameters: []
+    /// Converts associated types of a protocol into a generic parameter clause.
+    ///
+    /// This is used to make the generated mock class generic over the associated types of the protocol.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     associatedtype Item: Equatable
+    /// }
+    /// ```
+    /// This function will generate the following clause:
+    /// ```swift
+    /// <Item: Equatable>
+    /// ```
+    static func associatedTypesToGenericArguments(protocolDecl: ProtocolDeclSyntax) -> GenericParameterClauseSyntax? {
+        let paramList = GenericParameterListSyntax {
+            for associatedType in associatedTypes(protocolDecl: protocolDecl) {
+                GenericParameterSyntax(
+                    name: associatedType.name,
+                    colon: associatedType.inheritanceClause != nil ? .colonToken() : nil,
+                    inheritedType: associatedType.inheritanceClause?.inheritedTypes.first?.type
                 )
-            ),
-            body: CodeBlockSyntax(
-                statementsBuilder: {
-                CodeBlockItemSyntax(
-                    item: .init(
-                        ExprSyntax(
-                            FunctionCallExprSyntax(
-                                callee: ExprSyntax(
-                                    DeclReferenceExprSyntax(
-                                        baseName: .identifier("super.init")
-                                    )
-                                )
-                            )
-                        )
+            }
+        }
+
+        if paramList.isEmpty {
+            return nil
+        }
+
+        return GenericParameterClauseSyntax(parameters: paramList)
+    }
+
+    /// Creates type aliases for the associated types of a protocol.
+    ///
+    /// This is used within the generated mock to map the generic parameters of the mock to the associated types of the protocol.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     associatedtype Item
+    /// }
+    /// ```
+    /// This function will generate the following type alias:
+    /// ```swift
+    /// typealias Item = Item
+    /// ```
+    static func makeTypeAliases(_ protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
+        typeAliasesForAssociatedTypes(protocolDecl: protocolDecl).map({
+            DeclSyntax($0)
+        })
+    }
+
+    /// Creates type alias declarations for each associated type in a protocol.
+    ///
+    /// For example, for the following protocol:
+    /// ```swift
+    /// protocol MyService {
+    ///     associatedtype Item
+    /// }
+    /// ```
+    /// This function will generate the following type alias declaration:
+    /// ```swift
+    /// typealias Item = Item
+    /// ```
+    static func typeAliasesForAssociatedTypes(protocolDecl: ProtocolDeclSyntax) -> [TypeAliasDeclSyntax] {
+        var result = [TypeAliasDeclSyntax]()
+        for associatedType in associatedTypes(protocolDecl: protocolDecl) {
+            let alias = TypeAliasDeclSyntax(
+                name: associatedType.name,
+                initializer: TypeInitializerClauseSyntax(
+                    value: TypeSyntax(stringLiteral: associatedType.name.text)
                 )
-)
-                CodeBlockItemSyntax(item: .init(
-                    ExprSyntax(stringLiteral: "self.setup()")
-                ))
-            })
-        )
+            )
+            result.append(alias)
+        }
+
+        return result
     }
 }

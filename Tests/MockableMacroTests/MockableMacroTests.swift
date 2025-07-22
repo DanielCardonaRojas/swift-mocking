@@ -25,18 +25,9 @@ final class MockableMacroTests: MacroTestCase {
                 func price(_ item: String) -> Int
             }
 
-            class PricingServiceMock: Mocking {
-                typealias Witness = PricingServiceWitness<PricingServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
-                }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        price: adaptNone(super.price)
-                    )
+            class PricingServiceMock: Mock, PricingService {
+                func price(_ item: String) -> Int {
+                    return adapt(super.price, item)
                 }
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)

@@ -20,21 +20,12 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething()
             }
 
-            class MockMyService: Mocking {
-                typealias Witness = MyServiceWitness<MockMyService>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
+            class MockMyService: Mock, MyService {
+                func doSomething() {
+                    return adapt(super.doSomething)
                 }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        doSomething: adaptNone(super.doSomething)
-                    )
-                }
-                func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: super.doSomething)
+                func doSomething() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: super.doSomething)
                 }
             }
             """
@@ -55,21 +46,12 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething()
             }
 
-            class MyServiceMock: Mocking {
-                typealias Witness = MyServiceWitness<MyServiceMock>
-                typealias Conformance = Witness.Synthesized
-                required override init() {
-                    super.init()
-                    self.setup()
+            class MyServiceMock: Mock, MyService {
+                func doSomething() {
+                    return adapt(super.doSomething)
                 }
-                lazy var instance: Conformance = .init(context: self, strategy: "mocking")
-                var witness: Witness {
-                    .init(
-                        doSomething: adaptNone(super.doSomething)
-                    )
-                }
-                func doSomething() -> Interaction<None, Void> {
-                    Interaction(spy: super.doSomething)
+                func doSomething() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: super.doSomething)
                 }
             }
             """
