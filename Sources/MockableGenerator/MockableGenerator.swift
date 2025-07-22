@@ -230,6 +230,18 @@ public enum MockableGenerator {
         return result
     }
 
+    /// Wraps a list of member declarations in an `#if DEBUG` block.
+    ///
+    /// This ensures that the generated mock code is only compiled in `DEBUG` configurations.
+    ///
+    /// For example, given a mock class declaration, this function will generate:
+    /// ```swift
+    /// #if DEBUG
+    /// class MyServiceMock: Mock, MyService {
+    ///     // ...
+    /// }
+    /// #endif
+    /// ```
     static func ifConfig(_ members: MemberBlockItemListSyntax) -> IfConfigDeclSyntax {
         IfConfigDeclSyntax(clauses: IfConfigClauseListSyntax(itemsBuilder: {
             IfConfigClauseSyntax(
