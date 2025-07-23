@@ -39,7 +39,11 @@ let package = Package(
             name: "SwiftMocking",
             dependencies: [
                 "MockableTypes"
-            ]),
+            ],
+            plugins: [
+                .plugin(name: "MockableMacro")
+            ]
+        ),
         .target(name: "MockableTypes"),
         .target(
             name: "SwiftMockingTestSupport",
