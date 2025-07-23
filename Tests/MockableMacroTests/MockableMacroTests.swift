@@ -9,6 +9,7 @@ import XCTest
 import MacroTesting
 import MockableMacro
 import MockableTypes
+import MacroTesting
 
 final class MockableMacroTests: MacroTestCase {
     func testSingleMethodNoEffects() {
