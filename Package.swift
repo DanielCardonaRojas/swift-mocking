@@ -72,7 +72,6 @@ let package = Package(
             "MockableGenerator",
             "SwiftMocking",
             "MockableTypes",
-            .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             .product(name: "MacroTesting", package: "swift-macro-testing")
         ])
     ]
