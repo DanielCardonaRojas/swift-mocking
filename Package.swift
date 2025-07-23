@@ -38,7 +38,6 @@ let package = Package(
         .target(
             name: "SwiftMocking",
             dependencies: [
-                "MockableMacro",
                 "MockableTypes"
             ]),
         .target(name: "MockableTypes"),
