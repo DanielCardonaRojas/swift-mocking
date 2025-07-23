@@ -2,7 +2,6 @@
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
-import MockableMacro
 import MacroTesting
 
 final class MacroOptionsTests: MacroTestCase {

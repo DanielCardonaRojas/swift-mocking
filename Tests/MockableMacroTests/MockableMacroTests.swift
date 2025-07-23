@@ -7,7 +7,6 @@
 
 import XCTest
 import MacroTesting
-import MockableMacro
 import MockableTypes
 import MacroTesting
 
