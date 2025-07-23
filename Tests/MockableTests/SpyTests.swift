@@ -1,7 +1,6 @@
 
 import XCTest
 @testable import MockableTypes
-@testable import SwiftMocking
 
 final class SpyTests: XCTestCase {
 
