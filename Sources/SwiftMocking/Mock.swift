@@ -116,4 +116,16 @@ open class Mock: DefaultProvider {
             spyGroup.forEach { $0.clear() }
         }
     }
+
+    /// Clears all recorded invocations and stubs from all spies managed by this static instance.
+    ///
+    /// Call this method in your test's `tearDown` to ensure that each test starts with a
+    /// clean mock object, free from any interactions or stubs from previous tests.
+    public static func clear() {
+        for dict in spies_.values {
+            for spyGroup in dict.values {
+                spyGroup.forEach({ $0.clear() })
+            }
+        }
+    }
 }
