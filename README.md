@@ -585,3 +585,31 @@ class ServiceMock: Mock, Service {
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## ⚠️ Known Limitations
+
+### Xcode Autocomplete
+
+Currently, Xcode's autocomplete feature may not work as expected when using the generated mock objects. This seems to be a known issue with Xcode. This limitation could be worked around by conforming to the mocked protocol within an extension. However due to limitations of Swift macros, generating this extension will result in an error.
+
+For example, the ideal generated code would separate the protocol conformance into an extension, like this:
+
+```swift
+// Ideal generated code
+public protocol PricingService {
+    func price(_ item: String) throws -> Int
+}
+
+class PricingServiceMock: Mock {
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
+        Interaction(item, spy: super.price)
+    }
+}
+
+extension PricingServiceMock: PricingService {
+    func price(_ item: String) throws -> Int {
+        return try adaptThrowing(super.price, item)
+    }
+}
+```
+
