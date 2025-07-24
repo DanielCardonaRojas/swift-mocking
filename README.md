@@ -229,11 +229,11 @@ when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
     // Note that no casting is required. a and here are of type Int
     return a + b
 }
-XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 15)
+XCTAssertEqual(mock.calculate(a: 5, b: 10), 15)
 
 // Replace the calculation function
 when(mock.calculate(a: .any, b: .any)).thenReturn(*)
-XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 50)
+XCTAssertEqual(mock.calculate(a: 5, b: 10), 50)
 ```
 
 ### Logging Invocations
@@ -249,7 +249,7 @@ let mock = PricingServiceMock()
 mock.isLoggingEnabled = true
 
 // Any calls to mock.instance methods will now be logged to the console.
-_ = mock.instance.price(for: "apple")
+_ = mock.price(for: "apple")
 // Output: PricingServiceMock.price("apple")
 ```
 
