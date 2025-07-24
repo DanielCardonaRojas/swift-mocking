@@ -71,7 +71,7 @@ let package = Package(
                 "SwiftMocking",
             ]
         ),
-        .testTarget(name: "MockableMacroTests", dependencies: [
+        .testTarget(name: "SwiftMockingMacrosTests", dependencies: [
             "MockableGenerator",
             "MockableTypes",
             "SwiftMocking",
