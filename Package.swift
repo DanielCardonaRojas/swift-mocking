@@ -20,10 +20,6 @@ let package = Package(
             targets: ["SwiftMocking"]
         ),
         .library(
-            name: "MockableTypes",
-            targets: ["MockableTypes"]
-        ),
-        .library(
             name: "SwiftMockingTestSupport",
             targets: ["SwiftMockingTestSupport"]
         ),
@@ -38,24 +34,20 @@ let package = Package(
         .target(
             name: "SwiftMocking",
             dependencies: [
-                "MockableTypes"
             ],
             plugins: [
                 .plugin(name: "SwiftMockingMacros")
             ]
         ),
-        .target(name: "MockableTypes"),
         .target(
             name: "SwiftMockingTestSupport",
             dependencies: [
                 "SwiftMocking",
-                "MockableTypes",
             ]),
         .target(
             name: "MockableGenerator",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-                "MockableTypes"
             ]
         ),
         .macro(
@@ -73,7 +65,6 @@ let package = Package(
         ),
         .testTarget(name: "SwiftMockingMacrosTests", dependencies: [
             "MockableGenerator",
-            "MockableTypes",
             "SwiftMocking",
             .product(name: "MacroTesting", package: "swift-macro-testing")
         ])
