@@ -31,21 +31,25 @@ let package = Package(
         .target(
             name: "SwiftMocking",
             dependencies: [
-            ],
-            plugins: [
-                .plugin(name: "SwiftMockingMacros")
+                "SwiftMockingMacros",
+                "SwiftMockingOptions",
+                "MockableGenerator",
                 .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
             ]
         ),
+        .target(name: "SwiftMockingOptions"),
         .target(
             name: "MockableGenerator",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                "SwiftMockingOptions",
             ]
         ),
         .macro(
             name: "SwiftMockingMacros",
             dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
                 "MockableGenerator",
             ]
@@ -57,7 +61,6 @@ let package = Package(
             ]
         ),
         .testTarget(name: "SwiftMockingMacrosTests", dependencies: [
-            "MockableGenerator",
             "SwiftMocking",
             .product(name: "MacroTesting", package: "swift-macro-testing")
         ])
