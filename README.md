@@ -219,7 +219,7 @@ A powerful feature of `SwiftMocking` is that you can define the return value of 
 It is common in other testing frameworks, that the parameters of this closure be of type Any. However, thanks to the use of parameter packs, the set of arguments here are concrete types, and are guaranteed to match the types of the function signature that is being stubbed. This essentially enables substituting the mocked function dynamically. For example:
 
 ```swift
-@Mocked
+@Mockable
 protocol Calculator {
     func calculate(a: Int, b: Int) -> Int
 }
@@ -229,11 +229,11 @@ when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
     // Note that no casting is required. a and here are of type Int
     return a + b
 }
-XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 15)
+XCTAssertEqual(mock.calculate(a: 5, b: 10), 15)
 
 // Replace the calculation function
 when(mock.calculate(a: .any, b: .any)).thenReturn(*)
-XCTAssertEqual(mock.instance.calculate(a: 5, b: 10), 50)
+XCTAssertEqual(mock.calculate(a: 5, b: 10), 50)
 ```
 
 ### Logging Invocations
@@ -249,7 +249,7 @@ let mock = PricingServiceMock()
 mock.isLoggingEnabled = true
 
 // Any calls to mock.instance methods will now be logged to the console.
-_ = mock.instance.price(for: "apple")
+_ = mock.price(for: "apple")
 // Output: PricingServiceMock.price("apple")
 ```
 
