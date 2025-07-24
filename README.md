@@ -46,6 +46,17 @@ To add `SwiftMocking` to your Swift package, add it as a dependency in your `Pac
 .package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.1.0"),
 ```
 
+Then, add `SwiftMocking` to your target's dependencies:
+
+```swift
+.target(
+    name: "MyTests",
+    dependencies: [
+        .product(name: "SwiftMocking", package: "swift-mocking"),
+    ]
+),
+```
+
 ---
 
 ## 🚀 Usage
@@ -582,10 +593,6 @@ class ServiceMock: Mock, Service {
 </details>
 
 
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## ⚠️ Known Limitations
 
 ### Xcode Autocomplete
@@ -612,4 +619,8 @@ extension PricingServiceMock: PricingService {
     }
 }
 ```
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
