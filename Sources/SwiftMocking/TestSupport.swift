@@ -31,10 +31,7 @@ public func verifyInOrder<each Input, Eff: Effect, Output>(
     }
 
     if !spy.verifyInOrder(matchers) {
-        reportIssue(
-            "Did not find sequence of interactions",
-            filePath: file
-        )
+        reportIssue("Did not find sequence of interactions", filePath: file, line: line)
     }
 }
 
