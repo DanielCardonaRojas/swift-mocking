@@ -1,7 +1,6 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
-import MockableTypes
-import MockableTypes
+import SwiftMockingOptions
 
 public enum MockableGenerator {
     /// Processes a protocol declaration to generate a mock struct.
