@@ -16,7 +16,19 @@ public protocol DefaultProvider {
 /// A registry for `DefaultProvidable` types, allowing dynamic control over which types provide default values.
 public class DefaultProvidableRegistry {
     /// The shared singleton instance of the registry.
-    public static let shared = DefaultProvidableRegistry()
+    public static let shared = {
+        let registry = DefaultProvidableRegistry()
+        registry.register(Array<Any>.self)
+        registry.register(Optional<Any>.self)
+        registry.register(Set<AnyHashable>.self)
+        registry.register(Dictionary<AnyHashable, Any>.self)
+        registry.register(Int.self)
+        registry.register(Bool.self)
+        registry.register(Double.self)
+        registry.register(Float.self)
+        registry.register(String.self)
+        return registry
+    }()
 
     private var registeredTypes: Set<ObjectIdentifier> = []
 
