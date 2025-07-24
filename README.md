@@ -219,7 +219,7 @@ A powerful feature of `SwiftMocking` is that you can define the return value of 
 It is common in other testing frameworks, that the parameters of this closure be of type Any. However, thanks to the use of parameter packs, the set of arguments here are concrete types, and are guaranteed to match the types of the function signature that is being stubbed. This essentially enables substituting the mocked function dynamically. For example:
 
 ```swift
-@Mocked
+@Mockable
 protocol Calculator {
     func calculate(a: Int, b: Int) -> Int
 }
