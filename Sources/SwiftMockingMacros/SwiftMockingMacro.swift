@@ -12,14 +12,16 @@ import SwiftSyntaxMacros
 import MockableGenerator
 
 @main
-struct MockablePlugin: CompilerPlugin {
-    let providingMacros: [Macro.Type] = [
+public struct MockablePlugin: CompilerPlugin {
+    public let providingMacros: [Macro.Type] = [
         MockableMacro.self,
     ]
+
+    public init() { }
 }
 
-struct MacroError: Error {
-    let message: String
+public struct MacroError: Error {
+    public let message: String
 }
 
 public enum MockableMacro: PeerMacro {
