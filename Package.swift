@@ -19,15 +19,12 @@ let package = Package(
             name: "SwiftMocking",
             targets: ["SwiftMocking"]
         ),
-        .library(
-            name: "SwiftMockingTestSupport",
-            targets: ["SwiftMockingTestSupport"]
-        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-syntax.git", from: "600.0.1"),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.5"),
+        .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.6.0")
 
     ],
     targets: [
@@ -37,13 +34,9 @@ let package = Package(
             ],
             plugins: [
                 .plugin(name: "SwiftMockingMacros")
+                .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
             ]
         ),
-        .target(
-            name: "SwiftMockingTestSupport",
-            dependencies: [
-                "SwiftMocking",
-            ]),
         .target(
             name: "MockableGenerator",
             dependencies: [
