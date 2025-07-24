@@ -5,6 +5,8 @@
 //  Created by Daniel Cardona on 9/07/25.
 //
 
+import Foundation
+
 /// A set of options that control the code generation behavior of the `@Mockable` macro.
 ///
 /// These options can be combined to customize how mock objects are generated.

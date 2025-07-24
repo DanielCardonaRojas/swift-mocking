@@ -1,6 +1,6 @@
 
 import XCTest
-import MockableTypes
+import SwiftMocking
 
 // Define some dummy types conforming to DefaultProvidable for testing
 struct TestStruct: DefaultProvidable {

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import MockableTypes
+import SwiftMockingOptions
 
 @attached(peer, names: suffixed(Mock), prefixed(Mock), suffixed(Witness))
-public macro Mockable(_ options: MockableOptions = []) = #externalMacro(module: "MockableMacro", type: "MockableMacro")
+public macro Mockable(_ options: MockableOptions = .default) = #externalMacro(module: "SwiftMockingMacros", type: "MockableMacro")
