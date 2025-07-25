@@ -46,5 +46,13 @@ public struct InvocationMatcher<each I> {
         }
         return match(invocation: invocation, matchers: (repeat each matchers))
     }
+
+    public var precedence: Int {
+        var sum = 0
+        for matcher in repeat each matchers {
+            sum += matcher.precedence.value
+        }
+        return sum
+    }
 }
 

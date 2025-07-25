@@ -59,7 +59,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         // search through stub for a return value
         var matchingStub: Stub<repeat each Input, Effects, Output>?
 
-        for stub in stubs {
+        for stub in stubs.reversed().sorted(by: { $0.precedence > $1.precedence }) {
             if stub.invocationMatcher.isMatchedBy(Invocation(arguments: repeat each input)) {
                 matchingStub = stub
                 break
