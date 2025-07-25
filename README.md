@@ -22,6 +22,7 @@
 | **Compact Code Generation** | Keeps the generated code as small and compact as possible. |
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
 | **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what and how code gets generated. |
+| **XCTest and Testing support** | SwiftMocking uses [swift-issue-reporting](https://github.com/pointfreeco/swift-issue-reporting) and exposes testing utilities to both XCTest and [swift-testing](https://github.com/swiftlang/swift-testing) frameworks. |
 
 ### Protocol Feature Support
 
