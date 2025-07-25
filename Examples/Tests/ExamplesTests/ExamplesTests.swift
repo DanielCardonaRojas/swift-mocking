@@ -3,6 +3,8 @@ import SwiftMocking
 import Foundation
 @testable import Examples
 
+
+
 @Test func example() async throws {
     MockLogger.clear()
     MockLogger.log("hello")
@@ -132,4 +134,58 @@ import Foundation
     when(mock[.any]).thenReturn("hello")
     #expect(mock[3] == "hello")
     verify(mock[3]).called()
+}
+
+@Test func testNetworkService() async throws {
+    let mock = MockNetworkService()
+    let url = URL(string: "https://example.com/data")!
+    let downloadURL = URL(string: "https://example.com/download")!
+    let uploadURL = URL(string: "https://example.com/upload")!
+
+    // Stub request
+    when(mock.request(url: .any, method: .any, headers: .any))
+        .thenReturn("{}".data(using: .utf8)!)
+    let data = try await mock.request(url: url, method: "GET", headers: nil)
+    #expect(data == "{}".data(using: .utf8)!)
+    verify(mock.request(url: .equal(url), method: .equal("GET"), headers: .nil())).called(1)
+
+    // Stub download
+    when(mock.download(from: .any)).thenReturn(downloadURL)
+    let downloadedUrl = try await mock.download(from: downloadURL)
+    #expect(downloadedUrl == downloadURL)
+    verify(mock.download(from: .equal(downloadURL))).called(1)
+
+    // Stub upload
+    let uploadResponseData = "Upload Success".data(using: .utf8)!
+    let uploadResponse = HTTPURLResponse(url: uploadURL, statusCode: 200, httpVersion: nil, headerFields: nil)!
+    when(mock.upload(to: .any, data: .any)).thenReturn((uploadResponseData, uploadResponse))
+    let (responseData, response) = try await mock.upload(to: uploadURL, data: Data())
+    #expect(responseData == uploadResponseData)
+    #expect((response as? HTTPURLResponse)?.statusCode == 200)
+    verify(mock.upload(to: .equal(uploadURL), data: .equal(Data()))).called(1)
+}
+
+@Test func testPersistenceService() throws {
+    let mock = MockPersistenceService()
+
+    // Stub save
+    when(mock.save(key: .equal("myKey"), value: .any(String.self)))
+    try mock.save(key: "myKey", value: "myValue")
+    verify(mock.save(key: .equal("myKey"), value: .equal("myValue"))).called(1)
+
+    // Stub load
+    when(mock.load(key: "anotherKey")).thenReturn("loadedValue")
+    let loadedValue: String? = try mock.load(key: "anotherKey")
+    #expect(loadedValue == "loadedValue")
+                                verify(mock.load(key: .equal("anotherKey")) as Interaction<String, Throws, String?>).called(1)
+
+    // Stub delete
+        when(mock.delete(key: "deleteKey")).thenThrow(Examples.TestError.example)
+    do {
+        try mock.delete(key: "deleteKey")
+        Issue.record("Should have thrown an error")
+    } catch {
+        #expect(error is TestError)
+    }
+    verify(mock.delete(key: "deleteKey")).throws()
 }

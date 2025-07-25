@@ -1,6 +1,8 @@
 import Foundation
 import SwiftMocking
 
+
+
 // MARK: - Function Signature Variations
 
 @Mockable
@@ -114,6 +116,22 @@ protocol Countable {
     var totalCount: Int { get set }
 }
 
+// MARK: - More complex protocols
+
+@Mockable
+protocol NetworkService {
+    func request(url: URL, method: String, headers: [String: String]?) async throws -> Data
+    func download(from url: URL) async throws -> URL
+    func upload(to url: URL, data: Data) async throws -> (Data, URLResponse)
+}
+
+@Mockable
+protocol PersistenceService {
+    func save<T: Codable>(key: String, value: T) throws
+    func load<T: Codable>(key: String) throws -> T?
+    func delete(key: String) throws
+}
+
 class Store {
     var items: [String] = []
     var prices: [String: Int] =  [:]
@@ -138,5 +156,3 @@ class Store {
         }
     }
 }
-
-
