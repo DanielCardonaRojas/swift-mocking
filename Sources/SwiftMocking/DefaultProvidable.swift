@@ -24,40 +24,27 @@ public struct DefaultProviding {
 
 public extension DefaultProviding {
     static func numeric<T: Numeric>(_ type: T.Type) -> DefaultProviding {
-        .init(T.self, create: {
-            0
-        })
+        .init(T.self, create: { 0 })
     }
 
     static func array() -> DefaultProviding {
-        .init(Array<Any>.self, create: {
-            []
-        })
+        .init(Array<Any>.self, create: { [] })
     }
 
     static func void() -> DefaultProviding {
-        .init(Void.self, create: {
-            return
-
-        })
+        .init(Void.self, create: { return })
     }
 
     static func set() -> DefaultProviding {
-        .init(Set<AnyHashable>.self, create: {
-            []
-        })
+        .init(Set<AnyHashable>.self, create: { [] })
     }
 
     static func dictionary() -> DefaultProviding {
-        .init(Dictionary<AnyHashable, Any>.self, create: {
-            [:]
-        })
+        .init(Dictionary<AnyHashable, Any>.self, create: { [:] })
     }
 
     static func optional() -> DefaultProviding {
-        .init(Optional<Any>.self, create: {
-            nil
-        })
+        .init(Optional<Any>.self, create: { nil })
     }
 
     static func bool() -> DefaultProviding {
