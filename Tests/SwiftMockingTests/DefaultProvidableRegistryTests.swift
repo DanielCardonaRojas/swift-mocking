@@ -12,6 +12,11 @@ class DefaultProvidableRegistryTests: XCTestCase {
         registry = DefaultProvidableRegistry.shared
     }
 
+    func testDeregister() {
+        registry.deregister(.void())
+        XCTAssertNil(registry.getDefaultForType(Void.self))
+    }
+
     func testVoid() {
         XCTAssertNotNil(registry.getDefaultForType(Void.self))
     }

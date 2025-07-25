@@ -50,4 +50,7 @@ public class DefaultProvidableRegistry {
         providers.append(providing)
     }
 
+    public func deregister(_ providing: AnyDefaultProviding) {
+        providers.removeAll(where: { $0.defaultType == providing.defaultType })
+    }
 }
