@@ -15,9 +15,9 @@ public protocol DefaultProvider {
 }
 
 /// A registry for `DefaultProvidable` types, allowing dynamic control over which types provide default values.
-public class DefaultProvidableRegistry {
+public struct DefaultProvidableRegistry {
     public static let shared: DefaultProvidableRegistry = {
-        let instance = DefaultProvidableRegistry()
+        var instance = DefaultProvidableRegistry()
         instance.register(.void())
         instance.register(.array())
         instance.register(.optional())
@@ -46,11 +46,11 @@ public class DefaultProvidableRegistry {
         return nil
     }
 
-    public func register(_ providing: DefaultProviding) {
+    public mutating func register(_ providing: DefaultProviding) {
         providers.append(providing)
     }
 
-    public func deregister(_ providing: DefaultProviding) {
+    public mutating func deregister(_ providing: DefaultProviding) {
         providers.removeAll(where: { $0.defaultType == providing.defaultType })
     }
 }
