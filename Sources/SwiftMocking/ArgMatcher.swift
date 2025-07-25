@@ -177,6 +177,13 @@ public extension ArgMatcher where Argument: Error {
     }
 }
 
+// MARK: - Custom types
+public extension ArgMatcher {
+    static func any<Property: Equatable>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> Self {
+        .init { $0[keyPath: keyPath] == value }
+    }
+}
+
 // MARK: - Expressible by literal
 
 extension ArgMatcher: ExpressibleByIntegerLiteral where Argument == IntegerLiteralType {
