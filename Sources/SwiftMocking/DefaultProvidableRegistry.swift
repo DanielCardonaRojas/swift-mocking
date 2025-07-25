@@ -16,7 +16,7 @@ public protocol DefaultProvider {
 
 /// A registry for `DefaultProvidable` types, allowing dynamic control over which types provide default values.
 public struct DefaultProvidableRegistry {
-    public static let shared: DefaultProvidableRegistry = {
+    public static let `default`: DefaultProvidableRegistry = {
         var instance = DefaultProvidableRegistry()
         instance.register(.void())
         instance.register(.array())

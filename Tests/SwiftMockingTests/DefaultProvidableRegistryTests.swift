@@ -9,7 +9,7 @@ class DefaultProvidableRegistryTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        registry = DefaultProvidableRegistry.shared
+        registry = DefaultProvidableRegistry.default
     }
 
     func testDeregister() {

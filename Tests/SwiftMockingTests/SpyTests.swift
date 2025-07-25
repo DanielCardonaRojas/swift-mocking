@@ -39,7 +39,7 @@ final class SpyTests: XCTestCase {
 
     func test_spy_withVoidOutput_recordsInvocations() {
         let spy = Spy<String, None, Void>()
-        spy.defaultProviderRegistry = .shared
+        spy.defaultProviderRegistry = .default
         spy.call("action1")
         spy.call("action2")
 
