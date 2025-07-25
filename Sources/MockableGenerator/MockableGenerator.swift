@@ -120,12 +120,12 @@ public enum MockableGenerator {
     public static func codeGenOptions(protocolDecl: ProtocolDeclSyntax) -> MockableOptions {
         for attribute in protocolDecl.attributes {
             guard let attr = attribute.as(AttributeSyntax.self) else {
-                return []
+                return .default
             }
 
             guard let arguments = attr.arguments?.as(LabeledExprListSyntax.self) else {
                 // No arguments or unexpected format
-                return []
+                return .default
             }
             for argument in arguments {
                 guard let parsedOption = MockableOptions(stringLiteral: argument.expression.description) else {
@@ -134,7 +134,7 @@ public enum MockableGenerator {
                 return parsedOption
             }
         }
-        return []
+        return .default
     }
 
     /// Extracts all associated type declarations from a protocol.
