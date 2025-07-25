@@ -3,66 +3,57 @@ import XCTest
 import SwiftMocking
 
 // Define some dummy types conforming to DefaultProvidable for testing
-struct TestStruct: DefaultProvidable {
-    static var defaultValue: TestStruct {
-        return TestStruct(value: "default")
-    }
-    let value: String
-}
-
 class DefaultProvidableRegistryTests: XCTestCase {
 
     var registry: DefaultProvidableRegistry!
 
     override func setUp() {
         super.setUp()
-        registry = DefaultProvidableRegistry.shared
-        // Ensure a clean state for each test
-        registry.deregister(TestStruct.self)
-        registry.deregister(Int.self)
-        registry.deregister(String.self)
-    }
-
-    func testRegisterAndIsRegistered() {
-        XCTAssertFalse(registry.isRegistered(TestStruct.self))
-        registry.register(TestStruct.self)
-        XCTAssertTrue(registry.isRegistered(TestStruct.self))
+        registry = DefaultProvidableRegistry.default
     }
 
     func testDeregister() {
-        registry.register(TestStruct.self)
-        XCTAssertTrue(registry.isRegistered(TestStruct.self))
-        registry.deregister(TestStruct.self)
-        XCTAssertFalse(registry.isRegistered(TestStruct.self))
+        registry.deregister(.void())
+        XCTAssertNil(registry.getDefaultForType(Void.self))
     }
 
-    func testGetDefaultForRegisteredType() {
-        registry.register(TestStruct.self)
-        let defaultValue = registry.getDefaultForType(TestStruct.self)
-        XCTAssertEqual(defaultValue?.value, "default")
+    func testVoid() {
+        XCTAssertNotNil(registry.getDefaultForType(Void.self))
     }
 
-    func testGetDefaultForUnregisteredDefaultProvidableType() {
-        // TestStruct conforms to DefaultProvidable but is not registered in this test
-        let defaultValue = registry.getDefaultForType(TestStruct.self)
-        XCTAssertNil(defaultValue)
+    func testArray() {
+        XCTAssertNotNil(registry.getDefaultForType([Int].self))
+        XCTAssertNotNil(registry.getDefaultForType([String].self))
+        XCTAssertNotNil(registry.getDefaultForType([Bool].self))
+        XCTAssertNotNil(registry.getDefaultForType([Double].self))
+        XCTAssertNotNil(registry.getDefaultForType([Optional<Int>].self))
     }
 
-    func testGetDefaultForRegisteredBuiltInType() {
-        registry.register(Int.self)
-        let intDefaultValue = registry.getDefaultForType(Int.self)
-        XCTAssertEqual(intDefaultValue, 0)
-
-        registry.register(String.self)
-        let stringDefaultValue = registry.getDefaultForType(String.self)
-        XCTAssertEqual(stringDefaultValue, "")
+    func testSet() {
+        XCTAssertNotNil(registry.getDefaultForType(Set<Int>.self))
+        XCTAssertNotNil(registry.getDefaultForType(Set<String>.self))
+        XCTAssertNotNil(registry.getDefaultForType(Set<Bool>.self))
+        XCTAssertNotNil(registry.getDefaultForType(Set<Double>.self))
     }
 
-    func testGetDefaultForNonDefaultProvidableType() {
-        // Attempt to get default for a type that does not conform to DefaultProvidable
-        // This should always return nil as it cannot provide a default value
-        class NonProvidableType {}
-        let defaultValue = registry.getDefaultForType(NonProvidableType.self)
-        XCTAssertNil(defaultValue)
+    func testDictionary() {
+        XCTAssertNotNil(registry.getDefaultForType(Dictionary<String, Int>.self))
+        XCTAssertNotNil(registry.getDefaultForType(Dictionary<String, String>.self))
+        XCTAssertNotNil(registry.getDefaultForType(Dictionary<String, Bool>.self))
+        XCTAssertNotNil(registry.getDefaultForType(Dictionary<String, Double>.self))
     }
+
+    func testOptional() {
+        XCTAssertEqual(registry.getDefaultForType(Optional<Int>.self), .some(nil))
+        XCTAssertEqual(registry.getDefaultForType(Optional<String>.self), .some(nil))
+        XCTAssertEqual(registry.getDefaultForType(Optional<Bool>.self), .some(nil))
+        XCTAssertEqual(registry.getDefaultForType(Optional<Double>.self), .some(nil))
+    }
+
+    func testNumeric() {
+        XCTAssertNotNil(registry.getDefaultForType(Int.self))
+        XCTAssertNotNil(registry.getDefaultForType(Double.self))
+        XCTAssertNotNil(registry.getDefaultForType(Float.self))
+    }
+
 }
