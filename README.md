@@ -61,6 +61,8 @@ Then, add `SwiftMocking` to your target's dependencies:
 
 ## 🚀 Usage
 
+For a comprehensive demonstration of `SwiftMocking`'s capabilities, including various mocking scenarios and advanced features, please refer to the [Examples](Examples/) project.
+
 Here's an example of how to use `Mockable` to mock a `PricingService` protocol:
 
 ```swift
