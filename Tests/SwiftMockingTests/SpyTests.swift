@@ -27,6 +27,38 @@ final class SpyTests: XCTestCase {
         XCTAssert(spy.verify(calledWith: .equal("hello"), count: .equal(2)))
     }
 
+    func test_can_overwrite_stub() {
+        let spy = Spy<String, None, Int>()
+        spy.when(calledWith:"hello").thenReturn(10)
+        spy.when(calledWith:"hello").thenReturn(13)
+        let result = spy.call( "hello" )
+        XCTAssertEqual(result, 13)
+    }
+
+    func testAnyPrecedence() {
+        let spy = Spy<String, None, Int>()
+        spy.when(calledWith: .any).thenReturn(10)
+        spy.when(calledWith: "hello").thenReturn(13)
+        spy.when(calledWith: .any).thenReturn(7)
+
+        // Ensure matcher .any has lower priority
+        let result = spy.call( "hello" )
+        XCTAssertEqual(result, 13)
+    }
+
+    func testEqualMatcherHasHigherPrecedenceThanPredicate() {
+        let spy = Spy<String, None, Int>()
+        // Order of these does not matter since they have different precedence values
+        spy.when(calledWith: .any).thenReturn(7)
+        spy.when(calledWith: "hello").thenReturn(13)
+        spy.when(calledWith: .any(that: { $0.count > 8 })).thenReturn(17)
+
+        // Ensure matcher .any has lower priority
+        XCTAssertEqual(spy.call("hello"), 13) // should be matched by .equal matcher
+        XCTAssertEqual(spy.call("long_input"), 17) // should be matched by predicate matcher
+        XCTAssertEqual(spy.call("short"), 7) // Should be matched by any matcher
+    }
+
     func test_spy_withVoidInput_recordsInvocations_andReturnsStubbedValue() {
         let spy = Spy<Void, None, String>()
         spy.when(calledWith:.any).thenReturn("success")
