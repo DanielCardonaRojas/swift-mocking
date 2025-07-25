@@ -32,7 +32,7 @@ public class DefaultProvidableRegistry {
     }()
 
 
-    var providers: [AnyDefaultProviding] = []
+    var providers: [DefaultProviding] = []
     
     public init() { }
 
@@ -46,11 +46,11 @@ public class DefaultProvidableRegistry {
         return nil
     }
 
-    public func register(_ providing: AnyDefaultProviding) {
+    public func register(_ providing: DefaultProviding) {
         providers.append(providing)
     }
 
-    public func deregister(_ providing: AnyDefaultProviding) {
+    public func deregister(_ providing: DefaultProviding) {
         providers.removeAll(where: { $0.defaultType == providing.defaultType })
     }
 }

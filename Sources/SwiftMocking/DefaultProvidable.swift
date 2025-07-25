@@ -11,7 +11,7 @@ import Foundation
 /// A type that can provide a default value.
 ///
 /// Conforming to this protocol allows a type to be used in mocks where a default value is needed for unstubbed methods.
-public struct AnyDefaultProviding {
+public struct DefaultProviding {
     var createDefault: () -> Any
     var defaultType: ParsedType
 
@@ -22,49 +22,49 @@ public struct AnyDefaultProviding {
 
 }
 
-public extension AnyDefaultProviding {
-    static func numeric<T: Numeric>(_ type: T.Type) -> AnyDefaultProviding {
+public extension DefaultProviding {
+    static func numeric<T: Numeric>(_ type: T.Type) -> DefaultProviding {
         .init(T.self, create: {
             0
         })
     }
 
-    static func array() -> AnyDefaultProviding {
+    static func array() -> DefaultProviding {
         .init(Array<Any>.self, create: {
             []
         })
     }
 
-    static func void() -> AnyDefaultProviding {
+    static func void() -> DefaultProviding {
         .init(Void.self, create: {
             return
 
         })
     }
 
-    static func set() -> AnyDefaultProviding {
+    static func set() -> DefaultProviding {
         .init(Set<AnyHashable>.self, create: {
             []
         })
     }
 
-    static func dictionary() -> AnyDefaultProviding {
+    static func dictionary() -> DefaultProviding {
         .init(Dictionary<AnyHashable, Any>.self, create: {
             [:]
         })
     }
 
-    static func optional() -> AnyDefaultProviding {
+    static func optional() -> DefaultProviding {
         .init(Optional<Any>.self, create: {
             nil
         })
     }
 
-    static func bool() -> AnyDefaultProviding {
+    static func bool() -> DefaultProviding {
         .init(Bool.self, create: { false })
     }
 
-    static func string() -> AnyDefaultProviding {
+    static func string() -> DefaultProviding {
         .init(String.self, create: { "" })
     }
 
