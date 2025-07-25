@@ -26,9 +26,14 @@
 /// verify(spy.anotherMethod(.any)).called()
 /// ```
 public struct ArgMatcher<Argument> {
+    var precedence: MatcherPrecedence
     let matcher: (Argument) -> Bool
 
-    public init(matcher: @escaping (Argument) -> Bool) {
+    public init(
+        precedence: MatcherPrecedence = .typeMatch,
+        matcher: @escaping (Argument) -> Bool
+    ) {
+        self.precedence = precedence
         self.matcher = matcher
     }
 
@@ -51,15 +56,15 @@ public struct ArgMatcher<Argument> {
     /// verify(spy.someMethod(.any)).called()
     /// ```
     public static var any: Self {
-        return .init { _ in true }
+        return .init(precedence: .any) { _ in true }
     }
 
     public static func any<T>(_ type: T.Type) -> ArgMatcher<T> {
-        return .init { _ in true }
+        return .init(precedence: .typeMatch) { _ in true }
     }
 
     public static func any(that predicate: @escaping (Argument) -> Bool) -> Self {
-        return .init(matcher: predicate)
+        return .init(precedence: .predicate, matcher: predicate)
     }
 
     /// A matcher that matches an argument if it can be cast to a specific type.
@@ -70,9 +75,9 @@ public struct ArgMatcher<Argument> {
     /// - Parameter type: The type to check for casting.
     /// - Returns: An `ArgMatcher` that matches if the argument can be cast to the given type.
     public static func `as`<T>(_ type: T.Type) -> Self {
-        .init(matcher: { argument in
+        .init(precedence: .typeMatch) { argument in
             (argument as? T) != nil
-        })
+        }
     }
 }
 
@@ -88,7 +93,7 @@ public extension ArgMatcher where Argument: Equatable {
     /// verify(spy.anotherMethod(.equal(42))).called()
     /// ```
     static func equal(_ value: Argument) -> Self {
-        .init { $0 == value }
+        .init(precedence: .equalTo) { $0 == value }
     }
 }
 
@@ -101,7 +106,7 @@ public extension ArgMatcher where Argument: Comparable {
     /// spy.when(calledWith: .lessThan(10)).thenReturn("small")
     /// ```
     static func lessThan(_ value: Argument) -> Self {
-        .init { $0 < value }
+        .init(precedence: .predicate) { $0 < value }
     }
 
     /// A matcher that matches an argument greater than the given value.
@@ -112,7 +117,7 @@ public extension ArgMatcher where Argument: Comparable {
     /// verify(spy.processValue(.greaterThan(100))).called()
     /// ```
     static func greaterThan(_ value: Argument) -> Self {
-        .init { $0 > value }
+        .init(precedence: .predicate) { $0 > value }
     }
 }
 
@@ -127,7 +132,7 @@ public extension ArgMatcher where Argument: AnyObject {
     /// spy.when(calledWith: .identical(obj)).thenReturn("same instance")
     /// ```
     static func identical(_ value: Argument) -> Self {
-        .init { $0 === value }
+        .init(precedence: .identicalTo) { $0 === value }
     }
 }
 
@@ -139,7 +144,7 @@ public extension ArgMatcher {
     /// verify(spy.handleOptional(.notNil())).called()
     /// ```
     static func notNil<T>() -> Self where Argument == Optional<T> {
-        .init { $0 != nil }
+        .init(precedence: .predicate) { $0 != nil }
     }
 
     /// A matcher that matches a nil optional argument.
@@ -149,7 +154,7 @@ public extension ArgMatcher {
     /// spy.when(calledWith: .nil()).thenReturn(0)
     /// ```
     static func `nil`<T>() -> Self where Argument == Optional<T> {
-        .init { $0 == nil }
+        .init(precedence: .predicate) { $0 == nil }
     }
 
     /// A matcher that matches any `Error` type.
@@ -159,7 +164,7 @@ public extension ArgMatcher {
     /// verify(spy.performAction()).throws(.anyError())
     /// ```
     static func anyError() -> Self {
-        .init { $0 as? Error != nil }
+        .init(precedence: .typeMatch) { $0 as? Error != nil }
     }
 }
 
@@ -173,7 +178,7 @@ public extension ArgMatcher where Argument: Error {
     /// verify(spy.processData()).throws(.error(MyError.self))
     /// ```
     static func error<E: Error>(_ type: E.Type) -> Self {
-        .init { $0 as? E != nil }
+        .init(precedence: .typeMatch) { $0 as? E != nil }
     }
 }
 
@@ -207,7 +212,7 @@ public extension ArgMatcher {
     ///   - value: The `Equatable` value to compare the property against.
     /// - Returns: An `ArgMatcher` that matches arguments where the specified property equals the given value.
     static func any<Property: Equatable>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> Self {
-        .init { $0[keyPath: keyPath] == value }
+        .init(precedence: .predicate) { $0[keyPath: keyPath] == value }
     }
 }
 
@@ -253,4 +258,24 @@ extension ArgMatcher: ExpressibleByStringLiteral where Argument == String {
   public init(stringLiteral value: Argument) {
       self = .equal(value)
   }
+}
+
+public struct MatcherPrecedence: Comparable, Hashable {
+    public static let any: Self                = .init(value: 0)
+    public static let typeMatch: Self          = .init(value: 100)
+    public static let predicate: Self          = .init(value: 200)
+    public static let equalTo: Self            = .init(value: 500)
+    public static let identicalTo: Self        = .init(value: 600)
+    public static let customHigh: Self         = .init(value: 700)
+    public static let customExtreme: Self      = .init(value: 999)
+
+    public var value: Int
+
+    public init(value: Int) {
+        self.value = min(value, 1000)
+    }
+
+    public static func < (lhs: MatcherPrecedence, rhs: MatcherPrecedence) -> Bool {
+        lhs.value < rhs.value
+    }
 }

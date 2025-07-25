@@ -40,7 +40,10 @@ public class Stub<each I, Effects: Effect, O> {
             let returnValue = handler(repeat each invocation.arguments)
             return Return.value(returnValue)
         }
+    }
 
+    public var precedence: MatcherPrecedence {
+        .init(value: invocationMatcher.precedence)
     }
 }
 
