@@ -179,6 +179,33 @@ public extension ArgMatcher where Argument: Error {
 
 // MARK: - Custom types
 public extension ArgMatcher {
+    /// A matcher that matches any argument where a specific property of the argument is equal to a given value.
+    ///
+    /// This is useful for matching arguments based on a nested property, especially when the argument itself
+    /// might not be `Equatable` or when you only care about a specific part of it.
+    ///
+    /// Example:
+    /// ```swift
+    /// struct User {
+    ///     let id: String
+    ///     let name: String
+    /// }
+    ///
+    /// protocol UserService {
+    ///     func getUser(user: User) -> User?
+    /// }
+    ///
+    /// // Stub the getUser method to return a user when the id property of the argument is "123"
+    /// when(mockUserService.getUser(user: .any(where: \.id, "123"))).thenReturn(User(id: "123", name: "Test User"))
+    ///
+    /// // Verify that getUser was called with a user whose name property is "Alice"
+    /// verify(mockUserService.getUser(user: .any(where: \.name, "Alice"))).called()
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - keyPath: A `KeyPath` to the property of the `Argument` type that should be compared.
+    ///   - value: The `Equatable` value to compare the property against.
+    /// - Returns: An `ArgMatcher` that matches arguments where the specified property equals the given value.
     static func any<Property: Equatable>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> Self {
         .init { $0[keyPath: keyPath] == value }
     }
