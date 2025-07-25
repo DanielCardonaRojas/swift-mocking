@@ -66,7 +66,6 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
             }
         }
         guard let returnValue = matchingStub?.returnValue(for: invocation) else {
-            print(">>> \(Output.self)")
             if let fallback = defaultProviderRegistry?.getDefaultForType(Output.self) {
                 return .value(fallback)
             }
