@@ -15,7 +15,7 @@ public struct DefaultProviding {
     var createDefault: () -> Any
     var defaultType: ParsedType
 
-    init<T>(_ type: T.Type, create: @escaping () -> T) {
+    public init<T>(_ type: T.Type, create: @escaping () -> T) {
         createDefault = create
         defaultType = MetatypeParser.parse(T.self)
     }
