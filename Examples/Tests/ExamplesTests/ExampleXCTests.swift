@@ -8,9 +8,7 @@ import XCTest
 import SwiftMocking
 @testable import Examples
 
-enum TestError: Error {
-    case example
-}
+
 
 final class MockitoTests: XCTestCase {
 
