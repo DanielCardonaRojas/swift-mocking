@@ -141,7 +141,7 @@ final class StoreTests: XCTestCase {
 
 ## 📚 Documentation
 
-For more detailed information, please refer to the official [documentation](https://danielcardonarojas.github.io/swift-mocking/documentation/mockabletypes/).
+For more detailed information, please refer to the official [documentation](https://danielcardonarojas.github.io/swift-mocking/documentation/swiftmocking/).
 
 ---
 
