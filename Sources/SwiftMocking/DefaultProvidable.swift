@@ -11,63 +11,62 @@ import Foundation
 /// A type that can provide a default value.
 ///
 /// Conforming to this protocol allows a type to be used in mocks where a default value is needed for unstubbed methods.
-public protocol DefaultProvidable {
-    /// The default value for the conforming type.
-    static var defaultValue: Self { get }
-}
+public struct AnyDefaultProviding {
+    var createDefault: () -> Any
+    var defaultType: ParsedType
 
-// MARK: - Default Implementations
-
-extension Optional: DefaultProvidable {
-    public static var defaultValue: Self {
-        return nil
+    init<T>(_ type: T.Type, create: @escaping () -> T) {
+        createDefault = create
+        defaultType = MetatypeParser.parse(T.self)
     }
+
 }
 
-extension String: DefaultProvidable {
-    public static var defaultValue: String {
-        return ""
+public extension AnyDefaultProviding {
+    static func numeric<T: Numeric>(_ type: T.Type) -> AnyDefaultProviding {
+        .init(T.self, create: {
+            0
+        })
     }
+
+    static func array() -> AnyDefaultProviding {
+        .init(Array<Any>.self, create: {
+            []
+        })
+    }
+
+    static func void() -> AnyDefaultProviding {
+        .init(Void.self, create: {
+            return
+
+        })
+    }
+
+    static func set() -> AnyDefaultProviding {
+        .init(Set<AnyHashable>.self, create: {
+            []
+        })
+    }
+
+    static func dictionary() -> AnyDefaultProviding {
+        .init(Dictionary<AnyHashable, Any>.self, create: {
+            [:]
+        })
+    }
+
+    static func optional() -> AnyDefaultProviding {
+        .init(Optional<Any>.self, create: {
+            nil
+        })
+    }
+
+    static func bool() -> AnyDefaultProviding {
+        .init(Bool.self, create: { false })
+    }
+
+    static func string() -> AnyDefaultProviding {
+        .init(String.self, create: { "" })
+    }
+
 }
 
-extension Int: DefaultProvidable {
-    public static var defaultValue: Int {
-        return 0
-    }
-}
-
-extension Double: DefaultProvidable {
-    public static var defaultValue: Double {
-        return 0.0
-    }
-}
-
-extension Float: DefaultProvidable {
-    public static var defaultValue: Float {
-        return 0.0
-    }
-}
-
-extension Bool: DefaultProvidable {
-    public static var defaultValue: Bool {
-        return false
-    }
-}
-
-extension Array: DefaultProvidable {
-    public static var defaultValue: [Element] {
-        return []
-    }
-}
-
-extension Dictionary: DefaultProvidable {
-    public static var defaultValue: Self {
-        return [:]
-    }
-}
-
-extension Set: DefaultProvidable {
-    public static var defaultValue: Set<Element> {
-        return []
-    }
-}
