@@ -2,12 +2,24 @@
 # SwiftMocking
 
 [![swift-version](https://img.shields.io/badge/swift-5.9-orange.svg)](https://img.shields.io/badge/swift-5.9-orange.svg)
-[![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)
+[![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-blue.svg)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://img.shields.io/badge/license-MIT-lightgrey.svg)
 [![CI Status](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml/badge.svg)](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml)
 
 
 `SwiftMocking` is a modern, type-safe mocking library for Swift that uses macros to provide a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of parameter packs and `@dynamicMemberLookup`.
+
+---
+
+*   [Features](#-features)
+*   [Protocol Feature Support](#-protocol-feature-support)
+*   [Installation](#-installation)
+*   [Usage](#-usage)
+*   [Documentation](#-documentation)
+*   [How it Works](#️-how-it-works)
+*   [Advanced Usage](#️-advanced-usage)
+*   [More Generated Code Examples](#more-generated-code-examples)
+*   [Known Limitations](#️-known-limitations)
 
 ---
 
