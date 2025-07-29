@@ -633,7 +633,10 @@ extension PricingServiceMock: PricingService {
         return try adaptThrowing(super.price, item)
     }
 }
+
 ```
+
+Xcode's autocomplete will prioritize methods in the order they are declared. Since mocks are usualy not interacted with directly we opt for declaring the Interaction methods first.
 
 ## 📜 License
 
