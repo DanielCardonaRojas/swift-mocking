@@ -66,8 +66,8 @@ public enum MockableGenerator {
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
                 members.append(contentsOf: typeAliases.map({ MemberBlockItemSyntax(decl: $0)}))
-                members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
                 members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
+                members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
                 return MemberBlockItemListSyntax(members)
             }
         )

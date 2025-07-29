@@ -35,8 +35,6 @@ public enum MockableMacro: PeerMacro {
             throw MacroError(message: "@WitnessMacro only works on protocols declarations")
         }
 
-        let codeGenOptions = MockableGenerator.codeGenOptions(protocolDecl: protocolDecl)
-
         let mockableDecls = try MockableGenerator.processProtocol(protocolDecl: protocolDecl)
         var allDecls: [DeclSyntax] = []
 
