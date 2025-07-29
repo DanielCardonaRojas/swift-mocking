@@ -21,12 +21,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class ServiceMock: Mock, Service {
-                func doSomething() {
-                    return adapt(super.doSomething)
-                }
+            class MockService: Mock, Service {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
+                }
+                func doSomething() {
+                    return adapt(super.doSomething)
                 }
             }
             #endif
@@ -49,15 +49,15 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MyServiceMock: Mock, MyService {
+            class MockMyService: Mock, MyService {
+                func getValue() -> Interaction<Void, None, Int > {
+                    Interaction(.any, spy: super.value)
+                }
 
-                var value: Int {
+                    var value: Int {
                     get {
                         adapt(super.value)
                     }
-                }
-                func getValue() -> Interaction<Void, None, Int > {
-                    Interaction(.any, spy: super.value)
                 }
             }
             #endif
@@ -80,7 +80,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MyServiceMock: Mock, MyService {
+            class MockMyService: Mock, MyService {
                 required init(value: Int) {
                 }
             }
@@ -104,15 +104,15 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MyServiceMock: Mock, MyService {
-                subscript(index: Int) -> String {
-                    get {
-                        return adapt(super.subscript, index)
-                    }
-                }
+            class MockMyService: Mock, MyService {
                 subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
                     get {
                         Interaction(index, spy: super.subscript)
+                    }
+                }
+                subscript(index: Int) -> String {
+                    get {
+                        return adapt(super.subscript, index)
                     }
                 }
             }
@@ -138,13 +138,13 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MyServiceMock<Item>: Mock, MyService {
+            class MockMyService<Item>: Mock, MyService {
                 typealias Item = Item
-                func item() -> Item {
-                    return adapt(super.item)
-                }
                 func item() -> Interaction<Void, None, Item> {
                     Interaction(.any, spy: super.item)
+                }
+                func item() -> Item {
+                    return adapt(super.item)
                 }
             }
             #endif
