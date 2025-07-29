@@ -38,26 +38,31 @@ public struct MetatypeParser {
     /// Handles nested generic arguments properly
     private static func splitGenericArguments(_ input: String) -> [String] {
         var result: [String] = []
-        var current = ""
-        var depth = 0
+        var currentArgument = ""
+        var bracketCount = 0
+        var parenthesisCount = 0
 
         for char in input {
             if char == "<" {
-                depth += 1
-                current.append(char)
+                bracketCount += 1
             } else if char == ">" {
-                depth -= 1
-                current.append(char)
-            } else if char == "," && depth == 0 {
-                result.append(current)
-                current = ""
+                bracketCount -= 1
+            } else if char == "(" {
+                parenthesisCount += 1
+            } else if char == ")" {
+                parenthesisCount -= 1
+            }
+
+            if char == "," && bracketCount == 0 && parenthesisCount == 0 {
+                result.append(currentArgument.trimmingCharacters(in: .whitespaces))
+                currentArgument = ""
             } else {
-                current.append(char)
+                currentArgument.append(char)
             }
         }
 
-        if !current.isEmpty {
-            result.append(current)
+        if !currentArgument.isEmpty {
+            result.append(currentArgument.trimmingCharacters(in: .whitespaces))
         }
 
         return result

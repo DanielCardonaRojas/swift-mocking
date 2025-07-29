@@ -6,7 +6,11 @@
 //
 
 /// Represents an error that occurred during mocking or verification.
-public struct MockingError: Error {
+public struct MockingError: Error, Equatable {
+    public static func == (lhs: MockingError, rhs: MockingError) -> Bool {
+        return lhs.message == rhs.message
+    }
+
     /// A descriptive message about the error.
     public let message: String
 
