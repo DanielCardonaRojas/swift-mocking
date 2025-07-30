@@ -137,6 +137,12 @@ final class MockitoTests: XCTestCase {
         verify(mock[3]).called()
     }
 
+    func testVariadic() {
+        let mock = MockPrinter()
+        (mock as Printer).print("hello", "___", "world")
+        verify(mock.print("hello", .any, "world")).called()
+    }
+
     func testNetworkService() async throws {
         let mock = MockNetworkService()
         let url = URL(string: "https://example.com/data")!

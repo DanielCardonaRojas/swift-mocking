@@ -144,7 +144,7 @@ public extension MockableGenerator {
                         bodyBuilder: {
                             createFunctionBody(
                                 spyPropertyName: "subscript",
-                                parameterNames: subscriptDecl.parameterClause.parameters.map({ $0.secondName ?? $0.firstName})
+                                parameterNames: subscriptDecl.parameterClause.parameters
                             ).statements
                         }
                     )
@@ -197,7 +197,15 @@ public extension MockableGenerator {
         )
         let parameterList = FunctionParameterListSyntax([parameter])
         let interactionReturnType = createInteractionReturnType(inputTypes: [type], outputType: TypeSyntax(stringLiteral: "Void"), effectType: .none, genericParameterClause: nil)
-        let body = createFunctionBody(spyPropertyName: setterName, parameterNames: [.identifier("newValue")])
+        let body = createFunctionBody(
+            spyPropertyName: setterName,
+            parameterNames: FunctionParameterListSyntax {
+                FunctionParameterSyntax.init(
+                    firstName: .identifier("newValue"),
+                    type: type
+                )
+            }
+        )
 
         return FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
@@ -216,7 +224,13 @@ public extension MockableGenerator {
     /// `inputTypes: [String]`, `parameterNames: [value]`, `parameterLabels: [with]`
     private static func getFunctionParameters(_ funcDecl: FunctionDeclSyntax) -> ([TypeSyntax], [TokenSyntax], [TokenSyntax?]) {
         let parameters = funcDecl.signature.parameterClause.parameters
-        let inputTypes = parameters.map { $0.type }
+        let inputTypes = parameters.map { parameter in
+            if parameter.ellipsis != nil {
+                let arrayType = ArrayTypeSyntax(element: parameter.type)
+                return TypeSyntax(arrayType)
+            }
+            return parameter.type
+        }
         let parameterNames = parameters.map { $0.secondName ?? $0.firstName }
         let parameterLabels = parameters.map { $0.firstName }
         return (inputTypes, parameterNames, parameterLabels)
@@ -270,7 +284,10 @@ public extension MockableGenerator {
             funcDecl.signature.parameterClause
         )
         let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType, genericParameterClause: genericParameterClause)
-        let body = createFunctionBody(spyPropertyName: spyPropertyName, parameterNames: parameterNames)
+        let body = createFunctionBody(
+            spyPropertyName: spyPropertyName,
+            parameterNames: funcDecl.signature.parameterClause.parameters
+        )
 
         return FunctionDeclSyntax(
             modifiers: funcDecl.modifiers.trimmed,
@@ -303,7 +320,8 @@ public extension MockableGenerator {
                             name: .identifier("ArgMatcher"),
                             genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: parameter.type) }
                         )
-                    )
+                    ),
+                    ellipsis: parameter.ellipsis
                 )
             }
         }
@@ -372,12 +390,32 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
-    private static func createFunctionBody(spyPropertyName: String, parameterNames: [TokenSyntax]) -> CodeBlockSyntax {
+    private static func createFunctionBody(spyPropertyName: String, parameterNames: FunctionParameterListSyntax) -> CodeBlockSyntax {
         let interactionCall = FunctionCallExprSyntax(
             callee: DeclReferenceExprSyntax(baseName: .identifier("Interaction"))
         ) {
-            for name in parameterNames {
-                LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: name))
+            for parameter in parameterNames {
+                if parameter.ellipsis != nil {
+                    LabeledExprSyntax(
+                        expression: FunctionCallExprSyntax(
+                            calledExpression: MemberAccessExprSyntax(
+                                period: .periodToken(),
+                                name: .identifier("variadic")
+                            ),
+                            leftParen: .leftParenToken(),
+                            arguments: LabeledExprListSyntax {
+                                LabeledExprSyntax(
+                                    expression: DeclReferenceExprSyntax(baseName: parameter.secondName ?? parameter.firstName)
+                                )
+                            },
+                            rightParen: .rightParenToken()
+                        )
+                    )
+                } else {
+                    LabeledExprSyntax(
+                        expression: DeclReferenceExprSyntax(baseName: parameter.secondName ?? parameter.firstName)
+                    )
+                }
             }
 
             if parameterNames.isEmpty {

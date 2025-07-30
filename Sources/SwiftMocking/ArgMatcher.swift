@@ -79,6 +79,24 @@ public struct ArgMatcher<Argument> {
             (argument as? T) != nil
         }
     }
+
+    public static func variadic<Element>(_ matchers: ArgMatcher<Element>...) -> ArgMatcher<[Element]> {
+        variadic(Array(matchers))
+    }
+
+    public static func variadic<Element>(_ matchers: [ArgMatcher<Element>]) -> ArgMatcher<[Element]> {
+        .init(precedence: .typeMatch, matcher: { (arguments: [Element]) in
+            guard arguments.count == matchers.count else {
+                return false
+            }
+            for i in 0..<arguments.count {
+                if !matchers[i](arguments[i]) {
+                    return false
+                }
+            }
+            return true
+        })
+    }
 }
 
 public extension ArgMatcher where Argument: Equatable {
