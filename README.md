@@ -48,6 +48,7 @@
 | Initializers | ✅ |
 | `async` Methods | ✅ |
 | `throws` Methods | ✅ |
+| Variadic parameters | ✅ |
 
 ---
 
