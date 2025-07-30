@@ -81,6 +81,10 @@ public struct ArgMatcher<Argument> {
     }
 
     public static func variadic<Element>(_ matchers: ArgMatcher<Element>...) -> ArgMatcher<[Element]> {
+        variadic(Array(matchers))
+    }
+
+    public static func variadic<Element>(_ matchers: [ArgMatcher<Element>]) -> ArgMatcher<[Element]> {
         .init(precedence: .typeMatch, matcher: { (arguments: [Element]) in
             guard arguments.count == matchers.count else {
                 return false
