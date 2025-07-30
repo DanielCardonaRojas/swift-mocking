@@ -79,6 +79,18 @@ public struct ArgMatcher<Argument> {
             (argument as? T) != nil
         }
     }
+
+    public static func variadic(_ matchers: ArgMatcher<Argument>...) -> ArgMatcher<[Argument]> {
+        .init(precedence: .typeMatch, matcher: { arguments in
+            var matches = false
+            for (argument, matcher) in zip(arguments, matchers) {
+                matches = matcher(argument)
+                if !matches { return false }
+            }
+            return matches
+        })
+
+    }
 }
 
 public extension ArgMatcher where Argument: Equatable {
