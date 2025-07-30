@@ -32,7 +32,7 @@ public enum MockableMacro: PeerMacro {
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         guard let protocolDecl = declaration.as(ProtocolDeclSyntax.self) else {
-            throw MacroError(message: "@WitnessMacro only works on protocols declarations")
+            throw MacroError(message: "@MockableMacro only works on protocols declarations")
         }
 
         let mockableDecls = try MockableGenerator.processProtocol(protocolDecl: protocolDecl)
