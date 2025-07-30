@@ -80,16 +80,18 @@ public struct ArgMatcher<Argument> {
         }
     }
 
-    public static func variadic(_ matchers: ArgMatcher<Argument>...) -> ArgMatcher<[Argument]> {
-        .init(precedence: .typeMatch, matcher: { arguments in
-            var matches = false
-            for (argument, matcher) in zip(arguments, matchers) {
-                matches = matcher(argument)
-                if !matches { return false }
+    public static func variadic<Element>(_ matchers: ArgMatcher<Element>...) -> ArgMatcher<[Element]> {
+        .init(precedence: .typeMatch, matcher: { (arguments: [Element]) in
+            guard arguments.count == matchers.count else {
+                return false
             }
-            return matches
+            for i in 0..<arguments.count {
+                if !matchers[i](arguments[i]) {
+                    return false
+                }
+            }
+            return true
         })
-
     }
 }
 
