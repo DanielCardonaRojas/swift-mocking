@@ -33,6 +33,34 @@ final class FunctionSignatureTests: MacroTestCase {
         }
     }
 
+    func testVariadicParameters() {
+        assertMacro {
+            """
+            @Mockable
+            protocol Printer {
+                func print(_ values: String...)
+            }
+            """
+        } expansion: {
+            """
+            protocol Printer {
+                func print(_ values: String...)
+            }
+
+            #if DEBUG
+            class MockPrinter: Mock, Printer {
+                func print(_ values: ArgMatcher<String>...) -> Interaction<[String], None, Void> {
+                    Interaction(.variadic(values), spy: super.print)
+                }
+                func print(_ values: String...) {
+                    return adapt(super.print, values)
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     func testSingleMethodThrows() {
         assertMacro {
            """
