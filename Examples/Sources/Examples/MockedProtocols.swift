@@ -75,6 +75,10 @@ protocol SubscriptService {
     subscript(index: Int) -> String { get }
 }
 
+@Mockable
+protocol Printer {
+    func print(_ values: String...)
+}
 
 @Mockable
 protocol AssociatedTypeService {
