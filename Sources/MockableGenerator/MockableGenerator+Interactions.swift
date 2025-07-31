@@ -318,7 +318,11 @@ public extension MockableGenerator {
                     type: TypeSyntax(
                         IdentifierTypeSyntax(
                             name: .identifier("ArgMatcher"),
-                            genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: parameter.type) }
+                            genericArgumentClause: GenericArgumentClauseSyntax {
+                                GenericArgumentSyntax(
+                                    argument: removeAttributes(parameter.type)
+                                )
+                            }
                         )
                     ),
                     ellipsis: parameter.ellipsis
@@ -328,6 +332,14 @@ public extension MockableGenerator {
 
         return FunctionParameterClauseSyntax(parameters: paramList)
 
+    }
+
+    private static func removeAttributes(_ type: TypeSyntaxProtocol) -> TypeSyntax {
+        guard let attributedType = type.as(AttributedTypeSyntax.self) else {
+            return TypeSyntax(fromProtocol: type)
+        }
+
+        return attributedType.baseType
     }
 
     /// Creates a return type for a stubbing function.
@@ -349,7 +361,7 @@ public extension MockableGenerator {
         }
 
         for inputType in inputTypes {
-            let argType = inputType
+            var argType = inputType
             genericArgs.append(GenericArgumentSyntax(argument: argType))
         }
 
@@ -366,10 +378,12 @@ public extension MockableGenerator {
                 leftAngle: .leftAngleToken(),
                 arguments: GenericArgumentListSyntax(
                     genericArgs.enumerated().map { (index, arg) in
+                        var processedArgument = arg
+                        processedArgument.argument = removeAttributes(arg.argument)
                         if index < genericArgs.count - 1 {
-                            return arg.with(\.trailingComma, .commaToken())
+                            return processedArgument.with(\.trailingComma, .commaToken())
                         }
-                        return arg
+                        return processedArgument
                     }
                 ),
                 rightAngle: .rightAngleToken()
