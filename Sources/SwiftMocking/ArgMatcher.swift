@@ -67,6 +67,11 @@ public struct ArgMatcher<Argument> {
         return .init(precedence: .predicate, matcher: predicate)
     }
 
+    /// A matcher on Metatypes
+    public static func type<T>(_ type: T.Type) -> ArgMatcher<T.Type> {
+        .init(precedence: .equalTo, matcher: { $0 == type })
+    }
+
     /// A matcher that matches an argument if it can be cast to a specific type.
     ///
     /// This is useful when dealing with protocols or superclasses, and you want to match a specific concrete type.
