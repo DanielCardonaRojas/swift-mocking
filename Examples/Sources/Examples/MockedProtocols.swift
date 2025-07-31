@@ -109,6 +109,12 @@ protocol AnalyticsProtocol {
     func logEvent<E: Identifiable>(_ event: E)
 }
 
+
+@Mockable
+protocol FakeProvider {
+    func fakeData<Fake: Encodable>(_ fakeType: Fake.Type) -> Data
+}
+
 @Mockable
 protocol Logger {
     static func log(_ message: String)
