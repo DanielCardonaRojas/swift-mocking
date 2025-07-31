@@ -42,6 +42,13 @@ public class Stub<each I, Effects: Effect, O> {
         }
     }
 
+    public func then(_ handler: @escaping (repeat each I) -> O) {
+        self.output = { invocation in
+            let returnValue = handler(repeat each invocation.arguments)
+            return Return.value(returnValue)
+        }
+    }
+
     public var precedence: MatcherPrecedence {
         .init(value: invocationMatcher.precedence)
     }
