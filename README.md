@@ -50,6 +50,7 @@
 | `throws` Methods | ✅ |
 | Variadic parameters | ✅ |
 | Closure parameters | ✅ |
+| Metatype parameters | ✅ |
 
 ---
 
