@@ -49,6 +49,7 @@
 | `async` Methods | ✅ |
 | `throws` Methods | ✅ |
 | Variadic parameters | ✅ |
+| Closure parameters | ✅ |
 
 ---
 
@@ -238,10 +239,10 @@ verify(mock.performAction()).throws(.anyError())
 verify(mock.processData()).throws(.error(MyError.self))
 ```
 
-### Dynamic Stubbing with `thenReturn` Closure
+### Dynamic Stubbing with `then` Closure
 
 
-A powerful feature of `SwiftMocking` is that you can define the return value of a stub dynamically based on the arguments passed to the mocked function. This is achieved by providing a closure to `thenReturn`.
+A powerful feature of `SwiftMocking` is that you can define the return value of a stub dynamically based on the arguments passed to the mocked function. This is achieved by providing a closure to `then`.
 
 It is common in other testing frameworks, that the parameters of this closure be of type Any. However, thanks to the use of parameter packs, the set of arguments here are concrete types, and are guaranteed to match the types of the function signature that is being stubbed. This essentially enables substituting the mocked function dynamically. For example:
 
@@ -252,14 +253,14 @@ protocol Calculator {
 }
 
 // Calculate summing
-when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
+when(mock.calculate(a: .any, b: .any)).then { a, b in
     // Note that no casting is required. a and here are of type Int
     return a + b
 }
 XCTAssertEqual(mock.calculate(a: 5, b: 10), 15)
 
 // Replace the calculation function
-when(mock.calculate(a: .any, b: .any)).thenReturn(*)
+when(mock.calculate(a: .any, b: .any)).then(*)
 XCTAssertEqual(mock.calculate(a: 5, b: 10), 50)
 ```
 
