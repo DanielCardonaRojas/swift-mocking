@@ -189,3 +189,20 @@ import Foundation
     }
     verify(mock.delete(key: "deleteKey")).throws()
 }
+
+@Test func testCallbackService() {
+    let mock = MockCallbackService()
+    let expectation = "test"
+
+    var capturedValue: String?
+    when(mock.execute(completion: .any)).then { completion in
+        completion(expectation)
+    }
+
+    mock.execute { value in
+        capturedValue = value
+    }
+
+    #expect(capturedValue == expectation)
+    verify(mock.execute(completion: .any)).called()
+}

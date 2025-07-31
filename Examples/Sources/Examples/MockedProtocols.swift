@@ -114,10 +114,14 @@ protocol Logger {
     static func log(_ message: String)
 }
 
-
 @Mockable
 protocol Countable {
     var totalCount: Int { get set }
+}
+
+@Mockable
+protocol CallbackService {
+    func execute(completion: @escaping (String) -> Void)
 }
 
 // MARK: - More complex protocols
