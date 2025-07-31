@@ -124,6 +124,32 @@ final class MockitoTests: XCTestCase {
         verify(mock.logEvent(.any(TestEvent.self))).called()
     }
 
+    func testMetatype() throws {
+        struct Person: Encodable {
+            let name: String
+        }
+
+        struct Pet: Encodable {
+            let name: String
+        }
+
+        let person = Person(name: "Joe")
+        let pet = Pet(name: "Bluey")
+
+        let encodedPerson = try JSONEncoder().encode(person)
+        let encodedPet = try JSONEncoder().encode(pet)
+
+        let mock = MockFakeProvider()
+
+        when(mock.fakeData(.type(Person.self))).then { _ in encodedPerson }
+        when(mock.fakeData(.type(Pet.self))).then { _ in encodedPet }
+
+        let conformance = mock as FakeProvider
+
+        XCTAssertEqual(conformance.fakeData(Person.self), encodedPerson)
+        XCTAssertEqual(conformance.fakeData(Pet.self), encodedPet)
+    }
+
     func testStatic() {
         MockLogger.log("hello")
         MockLogger.log("hello")

@@ -59,12 +59,40 @@ public struct ArgMatcher<Argument> {
         return .init(precedence: .any) { _ in true }
     }
 
+    /// A matcher that matches any argument of the specified type.
+    ///
+    /// Use this when you don't care about the specific value of an argument, but want to ensure it's of a certain type.
+    ///
+    /// ```swift
+    /// // Verifying a method was called with any String argument
+    /// verify(spy.someMethod(.any(String.self))).called()
+    /// ```
     public static func any<T>(_ type: T.Type) -> ArgMatcher<T> {
         return .init(precedence: .typeMatch) { _ in true }
     }
 
+    /// A matcher that matches any argument that satisfies a given predicate.
+    ///
+    /// Use this for more complex matching logic that can't be expressed with other matchers.
+    ///
+    /// ```swift
+    /// // Stubbing a method to return a value if the integer argument is even
+    /// spy.when(calledWith: .any(that: { $0 % 2 == 0 })).thenReturn("even")
+    /// ```
     public static func any(that predicate: @escaping (Argument) -> Bool) -> Self {
         return .init(precedence: .predicate, matcher: predicate)
+    }
+
+    /// A matcher on Metatypes
+    ///
+    /// Use this to match a specific metatype.
+    ///
+    /// ```swift
+    /// // Verifying a method was called with the String metatype
+    /// verify(spy.someMethod(.type(String.self))).called()
+    /// ```
+    public static func type<T>(_ type: T.Type) -> ArgMatcher<T.Type> {
+        .init(precedence: .equalTo, matcher: { $0 == type })
     }
 
     /// A matcher that matches an argument if it can be cast to a specific type.
