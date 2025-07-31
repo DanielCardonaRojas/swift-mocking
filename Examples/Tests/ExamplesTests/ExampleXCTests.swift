@@ -156,6 +156,25 @@ final class MockitoTests: XCTestCase {
         verify(MockLogger.log("hello")).called(2)
     }
 
+    func testStaticRaceCondition() async {
+        // This test is designed to expose a race condition when accessing static spies concurrently.
+        // By running multiple tasks in parallel that all access the same static mock,
+        // we can trigger a crash if the underlying storage is not thread-safe.
+        MockLogger.clear()
+        let expectation = self.expectation(description: "All concurrent tasks finished")
+        expectation.expectedFulfillmentCount = 100
+
+        for i in 0..<100 {
+            DispatchQueue.global().async {
+                MockLogger.log("message \(i)")
+                expectation.fulfill()
+            }
+        }
+
+        await fulfillment(of: [expectation], timeout: 5)
+        verify(MockLogger.log(.any)).called(100)
+    }
+
     func testSubscript() {
         let mock = MockSubscriptService()
         when(mock[.any]).thenReturn("hello")
