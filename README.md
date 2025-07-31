@@ -49,6 +49,7 @@
 | `async` Methods | ✅ |
 | `throws` Methods | ✅ |
 | Variadic parameters | ✅ |
+| Closure parameters | ✅ |
 
 ---
 
