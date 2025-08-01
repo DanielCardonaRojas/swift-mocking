@@ -90,6 +90,8 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// - Parameter invocationMatcher: An ``InvocationMatcher`` to match the input arguments.
     /// - Returns: A ``Stub`` instance to configure the return value or error.
     public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
+        lock.lock()
+        defer { lock.unlock() }
         let stub = Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
         stubs.append(stub)
         return stub

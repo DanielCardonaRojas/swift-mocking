@@ -203,6 +203,25 @@ final class SpyTests: XCTestCase {
 
         XCTAssertEqual(spy.invocations.count, iterationCount)
     }
+
+    func test_spy_stub_race_condition() {
+        let spy = Spy<Int, None, Void>()
+        let queue = DispatchQueue(label: "com.swiftmocking.stub_race_condition_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 100
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy.when(calledWith: .equal(i)).thenReturn(Void())
+                group.leave()
+            }
+        }
+
+        group.wait()
+
+        XCTAssertEqual(spy.stubs.count, iterationCount)
+    }
 }
 
     func test_spy_async_recordsInvocations_andReturnsStubbedValue() async {
