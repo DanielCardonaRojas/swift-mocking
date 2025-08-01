@@ -47,7 +47,10 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// - Parameter input: The arguments of the invocation.
     /// - Returns: The ``Return`` value from the matching stub.
     /// - Throws: ``MockingError/unStubbed`` if no matching stub is found.
+    private let lock = NSLock()
     func invoke(_ input: repeat each Input) throws -> Return<Output> {
+        lock.lock()
+        defer { lock.unlock() }
         let invocation = Invocation(arguments: repeat each input)
         invocations.append(invocation)
 

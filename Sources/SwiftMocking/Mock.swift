@@ -89,7 +89,10 @@ open class Mock: DefaultProvider {
     ///
     /// - Parameter member: The name of the member being accessed.
     /// - Returns: A ``Spy`` instance configured for the member's signature.
+    private static let lock = NSLock()
     public static subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
+        lock.lock()
+        defer { lock.unlock() }
         let thisType = "\(Self.self)" // The name of the subclass mock
         if spies_[thisType] == nil {
             spies_[thisType] = [:]
