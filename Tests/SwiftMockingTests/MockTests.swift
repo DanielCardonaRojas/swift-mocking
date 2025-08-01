@@ -121,4 +121,23 @@ final class MockTests: XCTestCase {
 
         await fulfillment(of: [printExpectation, logExpectation], timeout: 1)
     }
+    
+    func testSubscript_race_condition() {
+        let mock = Mock()
+        let queue = DispatchQueue(label: "com.swiftmocking.race_condition_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 100
+
+        for _ in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                let _: Spy<Int, None, Void> = mock.myFunction
+                group.leave()
+            }
+        }
+
+        group.wait()
+
+        XCTAssertEqual(mock.spies.count, 1)
+    }
 }
