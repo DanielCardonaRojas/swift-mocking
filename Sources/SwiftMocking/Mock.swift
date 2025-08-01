@@ -4,6 +4,7 @@
 //
 //  Created by Daniel Cardona on 13/07/25.
 //
+import Foundation
 
 /// A base class for creating mock objects that automatically generates and manages spies for its methods.
 ///
@@ -33,6 +34,8 @@ open class Mock: DefaultProvider {
     /// Stores spies per protocol requirement. Keys in the outermost dictionary correspond to the Mock type,
     /// keys in the inner dictionary are function or variable names. This enables tracking spies for static requirements.
     static private var spies_: [String: [String: [AnySpy]]] = [:]
+
+    private static let lock = NSLock()
 
     public var isLoggingEnabled: Bool = false {
         didSet {
@@ -89,7 +92,6 @@ open class Mock: DefaultProvider {
     ///
     /// - Parameter member: The name of the member being accessed.
     /// - Returns: A ``Spy`` instance configured for the member's signature.
-    private static let lock = NSLock()
     public static subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
         lock.lock()
         defer { lock.unlock() }
