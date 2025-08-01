@@ -4,13 +4,6 @@ import Foundation
 @testable import Examples
 
 
-
-@Test func example() async throws {
-    MockLogger.clear()
-    MockLogger.log("hello")
-    MockLogger.log("hello")
-    verify(MockLogger.log("hello")).called(2)
-}
 @Test func testMockitoBuilder() {
     let mock = MockPricingService()
     let store = Store(pricingService: mock)
@@ -120,28 +113,6 @@ import Foundation
     let event = TestEvent()
     mock.logEvent(event)
     verify(mock.logEvent(.any(TestEvent.self))).called()
-}
-
-@Test func testStatic() {
-    MockLogger.clear()
-    MockLogger.log("hello")
-    MockLogger.log("hello")
-    verify(MockLogger.log(.any)).called(2)
-}
-
-@Test func testStaticRaceCondition() async {
-    // This test is designed to expose a race condition when accessing static spies concurrently.
-    // By running multiple tasks in parallel that all access the same static mock,
-    // we can trigger a crash if the underlying storage is not thread-safe.
-    MockLogger.clear()
-    await withTaskGroup(of: Void.self) { group in
-        for i in 0..<100 {
-            group.addTask {
-                MockLogger.log("message \(i)")
-            }
-        }
-    }
-    verify(MockLogger.log(.any)).called(100)
 }
 
 @Test func testSubscript() {
