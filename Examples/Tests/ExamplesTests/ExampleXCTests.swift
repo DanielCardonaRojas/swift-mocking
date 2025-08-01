@@ -163,10 +163,13 @@ final class MockitoTests: XCTestCase {
         MockLogger.clear()
         let expectation = self.expectation(description: "All concurrent tasks finished")
         expectation.expectedFulfillmentCount = 100
+        @Sendable func log<L: Logger>(_ type: L.Type,_ message: String) {
+            L.log(message)
+        }
 
         for i in 0..<100 {
             DispatchQueue.global().async {
-                MockLogger.log("message \(i)")
+                log(MockLogger.self, "message \(i)" )
                 expectation.fulfill()
             }
         }
