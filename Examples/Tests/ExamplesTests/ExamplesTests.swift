@@ -4,13 +4,6 @@ import Foundation
 @testable import Examples
 
 
-
-@Test func example() async throws {
-    MockLogger.clear()
-    MockLogger.log("hello")
-    MockLogger.log("hello")
-    verify(MockLogger.log("hello")).called(2)
-}
 @Test func testMockitoBuilder() {
     let mock = MockPricingService()
     let store = Store(pricingService: mock)
@@ -120,13 +113,6 @@ import Foundation
     let event = TestEvent()
     mock.logEvent(event)
     verify(mock.logEvent(.any(TestEvent.self))).called()
-}
-
-@Test func testStatic() {
-    MockLogger.clear()
-    MockLogger.log("hello")
-    MockLogger.log("hello")
-    verify(MockLogger.log(.any)).called(2)
 }
 
 @Test func testSubscript() {

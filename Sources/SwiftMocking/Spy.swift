@@ -24,6 +24,8 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     public private(set) var invocations: [Invocation<repeat each Input>] = []
     public var isLoggingEnabled: Bool = false
+    private let invocationsLock = NSLock()
+    private let stubsLock = NSLock()
 
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
     var defaultProviderRegistry: DefaultProvidableRegistry?
@@ -48,6 +50,8 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// - Returns: The ``Return`` value from the matching stub.
     /// - Throws: ``MockingError/unStubbed`` if no matching stub is found.
     func invoke(_ input: repeat each Input) throws -> Return<Output> {
+        invocationsLock.lock()
+        defer { invocationsLock.unlock() }
         let invocation = Invocation(arguments: repeat each input)
         invocations.append(invocation)
 
@@ -87,6 +91,8 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// - Parameter invocationMatcher: An ``InvocationMatcher`` to match the input arguments.
     /// - Returns: A ``Stub`` instance to configure the return value or error.
     public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
+        stubsLock.lock()
+        defer { stubsLock.unlock() }
         let stub = Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
         stubs.append(stub)
         return stub
