@@ -36,6 +36,7 @@ open class Mock: DefaultProvider {
     static private var spies_: [String: [String: [AnySpy]]] = [:]
 
     private static let lock = NSLock()
+    private let lock = NSLock()
 
     public var isLoggingEnabled: Bool = false {
         didSet {
@@ -71,6 +72,8 @@ open class Mock: DefaultProvider {
     /// - Parameter member: The name of the member being accessed.
     /// - Returns: A ``Spy`` instance configured for the member's signature.
     public subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
+        lock.lock()
+        defer { lock.unlock() }
         if let existingSpy = spies[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> })  {
             return existingSpy
         } else {
