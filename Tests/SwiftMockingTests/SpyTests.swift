@@ -183,6 +183,26 @@ final class SpyTests: XCTestCase {
         }
         XCTAssert(spy.verifyThrows(.error(TestError.self)))
     }
+    
+    func test_spy_invoke_race_condition() {
+        let spy = Spy<Int, None, Void>()
+        spy.when(calledWith: .any).thenReturn(Void())
+        let queue = DispatchQueue(label: "com.swiftmocking.race_condition_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 100
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy.call(i)
+                group.leave()
+            }
+        }
+
+        group.wait()
+
+        XCTAssertEqual(spy.invocations.count, iterationCount)
+    }
 }
 
     func test_spy_async_recordsInvocations_andReturnsStubbedValue() async {
