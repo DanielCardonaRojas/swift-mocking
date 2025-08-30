@@ -185,6 +185,48 @@ public extension ArgMatcher where Argument: Comparable {
             value >= lowerBound && value <= upperBound
         }
     }
+
+    /// A matcher that matches an argument within a closed range.
+    /// - Parameter range: A `ClosedRange` defining the acceptable values.
+    ///
+    /// ```swift
+    /// // Stubbing a method for values in a range
+    /// spy.when(calledWith: .in(10...20)).thenReturn("in_range")
+    ///
+    /// // Verifying a method was called with a value in range
+    /// verify(spy.setVolume(.in(0...100))).called()
+    /// ```
+    static func `in`(_ range: ClosedRange<Argument>) -> Self {
+        .init(precedence: .predicate) { range.contains($0) }
+    }
+
+    /// A matcher that matches an argument greater than or equal to a value.
+    /// - Parameter range: A `PartialRangeFrom` defining the minimum value.
+    ///
+    /// ```swift
+    /// // Stubbing a method for values 18 and above
+    /// spy.when(calledWith: .in(18...)).thenReturn("adult")
+    ///
+    /// // Verifying a method was called with a minimum value
+    /// verify(spy.validateAge(.in(21...))).called()
+    /// ```
+    static func `in`(_ range: PartialRangeFrom<Argument>) -> Self {
+        .init(precedence: .predicate) { range.contains($0) }
+    }
+
+    /// A matcher that matches an argument less than or equal to a value.
+    /// - Parameter range: A `PartialRangeThrough` defining the maximum value.
+    ///
+    /// ```swift
+    /// // Stubbing a method for values up to 100
+    /// spy.when(calledWith: .in(...100)).thenReturn("within_limit")
+    ///
+    /// // Verifying a method was called with a maximum value
+    /// verify(spy.setSpeed(.in(...65))).called()
+    /// ```
+    static func `in`(_ range: PartialRangeThrough<Argument>) -> Self {
+        .init(precedence: .predicate) { range.contains($0) }
+    }
 }
 
 public extension ArgMatcher where Argument: FloatingPoint {
@@ -454,6 +496,48 @@ public extension ArgMatcher where Argument: Collection {
             let count = collection.count
             return count >= lowerBound && count <= upperBound
         }
+    }
+
+    /// A matcher that matches a collection with a count within a closed range.
+    /// - Parameter range: A `ClosedRange<Int>` defining the acceptable count range.
+    ///
+    /// ```swift
+    /// // Stubbing a method for arrays with 2-5 elements
+    /// spy.when(calledWith: .hasCount(in: 2...5)).thenReturn("medium_batch")
+    ///
+    /// // Verifying a method was called with a collection of 10-20 elements
+    /// verify(spy.processBatch(.hasCount(in: 10...20))).called()
+    /// ```
+    static func hasCount(in range: ClosedRange<Int>) -> Self {
+        .init(precedence: .predicate) { range.contains($0.count) }
+    }
+
+    /// A matcher that matches a collection with a count greater than or equal to a value.
+    /// - Parameter range: A `PartialRangeFrom<Int>` defining the minimum count.
+    ///
+    /// ```swift
+    /// // Stubbing a method for arrays with at least 5 elements
+    /// spy.when(calledWith: .hasCount(in: 5...)).thenReturn("large_batch")
+    ///
+    /// // Verifying a method was called with at least 1 element
+    /// verify(spy.processItems(.hasCount(in: 1...))).called()
+    /// ```
+    static func hasCount(in range: PartialRangeFrom<Int>) -> Self {
+        .init(precedence: .predicate) { range.contains($0.count) }
+    }
+
+    /// A matcher that matches a collection with a count less than or equal to a value.
+    /// - Parameter range: A `PartialRangeThrough<Int>` defining the maximum count.
+    ///
+    /// ```swift
+    /// // Stubbing a method for arrays with at most 10 elements
+    /// spy.when(calledWith: .hasCount(in: ...10)).thenReturn("small_batch")
+    ///
+    /// // Verifying a method was called with at most 3 elements
+    /// verify(spy.processSmallGroup(.hasCount(in: ...3))).called()
+    /// ```
+    static func hasCount(in range: PartialRangeThrough<Int>) -> Self {
+        .init(precedence: .predicate) { range.contains($0.count) }
     }
 }
 

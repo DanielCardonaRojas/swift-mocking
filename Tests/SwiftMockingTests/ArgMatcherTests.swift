@@ -230,4 +230,81 @@ final class ArgMatcherTests: XCTestCase {
         XCTAssertFalse(matcher(Set([])))
         XCTAssertFalse(matcher(Set([1, 2, 3])))
     }
+
+    // MARK: - Range-Based Matchers
+
+    func testClosedRangeMatcher() {
+        let matcher: ArgMatcher<Int> = .in(10...20)
+        XCTAssertTrue(matcher(10))
+        XCTAssertTrue(matcher(15))
+        XCTAssertTrue(matcher(20))
+        XCTAssertFalse(matcher(9))
+        XCTAssertFalse(matcher(21))
+    }
+
+    func testPartialRangeFromMatcher() {
+        let matcher: ArgMatcher<Int> = .in(18...)
+        XCTAssertTrue(matcher(18))
+        XCTAssertTrue(matcher(25))
+        XCTAssertTrue(matcher(100))
+        XCTAssertFalse(matcher(17))
+        XCTAssertFalse(matcher(0))
+    }
+
+    func testPartialRangeThroughMatcher() {
+        let matcher: ArgMatcher<Int> = .in(...100)
+        XCTAssertTrue(matcher(0))
+        XCTAssertTrue(matcher(50))
+        XCTAssertTrue(matcher(100))
+        XCTAssertFalse(matcher(101))
+        XCTAssertFalse(matcher(200))
+    }
+
+    func testCollectionHasCountInClosedRange() {
+        let matcher: ArgMatcher<[String]> = .hasCount(in: 2...4)
+        XCTAssertTrue(matcher(["a", "b"]))
+        XCTAssertTrue(matcher(["a", "b", "c"]))
+        XCTAssertTrue(matcher(["a", "b", "c", "d"]))
+        XCTAssertFalse(matcher(["a"]))
+        XCTAssertFalse(matcher(["a", "b", "c", "d", "e"]))
+        XCTAssertFalse(matcher([]))
+    }
+
+    func testCollectionHasCountInPartialRangeFrom() {
+        let matcher: ArgMatcher<[Int]> = .hasCount(in: 3...)
+        XCTAssertTrue(matcher([1, 2, 3]))
+        XCTAssertTrue(matcher([1, 2, 3, 4]))
+        XCTAssertTrue(matcher([1, 2, 3, 4, 5, 6]))
+        XCTAssertFalse(matcher([]))
+        XCTAssertFalse(matcher([1]))
+        XCTAssertFalse(matcher([1, 2]))
+    }
+
+    func testCollectionHasCountInPartialRangeThrough() {
+        let matcher: ArgMatcher<[Double]> = .hasCount(in: ...2)
+        XCTAssertTrue(matcher([]))
+        XCTAssertTrue(matcher([1.0]))
+        XCTAssertTrue(matcher([1.0, 2.0]))
+        XCTAssertFalse(matcher([1.0, 2.0, 3.0]))
+        XCTAssertFalse(matcher([1.0, 2.0, 3.0, 4.0]))
+    }
+
+    func testRangeMatchersWithFloatingPoint() {
+        let closedRangeMatcher: ArgMatcher<Double> = .in(0.5...1.5)
+        XCTAssertTrue(closedRangeMatcher(0.5))
+        XCTAssertTrue(closedRangeMatcher(1.0))
+        XCTAssertTrue(closedRangeMatcher(1.5))
+        XCTAssertFalse(closedRangeMatcher(0.4))
+        XCTAssertFalse(closedRangeMatcher(1.6))
+
+        let partialFromMatcher: ArgMatcher<Double> = .in(2.0...)
+        XCTAssertTrue(partialFromMatcher(2.0))
+        XCTAssertTrue(partialFromMatcher(5.5))
+        XCTAssertFalse(partialFromMatcher(1.9))
+
+        let partialThroughMatcher: ArgMatcher<Double> = .in(...10.0)
+        XCTAssertTrue(partialThroughMatcher(5.0))
+        XCTAssertTrue(partialThroughMatcher(10.0))
+        XCTAssertFalse(partialThroughMatcher(10.1))
+    }
 }

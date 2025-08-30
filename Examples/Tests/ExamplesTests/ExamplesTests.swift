@@ -268,3 +268,32 @@ import Foundation
     verifyNever(mock.price(.contains("cherry")))
     verifyNever(mock.price(.startsWith("grape")))
 }
+
+@Test func testRangeBasedMatchers() throws {
+    let calculator = MockCalculator()
+    let returnlessService = MockReturnlessService()
+    
+    // Test range-based numeric matchers with Calculator
+    when(calculator.calculate(.in(10...20), .any)).thenReturn(100)  // ClosedRange
+    when(calculator.calculate(.in(50...), .any)).thenReturn(200)    // PartialRangeFrom  
+    when(calculator.calculate(.in(...5), .any)).thenReturn(50)      // PartialRangeThrough
+    
+    #expect(calculator.calculate(15, 0) == 100)  // 15 is in 10...20
+    #expect(calculator.calculate(75, 0) == 200)  // 75 is in 50...
+    #expect(calculator.calculate(3, 0) == 50)    // 3 is in ...5
+    
+    verify(calculator.calculate(.in(10...20), .any)).called(1)
+    verify(calculator.calculate(.in(50...), .any)).called(1)
+    verify(calculator.calculate(.in(...5), .any)).called(1)
+    
+    // Test with ReturnlessService to show different numeric ranges
+    returnlessService.doSomething(with: 25)
+    returnlessService.doSomething(with: 100)
+    returnlessService.doSomething(with: 2)
+    
+    verify(returnlessService.doSomething(with: .in(20...30))).called(1)  // 25
+    verify(returnlessService.doSomething(with: .in(90...))).called(1)    // 100  
+    verify(returnlessService.doSomething(with: .in(...10))).called(1)    // 2
+    
+    verifyNever(returnlessService.doSomething(with: .in(40...49)))
+}
