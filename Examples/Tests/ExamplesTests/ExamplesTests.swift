@@ -245,3 +245,26 @@ import Foundation
     verifyNever(mock.download(from: .any))
     verifyNever(mock.upload(to: .any, data: .any))
 }
+
+@Test func testNewMatchers() throws {
+    let mock = MockPricingService()
+    
+    // Test string matchers
+    when(mock.price(.contains("apple"))).thenReturn(100)
+    when(mock.price(.startsWith("banana"))).thenReturn(50)
+    when(mock.price(.endsWith("_premium"))).thenReturn(200)
+    when(mock.price(.matches(#"^\d+$"#))).thenReturn(999)
+    
+    #expect(try mock.price("green_apple") == 100)
+    #expect(try mock.price("banana_split") == 50)  
+    #expect(try mock.price("gold_premium") == 200)
+    #expect(try mock.price("12345") == 999)
+    
+    verify(mock.price(.contains("apple"))).called(1)
+    verify(mock.price(.startsWith("banana"))).called(1)
+    verify(mock.price(.endsWith("_premium"))).called(1)
+    verify(mock.price(.matches(#"^\d+$"#))).called(1)
+    
+    verifyNever(mock.price(.contains("cherry")))
+    verifyNever(mock.price(.startsWith("grape")))
+}

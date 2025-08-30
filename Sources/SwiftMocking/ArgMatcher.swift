@@ -5,6 +5,8 @@
 //  Created by Daniel Cardona on 3/07/25.
 //
 
+import Foundation
+
 /// A type that matches arguments in a test double.
 ///
 /// You use ``ArgMatcher`` to specify which arguments a stub should apply to, or to verify that a method was called with certain arguments.
@@ -165,6 +167,44 @@ public extension ArgMatcher where Argument: Comparable {
     static func greaterThan(_ value: Argument) -> Self {
         .init(precedence: .predicate) { $0 > value }
     }
+
+    /// A matcher that matches an argument within a given range (inclusive).
+    /// - Parameters:
+    ///   - lowerBound: The minimum value (inclusive).
+    ///   - upperBound: The maximum value (inclusive).
+    ///
+    /// ```swift
+    /// // Stubbing a method to return "medium" for values between 10 and 20
+    /// spy.when(calledWith: .between(10, 20)).thenReturn("medium")
+    ///
+    /// // Verifying a method was called with a percentage between 0 and 100
+    /// verify(spy.setProgress(.between(0, 100))).called()
+    /// ```
+    static func between(_ lowerBound: Argument, _ upperBound: Argument) -> Self {
+        .init(precedence: .predicate) { value in
+            value >= lowerBound && value <= upperBound
+        }
+    }
+}
+
+public extension ArgMatcher where Argument: FloatingPoint {
+    /// A matcher that matches a floating-point argument approximately equal to the given value.
+    /// - Parameters:
+    ///   - value: The target value to compare against.
+    ///   - tolerance: The acceptable difference (defaults to 0.001).
+    ///
+    /// ```swift
+    /// // Stubbing a method for values approximately equal to π
+    /// spy.when(calledWith: .approximately(3.14159, tolerance: 0.001)).thenReturn("pi")
+    ///
+    /// // Verifying a method was called with a value close to 2.5
+    /// verify(spy.calculate(.approximately(2.5))).called()
+    /// ```
+    static func approximately(_ value: Argument, tolerance: Argument = 0.001) -> Self {
+        .init(precedence: .predicate) { argument in
+            abs(argument - value) <= tolerance
+        }
+    }
 }
 
 public extension ArgMatcher where Argument: AnyObject {
@@ -304,6 +344,133 @@ extension ArgMatcher: ExpressibleByStringLiteral where Argument == String {
   public init(stringLiteral value: Argument) {
       self = .equal(value)
   }
+}
+
+public extension ArgMatcher where Argument == String {
+    /// A matcher that matches a string argument that contains the given substring.
+    /// - Parameter substring: The substring to search for.
+    ///
+    /// ```swift
+    /// // Stubbing a method for any string containing "error"
+    /// spy.when(calledWith: .contains("error")).thenReturn("handle_error")
+    ///
+    /// // Verifying a method was called with a string containing "success"
+    /// verify(spy.logMessage(.contains("success"))).called()
+    /// ```
+    static func contains(_ substring: String) -> Self {
+        .init(precedence: .predicate) { $0.contains(substring) }
+    }
+
+    /// A matcher that matches a string argument that starts with the given prefix.
+    /// - Parameter prefix: The prefix to match.
+    ///
+    /// ```swift
+    /// // Stubbing a method for any string starting with "http"
+    /// spy.when(calledWith: .startsWith("http")).thenReturn("web_url")
+    ///
+    /// // Verifying a method was called with a string starting with "DEBUG:"
+    /// verify(spy.log(.startsWith("DEBUG:"))).called()
+    /// ```
+    static func startsWith(_ prefix: String) -> Self {
+        .init(precedence: .predicate) { $0.hasPrefix(prefix) }
+    }
+
+    /// A matcher that matches a string argument that ends with the given suffix.
+    /// - Parameter suffix: The suffix to match.
+    ///
+    /// ```swift
+    /// // Stubbing a method for any string ending with ".json"
+    /// spy.when(calledWith: .endsWith(".json")).thenReturn("json_file")
+    ///
+    /// // Verifying a method was called with a string ending with ".txt"
+    /// verify(spy.processFile(.endsWith(".txt"))).called()
+    /// ```
+    static func endsWith(_ suffix: String) -> Self {
+        .init(precedence: .predicate) { $0.hasSuffix(suffix) }
+    }
+
+    /// A matcher that matches a string argument against a regular expression pattern.
+    /// - Parameter pattern: The regular expression pattern to match.
+    ///
+    /// ```swift
+    /// // Stubbing a method for any email address
+    /// spy.when(calledWith: .matches(#"^[\w\.-]+@[\w\.-]+\.\w+$"#)).thenReturn("valid_email")
+    ///
+    /// // Verifying a method was called with a phone number pattern
+    /// verify(spy.validate(.matches(#"\d{3}-\d{3}-\d{4}"#))).called()
+    /// ```
+    static func matches(_ pattern: String) -> Self {
+        .init(precedence: .predicate) { string in
+            do {
+                let regex = try NSRegularExpression(pattern: pattern)
+                let range = NSRange(location: 0, length: string.utf16.count)
+                return regex.firstMatch(in: string, options: [], range: range) != nil
+            } catch {
+                return false
+            }
+        }
+    }
+}
+
+public extension ArgMatcher where Argument: Collection {
+    /// A matcher that matches an empty collection.
+    ///
+    /// ```swift
+    /// // Stubbing a method for empty arrays
+    /// spy.when(calledWith: .isEmpty()).thenReturn("no_items")
+    ///
+    /// // Verifying a method was called with an empty collection
+    /// verify(spy.process(.isEmpty())).called()
+    /// ```
+    static func isEmpty() -> Self {
+        .init(precedence: .predicate) { $0.isEmpty }
+    }
+
+    /// A matcher that matches a collection with a specific count.
+    /// - Parameter count: The expected number of elements.
+    ///
+    /// ```swift
+    /// // Stubbing a method for arrays with exactly 3 elements
+    /// spy.when(calledWith: .hasCount(3)).thenReturn("three_items")
+    ///
+    /// // Verifying a method was called with a collection of 5 elements
+    /// verify(spy.process(.hasCount(5))).called()
+    /// ```
+    static func hasCount(_ count: Int) -> Self {
+        .init(precedence: .predicate) { $0.count == count }
+    }
+
+    /// A matcher that matches a collection with a count within the given range.
+    /// - Parameters:
+    ///   - lowerBound: The minimum count (inclusive).
+    ///   - upperBound: The maximum count (inclusive).
+    ///
+    /// ```swift
+    /// // Stubbing a method for arrays with 2-5 elements
+    /// spy.when(calledWith: .hasCountBetween(2, 5)).thenReturn("medium_batch")
+    /// ```
+    static func hasCountBetween(_ lowerBound: Int, _ upperBound: Int) -> Self {
+        .init(precedence: .predicate) { collection in
+            let count = collection.count
+            return count >= lowerBound && count <= upperBound
+        }
+    }
+}
+
+public extension ArgMatcher where Argument: Collection, Argument.Element: Equatable {
+    /// A matcher that matches a collection containing the given element.
+    /// - Parameter element: The element to search for.
+    ///
+    /// ```swift
+    /// // Stubbing a method for arrays containing "important"
+    /// spy.when(calledWith: .contains("important")).thenReturn("found_item")
+    ///
+    /// // Verifying a method was called with an array containing 42
+    /// verify(spy.process(.contains(42))).called()
+    /// ```
+    static func contains(_ element: Argument.Element) -> Self {
+        .init(precedence: .predicate) { $0.contains(element) }
+    }
 }
 
 public struct MatcherPrecedence: Comparable, Hashable {
