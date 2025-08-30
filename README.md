@@ -222,6 +222,17 @@ verify(mock.handleLarge(.hasCount(in: 100...))).called()     // 100+ items
 verify(mock.processSmall(.hasCount(in: ...3))).called()      // up to 3 items
 ```
 
+#### Never Called Verification
+
+```swift
+// Verify a specific method was never called
+verifyNever(mock.sensitiveMethod(password: .any))
+
+// Verify a mock object had no interactions at all
+let unusedMock = MockPricingService()
+verifyZeroInteractions(unusedMock)  // Ensures mock was completely unused
+```
+
 #### Matching Object Identity (`.identical`)
 
 ```swift

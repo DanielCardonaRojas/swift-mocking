@@ -103,6 +103,37 @@ public func verifyNever<each Input, Eff: Effect, Output>(
     verify(interaction).neverCalled(file: file, line: line)
 }
 
+/// Verifies that a mock object has had zero interactions.
+///
+/// This function asserts that none of the methods on the given mock have been called.
+/// It checks all spies managed by the mock to ensure they have zero invocations.
+/// This is useful when you want to ensure a mock object was completely unused.
+///
+/// Example:
+/// ```swift
+/// let mock = MockPricingService()
+/// let anotherMock = MockNetworkService()
+/// 
+/// // ... test logic that should not interact with these mocks ...
+/// 
+/// verifyZeroInteractions(mock)
+/// verifyZeroInteractions(anotherMock)
+/// ```
+///
+/// - Parameter mock: A `Mock` object to verify has had no interactions.
+public func verifyZeroInteractions(
+    _ mock: Mock,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    let totalInvocations = mock.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
+    
+    if totalInvocations > 0 {
+        let mockTypeName = String(describing: type(of: mock))
+        reportIssue("Expected zero interactions with \(mockTypeName) but found \(totalInvocations) invocation(s)", filePath: file, line: line)
+    }
+}
+
 // MARK: Asserts
 
 public extension Assert {

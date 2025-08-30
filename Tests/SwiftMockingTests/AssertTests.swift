@@ -110,4 +110,55 @@ final class AssertTests: XCTestCase {
         
         assert2.neverCalled()
     }
+    
+    // MARK: - verifyZeroInteractions Tests
+    
+    func testVerifyZeroInteractionsSucceedsWhenMockUnused() {
+        let mock = TestMock()
+        
+        // Should not throw - mock has no interactions
+        verifyZeroInteractions(mock)
+    }
+    
+    func testVerifyZeroInteractionsWithMultipleSpies() {
+        let mock = TestMock()
+        
+        // Access multiple spies but don't call them
+        _ = mock.testMethod
+        _ = mock.anotherMethod
+        _ = mock.thirdMethod
+        
+        // Should succeed - spies exist but have no invocations
+        verifyZeroInteractions(mock)
+    }
+    
+    func testVerifyZeroInteractionsCountsCorrectly() {
+        let mock = TestMock()
+        
+        // Make some method calls to record invocations
+        mock.testMethod.call("test1")
+        mock.testMethod.call("test2")
+        mock.anotherMethod.call(42)
+        
+        // Verify total invocation count is correct
+        let totalInvocations = mock.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
+        XCTAssertEqual(totalInvocations, 3)
+    }
+}
+
+// MARK: - Test Mock for verifyZeroInteractions
+
+@dynamicMemberLookup
+class TestMock: Mock {
+    var testMethod: Spy<String, None, Void> {
+        self[dynamicMember: "testMethod"]
+    }
+    
+    var anotherMethod: Spy<Int, None, String> {
+        self[dynamicMember: "anotherMethod"]
+    }
+    
+    var thirdMethod: Spy<Double, None, Bool> {
+        self[dynamicMember: "thirdMethod"]
+    }
 }
