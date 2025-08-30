@@ -82,6 +82,27 @@ public func verifyInOrder<each Input, Eff: Effect, Output>(
     }
 }
 
+/// Verifies that a specific interaction with a mock object never occurred.
+///
+/// This function is a convenience wrapper that asserts a mocked method was never called
+/// with arguments matching the provided `Interaction`. It's equivalent to calling
+/// `verify(interaction).neverCalled()` but provides a more direct API.
+///
+/// Example:
+/// ```swift
+/// verifyNever(mock.someMethod(param1: .any))
+/// verifyNever(mock.sensitiveMethod(password: .equal("secret")))
+/// ```
+///
+/// - Parameter interaction: An `Interaction` object representing the method call that should never have occurred.
+public func verifyNever<each Input, Eff: Effect, Output>(
+    _ interaction: Interaction<repeat each Input, Eff, Output>,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    verify(interaction).neverCalled(file: file, line: line)
+}
+
 // MARK: Asserts
 
 public extension Assert {
