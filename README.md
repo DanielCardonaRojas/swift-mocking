@@ -208,6 +208,20 @@ when(mock.processValue(.lessThan(10))).thenReturn("small")
 verify(mock.processValue(.greaterThan(100))).called()
 ```
 
+#### Range-Based Matching
+
+```swift
+// Using Swift's range syntax for more idiomatic matching
+verify(mock.setVolume(.in(0...100))).called()        // ClosedRange: 0 through 100
+verify(mock.validateAge(.in(18...))).called()        // PartialRangeFrom: 18 and above  
+verify(mock.setSpeed(.in(...65))).called()           // PartialRangeThrough: up to 65
+
+// Collection count matching with ranges
+verify(mock.processBatch(.hasCount(in: 5...10))).called()    // 5-10 items
+verify(mock.handleLarge(.hasCount(in: 100...))).called()     // 100+ items
+verify(mock.processSmall(.hasCount(in: ...3))).called()      // up to 3 items
+```
+
 #### Matching Object Identity (`.identical`)
 
 ```swift
