@@ -109,4 +109,202 @@ final class ArgMatcherTests: XCTestCase {
         XCTAssertTrue(matcher("test"))
         XCTAssertFalse(matcher("other"))
     }
+
+    // MARK: - Numeric Matchers
+
+    func testBetweenMatcher() {
+        let matcher: ArgMatcher<Int> = .between(10, 20)
+        XCTAssertTrue(matcher(10))
+        XCTAssertTrue(matcher(15))
+        XCTAssertTrue(matcher(20))
+        XCTAssertFalse(matcher(9))
+        XCTAssertFalse(matcher(21))
+    }
+
+    func testApproximatelyMatcher() {
+        let matcher: ArgMatcher<Double> = .approximately(3.14159, tolerance: 0.001)
+        XCTAssertTrue(matcher(3.14159))
+        XCTAssertTrue(matcher(3.1416))
+        XCTAssertTrue(matcher(3.1415))
+        XCTAssertFalse(matcher(3.143))
+        XCTAssertFalse(matcher(3.139))
+    }
+
+    func testApproximatelyMatcherWithDefaultTolerance() {
+        let matcher: ArgMatcher<Float> = .approximately(2.5, tolerance: 0.001)
+        XCTAssertTrue(matcher(2.5))
+        XCTAssertTrue(matcher(2.5005))
+        XCTAssertTrue(matcher(2.4995))
+        XCTAssertFalse(matcher(2.502))
+        XCTAssertFalse(matcher(2.498))
+    }
+
+    // MARK: - String Matchers
+
+    func testStringContainsMatcher() {
+        let matcher: ArgMatcher<String> = .contains("test")
+        XCTAssertTrue(matcher("testing"))
+        XCTAssertTrue(matcher("test"))
+        XCTAssertTrue(matcher("pretest"))
+        XCTAssertFalse(matcher("example"))
+        XCTAssertFalse(matcher(""))
+    }
+
+    func testStringStartsWithMatcher() {
+        let matcher: ArgMatcher<String> = .startsWith("http")
+        XCTAssertTrue(matcher("https://example.com"))
+        XCTAssertTrue(matcher("http://test.com"))
+        XCTAssertTrue(matcher("http"))
+        XCTAssertFalse(matcher("ftp://example.com"))
+        XCTAssertFalse(matcher(""))
+    }
+
+    func testStringEndsWithMatcher() {
+        let matcher: ArgMatcher<String> = .endsWith(".json")
+        XCTAssertTrue(matcher("data.json"))
+        XCTAssertTrue(matcher("config.json"))
+        XCTAssertTrue(matcher(".json"))
+        XCTAssertFalse(matcher("data.xml"))
+        XCTAssertFalse(matcher("json"))
+    }
+
+    func testStringMatchesRegexMatcher() {
+        let emailMatcher: ArgMatcher<String> = .matches(#"^[\w\.-]+@[\w\.-]+\.\w+$"#)
+        XCTAssertTrue(emailMatcher("test@example.com"))
+        XCTAssertTrue(emailMatcher("user.name@domain.org"))
+        XCTAssertFalse(emailMatcher("invalid-email"))
+        XCTAssertFalse(emailMatcher("test@"))
+
+        let phoneNumberMatcher: ArgMatcher<String> = .matches(#"\d{3}-\d{3}-\d{4}"#)
+        XCTAssertTrue(phoneNumberMatcher("123-456-7890"))
+        XCTAssertFalse(phoneNumberMatcher("123-45-6789"))
+        XCTAssertFalse(phoneNumberMatcher("not-a-phone"))
+    }
+
+    func testStringMatchesInvalidRegex() {
+        let matcher: ArgMatcher<String> = .matches("[invalid")
+        XCTAssertFalse(matcher("any string"))
+    }
+
+    // MARK: - Collection Matchers
+
+    func testCollectionIsEmptyMatcher() {
+        let matcher: ArgMatcher<[Int]> = .isEmpty()
+        XCTAssertTrue(matcher([]))
+        XCTAssertFalse(matcher([1]))
+        XCTAssertFalse(matcher([1, 2, 3]))
+    }
+
+    func testCollectionHasCountMatcher() {
+        let matcher: ArgMatcher<[String]> = .hasCount(3)
+        XCTAssertTrue(matcher(["a", "b", "c"]))
+        XCTAssertFalse(matcher([]))
+        XCTAssertFalse(matcher(["a"]))
+        XCTAssertFalse(matcher(["a", "b", "c", "d"]))
+    }
+
+    func testCollectionHasCountBetweenMatcher() {
+        let matcher: ArgMatcher<[Int]> = .hasCountBetween(2, 4)
+        XCTAssertTrue(matcher([1, 2]))
+        XCTAssertTrue(matcher([1, 2, 3]))
+        XCTAssertTrue(matcher([1, 2, 3, 4]))
+        XCTAssertFalse(matcher([1]))
+        XCTAssertFalse(matcher([1, 2, 3, 4, 5]))
+        XCTAssertFalse(matcher([]))
+    }
+
+    func testCollectionContainsMatcher() {
+        let matcher: ArgMatcher<[String]> = .contains("test")
+        XCTAssertTrue(matcher(["test"]))
+        XCTAssertTrue(matcher(["one", "test", "three"]))
+        XCTAssertTrue(matcher(["test", "other"]))
+        XCTAssertFalse(matcher([]))
+        XCTAssertFalse(matcher(["one", "two"]))
+        XCTAssertFalse(matcher(["testing"]))
+    }
+
+    func testCollectionContainsWithSetMatcher() {
+        let matcher: ArgMatcher<Set<Int>> = .contains(42)
+        XCTAssertTrue(matcher(Set([42])))
+        XCTAssertTrue(matcher(Set([1, 42, 3])))
+        XCTAssertFalse(matcher(Set([])))
+        XCTAssertFalse(matcher(Set([1, 2, 3])))
+    }
+
+    // MARK: - Range-Based Matchers
+
+    func testClosedRangeMatcher() {
+        let matcher: ArgMatcher<Int> = .in(10...20)
+        XCTAssertTrue(matcher(10))
+        XCTAssertTrue(matcher(15))
+        XCTAssertTrue(matcher(20))
+        XCTAssertFalse(matcher(9))
+        XCTAssertFalse(matcher(21))
+    }
+
+    func testPartialRangeFromMatcher() {
+        let matcher: ArgMatcher<Int> = .in(18...)
+        XCTAssertTrue(matcher(18))
+        XCTAssertTrue(matcher(25))
+        XCTAssertTrue(matcher(100))
+        XCTAssertFalse(matcher(17))
+        XCTAssertFalse(matcher(0))
+    }
+
+    func testPartialRangeThroughMatcher() {
+        let matcher: ArgMatcher<Int> = .in(...100)
+        XCTAssertTrue(matcher(0))
+        XCTAssertTrue(matcher(50))
+        XCTAssertTrue(matcher(100))
+        XCTAssertFalse(matcher(101))
+        XCTAssertFalse(matcher(200))
+    }
+
+    func testCollectionHasCountInClosedRange() {
+        let matcher: ArgMatcher<[String]> = .hasCount(in: 2...4)
+        XCTAssertTrue(matcher(["a", "b"]))
+        XCTAssertTrue(matcher(["a", "b", "c"]))
+        XCTAssertTrue(matcher(["a", "b", "c", "d"]))
+        XCTAssertFalse(matcher(["a"]))
+        XCTAssertFalse(matcher(["a", "b", "c", "d", "e"]))
+        XCTAssertFalse(matcher([]))
+    }
+
+    func testCollectionHasCountInPartialRangeFrom() {
+        let matcher: ArgMatcher<[Int]> = .hasCount(in: 3...)
+        XCTAssertTrue(matcher([1, 2, 3]))
+        XCTAssertTrue(matcher([1, 2, 3, 4]))
+        XCTAssertTrue(matcher([1, 2, 3, 4, 5, 6]))
+        XCTAssertFalse(matcher([]))
+        XCTAssertFalse(matcher([1]))
+        XCTAssertFalse(matcher([1, 2]))
+    }
+
+    func testCollectionHasCountInPartialRangeThrough() {
+        let matcher: ArgMatcher<[Double]> = .hasCount(in: ...2)
+        XCTAssertTrue(matcher([]))
+        XCTAssertTrue(matcher([1.0]))
+        XCTAssertTrue(matcher([1.0, 2.0]))
+        XCTAssertFalse(matcher([1.0, 2.0, 3.0]))
+        XCTAssertFalse(matcher([1.0, 2.0, 3.0, 4.0]))
+    }
+
+    func testRangeMatchersWithFloatingPoint() {
+        let closedRangeMatcher: ArgMatcher<Double> = .in(0.5...1.5)
+        XCTAssertTrue(closedRangeMatcher(0.5))
+        XCTAssertTrue(closedRangeMatcher(1.0))
+        XCTAssertTrue(closedRangeMatcher(1.5))
+        XCTAssertFalse(closedRangeMatcher(0.4))
+        XCTAssertFalse(closedRangeMatcher(1.6))
+
+        let partialFromMatcher: ArgMatcher<Double> = .in(2.0...)
+        XCTAssertTrue(partialFromMatcher(2.0))
+        XCTAssertTrue(partialFromMatcher(5.5))
+        XCTAssertFalse(partialFromMatcher(1.9))
+
+        let partialThroughMatcher: ArgMatcher<Double> = .in(...10.0)
+        XCTAssertTrue(partialThroughMatcher(5.0))
+        XCTAssertTrue(partialThroughMatcher(10.0))
+        XCTAssertFalse(partialThroughMatcher(10.1))
+    }
 }

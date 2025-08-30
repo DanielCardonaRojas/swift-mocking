@@ -245,3 +245,55 @@ import Foundation
     verifyNever(mock.download(from: .any))
     verifyNever(mock.upload(to: .any, data: .any))
 }
+
+@Test func testNewMatchers() throws {
+    let mock = MockPricingService()
+    
+    // Test string matchers
+    when(mock.price(.contains("apple"))).thenReturn(100)
+    when(mock.price(.startsWith("banana"))).thenReturn(50)
+    when(mock.price(.endsWith("_premium"))).thenReturn(200)
+    when(mock.price(.matches(#"^\d+$"#))).thenReturn(999)
+    
+    #expect(try mock.price("green_apple") == 100)
+    #expect(try mock.price("banana_split") == 50)  
+    #expect(try mock.price("gold_premium") == 200)
+    #expect(try mock.price("12345") == 999)
+    
+    verify(mock.price(.contains("apple"))).called(1)
+    verify(mock.price(.startsWith("banana"))).called(1)
+    verify(mock.price(.endsWith("_premium"))).called(1)
+    verify(mock.price(.matches(#"^\d+$"#))).called(1)
+    
+    verifyNever(mock.price(.contains("cherry")))
+    verifyNever(mock.price(.startsWith("grape")))
+}
+
+@Test func testRangeBasedMatchers() throws {
+    let calculator = MockCalculator()
+    let returnlessService = MockReturnlessService()
+    
+    // Test range-based numeric matchers with Calculator
+    when(calculator.calculate(.in(10...20), .any)).thenReturn(100)  // ClosedRange
+    when(calculator.calculate(.in(50...), .any)).thenReturn(200)    // PartialRangeFrom  
+    when(calculator.calculate(.in(...5), .any)).thenReturn(50)      // PartialRangeThrough
+    
+    #expect(calculator.calculate(15, 0) == 100)  // 15 is in 10...20
+    #expect(calculator.calculate(75, 0) == 200)  // 75 is in 50...
+    #expect(calculator.calculate(3, 0) == 50)    // 3 is in ...5
+    
+    verify(calculator.calculate(.in(10...20), .any)).called(1)
+    verify(calculator.calculate(.in(50...), .any)).called(1)
+    verify(calculator.calculate(.in(...5), .any)).called(1)
+    
+    // Test with ReturnlessService to show different numeric ranges
+    returnlessService.doSomething(with: 25)
+    returnlessService.doSomething(with: 100)
+    returnlessService.doSomething(with: 2)
+    
+    verify(returnlessService.doSomething(with: .in(20...30))).called(1)  // 25
+    verify(returnlessService.doSomething(with: .in(90...))).called(1)    // 100  
+    verify(returnlessService.doSomething(with: .in(...10))).called(1)    // 2
+    
+    verifyNever(returnlessService.doSomething(with: .in(40...49)))
+}
