@@ -297,3 +297,37 @@ import Foundation
     
     verifyNever(returnlessService.doSomething(with: .in(40...49)))
 }
+
+@Test func testVerifyZeroInteractionsWithUnusedMocks() {
+    let unusedPricingMock = MockPricingService()
+    let unusedNetworkMock = MockNetworkService()
+    let unusedCalculatorMock = MockCalculator()
+    
+    // None of these mocks should have any interactions
+    verifyZeroInteractions(unusedPricingMock)
+    verifyZeroInteractions(unusedNetworkMock)
+    verifyZeroInteractions(unusedCalculatorMock)
+}
+
+@Test func testVerifyZeroInteractionsInComplexScenario() async throws {
+    let primaryMock = MockNetworkService()
+    let fallbackMock = MockNetworkService()
+    let cacheMock = MockPersistenceService()
+    
+    let url = URL(string: "https://api.example.com/data")!
+    
+    // Setup stubs for primary mock
+    when(primaryMock.request(url: .any, method: .any, headers: .any))
+        .thenReturn("primary_data".data(using: .utf8)!)
+    
+    // Use only the primary mock in this scenario
+    let data = try await primaryMock.request(url: url, method: "GET", headers: nil)
+    #expect(data == "primary_data".data(using: .utf8)!)
+    
+    // Verify the primary mock was used
+    verify(primaryMock.request(url: .equal(url), method: .equal("GET"), headers: .nil())).called(1)
+    
+    // Verify the fallback and cache mocks were never touched
+    verifyZeroInteractions(fallbackMock)
+    verifyZeroInteractions(cacheMock)
+}
