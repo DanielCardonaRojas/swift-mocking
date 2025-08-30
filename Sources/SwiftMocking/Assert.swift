@@ -100,6 +100,21 @@ public class Assert<each Input, Eff: Effect, Output> {
         return
     }
 
+    /// Asserts that the mocked method was never called.
+    ///
+    /// This is a convenience method equivalent to `called(.equal(0))`.
+    ///
+    /// Example:
+    /// ```swift
+    /// verify(mock.someMethod(.any)).neverCalled()
+    /// ```
+    public func neverCalled(
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        called(.equal(0), file: file, line: line)
+    }
+
     private static func collectErrors<O>(_ result: Return<O>, errors: inout [any Error]) throws {
         do {
             _ = try result.get()

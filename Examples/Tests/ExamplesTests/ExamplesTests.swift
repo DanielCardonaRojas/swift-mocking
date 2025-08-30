@@ -192,3 +192,18 @@ import Foundation
     #expect(capturedValue == expectation)
     verify(mock.execute(completion: .any)).called()
 }
+
+@Test func testNeverCalledSucceedsWhenMethodNotCalled() {
+    let mock = MockPricingService()
+    verify(mock.price(.any)).neverCalled()
+}
+
+@Test func testNeverCalledWithSpecificArguments() {
+    let mock = MockPricingService()
+    when(mock.price("apple")).thenReturn(13)
+    
+    let _ = try? mock.price("apple")
+    
+    verify(mock.price("banana")).neverCalled()
+    verify(mock.price("apple")).called(1)
+}
