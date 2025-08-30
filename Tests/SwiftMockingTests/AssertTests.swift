@@ -90,4 +90,24 @@ final class AssertTests: XCTestCase {
             XCTAssertEqual(error, .didNotMatchThrown([AnotherError()]))
         }
     }
+
+    func testNeverCalledSucceedsWhenMethodNotCalled() {
+        let assert = Assert(spy: spy)
+        assert.neverCalled()
+    }
+
+    func testNeverCalledWithSpecificMatcherSucceedsWhenDifferentArgumentCalled() {
+        spy.call("different")
+        let assert = Assert(invocationMatcher: .init(matchers: .equal("test")), spy: spy)
+        assert.neverCalled()
+    }
+
+    func testNeverCalledIsEquivalentToCalledZero() throws {
+        let assert1 = Assert(spy: spy)
+        let assert2 = Assert(spy: spy)
+        
+        XCTAssertNoThrow(try assert1.assert(.equal(0)))
+        
+        assert2.neverCalled()
+    }
 }

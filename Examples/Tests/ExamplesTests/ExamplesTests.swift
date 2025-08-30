@@ -192,3 +192,56 @@ import Foundation
     #expect(capturedValue == expectation)
     verify(mock.execute(completion: .any)).called()
 }
+
+@Test func testNeverCalledSucceedsWhenMethodNotCalled() {
+    let mock = MockPricingService()
+    verify(mock.price(.any)).neverCalled()
+}
+
+@Test func testNeverCalledWithSpecificArguments() {
+    let mock = MockPricingService()
+    when(mock.price("apple")).thenReturn(13)
+    
+    let _ = try? mock.price("apple")
+    
+    verify(mock.price("banana")).neverCalled()
+    verify(mock.price("apple")).called(1)
+}
+
+@Test func testVerifyNeverSucceedsWhenMethodNotCalled() {
+    let mock = MockPricingService()
+    verifyNever(mock.price(.any))
+}
+
+@Test func testVerifyNeverWithSpecificArguments() {
+    let mock = MockPricingService()
+    when(mock.price("apple")).thenReturn(13)
+    
+    let _ = try? mock.price("apple")
+    
+    verifyNever(mock.price("banana"))
+    verify(mock.price("apple")).called(1)
+}
+
+@Test func testVerifyNeverEquivalentToVerifyNeverCalled() {
+    let mock = MockPricingService()
+    
+    verifyNever(mock.price(.any))
+    verify(mock.price(.any)).neverCalled()
+}
+
+@Test func testVerifyNeverWithComplexScenario() async {
+    let mock = MockNetworkService()
+    let url1 = URL(string: "https://api.example.com/users")!
+    let url2 = URL(string: "https://api.example.com/posts")!
+    
+    when(mock.request(url: .equal(url1), method: .any, headers: .any))
+        .thenReturn("users data".data(using: .utf8)!)
+    
+    let _ = try? await mock.request(url: url1, method: "GET", headers: nil)
+    
+    verify(mock.request(url: .equal(url1), method: .equal("GET"), headers: .nil())).called(1)
+    verifyNever(mock.request(url: .equal(url2), method: .any, headers: .any))
+    verifyNever(mock.download(from: .any))
+    verifyNever(mock.upload(to: .any, data: .any))
+}
