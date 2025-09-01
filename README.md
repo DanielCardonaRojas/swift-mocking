@@ -14,11 +14,16 @@
 *   [Features](#-features)
 *   [Protocol Feature Support](#-protocol-feature-support)
 *   [Installation](#-installation)
-*   [Usage](#-usage)
+*   [Example](#-example)
 *   [Documentation](#-documentation)
 *   [How it Works](#️-how-it-works)
-*   [Advanced Usage](#️-advanced-usage)
-*   [More Generated Code Examples](#more-generated-code-examples)
+*   [Usage](#️-usage)
+    *   [Argument Matching](#argument-matching)
+    *   [Dynamic Stubbing with `then` Closure](#dynamic-stubbing-with-then-closure)
+    *   [Logging Invocations](#logging-invocations)
+    *   [Default Values for Unstubbed Methods](#default-values-for-unstubbed-methods)
+    *   [Descriptive Error Reporting](#descriptive-error-reporting)
+*   [Generated Code Examples](GENERATED_CODE_EXAMPLES.md)
 *   [Known Limitations](#️-known-limitations)
 
 ---
@@ -75,7 +80,7 @@ Then, add `SwiftMocking` to your target's dependencies:
 
 ---
 
-## 🚀 Usage
+## 🚀 Example
 
 For a comprehensive demonstration of `SwiftMocking`'s capabilities, including various mocking scenarios and advanced features, please refer to the [Examples](Examples/) project.
 
@@ -172,7 +177,7 @@ This approach eliminates the need for manual mock implementations and provides a
 ---
 
 
-## ⚡️ Advanced Usage
+## ⚡️ Usage
 
 ### Argument Matching
 
