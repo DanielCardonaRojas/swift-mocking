@@ -7,8 +7,19 @@
 
 /// Represents a specific interaction with a mock object, combining an ``InvocationMatcher`` and a ``Spy``.
 ///
-/// This struct is primarily used internally by the Mockable framework and in conjunction with the `when` and `verify` functions
-/// provided by the `XCTestCase+Extensions.swift` to define stubbing behavior or verify method calls.
+/// This struct is primarily used internally by the Mockable framework and in conjunction with the ``when(_:)`` and ``verify(_:)`` functions
+/// to define stubbing behavior or verify method calls.
+///
+/// ## Usage
+/// Interactions are typically created by generated mock methods and used with:
+/// - ``when(_:)`` - For stubbing method behavior
+/// - ``verify(_:)`` - For verifying method calls
+/// - ``verifyNever(_:)`` - For ensuring methods were not called
+///
+/// ## Related Types
+/// - ``Spy`` - The spy that records invocations for this interaction
+/// - ``InvocationMatcher`` - Matches method arguments
+/// - ``Stub`` - Defines return behavior for matched interactions
 public struct Interaction<each Input, Eff: Effect, Output> {
     /// The matcher that defines the arguments for this interaction.
     public let invocationMatcher: InvocationMatcher<repeat each Input>
