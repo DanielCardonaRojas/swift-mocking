@@ -15,6 +15,14 @@ import Foundation
 /// Each spy is stored internally and reused on subsequent accesses, ensuring that all interactions
 /// for a specific method are recorded in the same spy instance.
 ///
+/// Mock classes are typically generated using the ``Mockable`` macro rather than created manually.
+/// The generated mocks inherit from this base class and provide protocol-specific implementations.
+///
+/// ## Related Types
+/// - ``Spy`` - Records method invocations and manages stubs
+/// - ``Interaction`` - Represents a method call for stubbing and verification
+/// - ``ArgMatcher`` - Matches method arguments with various criteria
+///
 @dynamicMemberLookup
 open class Mock: DefaultProvider {
     /// This provides a way to access super as if it where in a static context.
