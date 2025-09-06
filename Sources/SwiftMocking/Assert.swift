@@ -118,7 +118,7 @@ public class Assert<each Input, Eff: Effect, Output> {
     /// Inspects captured arguments from matching invocations using a closure.
     /// - Parameter inspector: A closure that receives the arguments from each matching invocation
     /// - Throws: Any error thrown by the inspector closure
-    public func captured(_ inspector: @escaping (repeat each Input) throws -> Void) throws {
+    func captures(_ inspector: @escaping (repeat each Input) throws -> Void) throws {
         let matchingInvocations = getMatchingInvocations()
         guard !matchingInvocations.isEmpty else {
             throw MockingError.noMatchingInvocations

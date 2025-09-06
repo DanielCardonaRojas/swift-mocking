@@ -166,7 +166,7 @@ public extension Assert {
         line: UInt = #line
     ) -> Assert<repeat each Input, Eff, Output> {
         do {
-            try self.captured(inspector)
+            try self.captures(inspector)
         } catch let error as MockingError {
             reportIssue("\(error.message)", filePath: file, line: line)
         } catch {
