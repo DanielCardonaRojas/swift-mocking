@@ -218,7 +218,7 @@ verify(mock.processValue(.greaterThan(100))).called()
 ```swift
 // Using Swift's range syntax for more idiomatic matching
 verify(mock.setVolume(.in(0...100))).called()        // ClosedRange: 0 through 100
-verify(mock.validateAge(.in(18...))).called()        // PartialRangeFrom: 18 and above  
+verify(mock.validateAge(.in(18...))).called()        // PartialRangeFrom: 18 and above
 verify(mock.setSpeed(.in(...65))).called()           // PartialRangeThrough: up to 65
 
 // Collection count matching with ranges
@@ -237,6 +237,19 @@ verifyNever(mock.sensitiveMethod(password: .any))
 let unusedMock = MockPricingService()
 verifyZeroInteractions(unusedMock)  // Ensures mock was completely unused
 ```
+
+#### Captured Argument Inspection
+
+After verifying that methods were called, you can inspect the actual arguments that were passed using the `captured` method:
+
+```swift
+verify(mock.calculate(a: .any, b: .any))
+    .captured { a, b in
+        print("Called calculate with: a=\(a), b=\(b)")
+        XCTAssertTrue(a + b > 0)
+    }
+```
+
 
 #### Matching Object Identity (`.identical`)
 
