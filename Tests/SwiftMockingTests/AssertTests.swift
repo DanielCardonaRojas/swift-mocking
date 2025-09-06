@@ -144,6 +144,126 @@ final class AssertTests: XCTestCase {
         let totalInvocations = mock.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
         XCTAssertEqual(totalInvocations, 3)
     }
+    
+    // MARK: - captured() Tests
+    
+    func testCapturedBasicFunctionality() throws {
+        spy.call("hello")
+        spy.call("world")
+        
+        var capturedArguments: [String] = []
+        let assert = Assert(spy: spy)
+        
+        try assert.captures { argument in
+            capturedArguments.append(argument)
+        }
+        
+        XCTAssertEqual(capturedArguments, ["hello", "world"])
+    }
+    
+    func testCapturedWithMatcher() throws {
+        spy.call("hello")
+        spy.call("world")
+        spy.call("test")
+        
+        var capturedArguments: [String] = []
+        let assert = Assert(invocationMatcher: .init(matchers: .startsWith("t")), spy: spy)
+        
+        try assert.captures { argument in
+            capturedArguments.append(argument)
+        }
+        
+        XCTAssertEqual(capturedArguments, ["test"])
+    }
+    
+    func testCapturedWithMultipleArguments() throws {
+        let multiArgSpy = Spy<String, Int, None, Void>()
+        multiArgSpy.when(calledWith: .any, .any).thenReturn(())
+        
+        multiArgSpy.call("first", 1)
+        multiArgSpy.call("second", 2)
+        
+        var capturedPairs: [(String, Int)] = []
+        let assert = Assert(spy: multiArgSpy)
+        
+        try assert.captures { string, int in
+            capturedPairs.append((string, int))
+        }
+        
+        XCTAssertEqual(capturedPairs.count, 2)
+        XCTAssertEqual(capturedPairs[0].0, "first")
+        XCTAssertEqual(capturedPairs[0].1, 1)
+        XCTAssertEqual(capturedPairs[1].0, "second")
+        XCTAssertEqual(capturedPairs[1].1, 2)
+    }
+    
+    func testCapturedThrowsWhenNoMatchingInvocations() {
+        let assert = Assert(spy: spy)
+        
+        XCTAssertThrowsError(try assert.captures { _ in }) { error in
+            guard let mockingError = error as? MockingError else {
+                return XCTFail("Wrong error type")
+            }
+            XCTAssertEqual(mockingError, .noMatchingInvocations)
+        }
+    }
+    
+    func testCapturedThrowsWhenNoMatchingInvocationsWithMatcher() {
+        spy.call("hello")
+        let assert = Assert(invocationMatcher: .init(matchers: .equal("world")), spy: spy)
+        
+        XCTAssertThrowsError(try assert.captures { _ in }) { error in
+            guard let mockingError = error as? MockingError else {
+                return XCTFail("Wrong error type")
+            }
+            XCTAssertEqual(mockingError, .noMatchingInvocations)
+        }
+    }
+    
+    func testCapturedInspectorCanThrow() {
+        spy.call("test")
+        let assert = Assert(spy: spy)
+        
+        // Test core captures() method that propagates inspector errors
+        XCTAssertThrowsError(try assert.captures { argument in
+            if argument == "test" {
+                throw TestError.example
+            }
+        }) { error in
+            XCTAssertTrue(error is TestError)
+        }
+    }
+    
+    func testCapturedAfterCallVerification() {
+        spy.call("test")
+        spy.call("hello")
+        
+        var capturedArguments: [String] = []
+        let assert = Assert(spy: spy)
+        
+        // Test the logical flow: verify call count first, then inspect arguments
+        assert.called(.equal(2))
+        assert.captured { argument in
+            capturedArguments.append(argument)
+        }
+        
+        XCTAssertEqual(capturedArguments, ["test", "hello"])
+    }
+    
+    func testCapturedWithTestSupportExtension() {
+        spy.call("hello")
+        spy.call("world")
+        
+        var capturedArguments: [String] = []
+        let assert = Assert(spy: spy)
+        
+        // Test the TestSupport extension that handles errors automatically (no return value)
+        assert.captured { argument in
+            capturedArguments.append(argument)
+        }
+        
+        XCTAssertEqual(capturedArguments, ["hello", "world"])
+    }
 }
 
 // MARK: - Test Mock for verifyZeroInteractions

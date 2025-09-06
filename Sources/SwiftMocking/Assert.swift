@@ -115,6 +115,28 @@ public class Assert<each Input, Eff: Effect, Output> {
         called(.equal(0), file: file, line: line)
     }
 
+    /// Inspects captured arguments from matching invocations using a closure.
+    /// - Parameter inspector: A closure that receives the arguments from each matching invocation
+    /// - Throws: Any error thrown by the inspector closure
+    func captures(_ inspector: @escaping (repeat each Input) throws -> Void) throws {
+        let matchingInvocations = getMatchingInvocations()
+        guard !matchingInvocations.isEmpty else {
+            throw MockingError.noMatchingInvocations
+        }
+        
+        for invocation in matchingInvocations {
+            try inspector(repeat each invocation.arguments)
+        }
+    }
+
+    private func getMatchingInvocations() -> [Invocation<repeat each Input>] {
+        if let invocationMatcher = invocationMatcher {
+            return spy.invocations.filter { invocationMatcher.isMatchedBy($0) }
+        } else {
+            return spy.invocations
+        }
+    }
+
     private static func collectErrors<O>(_ result: Return<O>, errors: inout [any Error]) throws {
         do {
             _ = try result.get()

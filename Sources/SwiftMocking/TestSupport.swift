@@ -157,6 +157,23 @@ public extension Assert {
 
 }
 
+public extension Assert {
+    /// Inspects captured arguments with automatic error reporting
+    func captured(
+        _ inspector: @escaping (repeat each Input) throws -> Void,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        do {
+            try self.captures(inspector)
+        } catch let error as MockingError {
+            reportIssue("\(error.message)", filePath: file, line: line)
+        } catch {
+            reportIssue("\(error.localizedDescription)", filePath: file, line: line)
+        }
+    }
+}
+
 public extension Assert where Eff: Throwing {
     /// Asserts that the mocked method threw an error.
     ///

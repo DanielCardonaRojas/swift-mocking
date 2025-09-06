@@ -31,4 +31,7 @@ public struct MockingError: Error, Equatable {
     public static func unfulfilledCallCount(_ actual: Int) -> MockingError {
         MockingError(message: "Unfulfilled call count. Actual: \(actual)")
     }
+
+    /// Indicates that no matching invocations were found for captured() inspection.
+    public static let noMatchingInvocations = MockingError(message: "No matching invocations found for captured() inspection")
 }
