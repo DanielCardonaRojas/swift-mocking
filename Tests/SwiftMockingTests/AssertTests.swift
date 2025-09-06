@@ -234,19 +234,20 @@ final class AssertTests: XCTestCase {
         }
     }
     
-    func testCapturedMethodChaining() {
+    func testCapturedAfterCallVerification() {
         spy.call("test")
+        spy.call("hello")
         
-        var capturedArgument: String?
+        var capturedArguments: [String] = []
         let assert = Assert(spy: spy)
         
-        // Test that captured() returns Assert for method chaining (using TestSupport extension)
-        let returnedAssert = assert.captured { argument in
-            capturedArgument = argument
+        // Test the logical flow: verify call count first, then inspect arguments
+        assert.called(.equal(2))
+        assert.captured { argument in
+            capturedArguments.append(argument)
         }
         
-        XCTAssertTrue(returnedAssert === assert)
-        XCTAssertEqual(capturedArgument, "test")
+        XCTAssertEqual(capturedArguments, ["test", "hello"])
     }
     
     func testCapturedWithTestSupportExtension() {
@@ -256,12 +257,11 @@ final class AssertTests: XCTestCase {
         var capturedArguments: [String] = []
         let assert = Assert(spy: spy)
         
-        // Test the TestSupport extension that handles errors automatically
-        let returnedAssert = assert.captured { argument in
+        // Test the TestSupport extension that handles errors automatically (no return value)
+        assert.captured { argument in
             capturedArguments.append(argument)
         }
         
-        XCTAssertTrue(returnedAssert === assert)
         XCTAssertEqual(capturedArguments, ["hello", "world"])
     }
 }

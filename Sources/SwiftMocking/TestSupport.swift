@@ -159,12 +159,11 @@ public extension Assert {
 
 public extension Assert {
     /// Inspects captured arguments with automatic error reporting
-    @discardableResult
     func captured(
         _ inspector: @escaping (repeat each Input) throws -> Void,
         file: StaticString = #filePath,
         line: UInt = #line
-    ) -> Assert<repeat each Input, Eff, Output> {
+    ) {
         do {
             try self.captures(inspector)
         } catch let error as MockingError {
@@ -172,7 +171,6 @@ public extension Assert {
         } catch {
             reportIssue("\(error.localizedDescription)", filePath: file, line: line)
         }
-        return self
     }
 }
 
