@@ -7,7 +7,7 @@
 [![CI Status](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml/badge.svg)](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml)
 
 
-`SwiftMocking` is a modern, type-safe mocking library for Swift that uses macros to provide a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of parameter packs and `@dynamicMemberLookup`.
+`SwiftMocking` is a modern, type-safe mocking library for Swift that uses macros to provide a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) and `@dynamicMemberLookup`.
 
 ---
 
@@ -16,13 +16,14 @@
 *   [Installation](#-installation)
 *   [Example](#-example)
 *   [Documentation](#-documentation)
-*   [How it Works](#️-how-it-works)
 *   [Usage](#️-usage)
     *   [Argument Matching](#argument-matching)
     *   [Dynamic Stubbing with `then` Closure](#dynamic-stubbing-with-then-closure)
+    *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Logging Invocations](#logging-invocations)
     *   [Default Values for Unstubbed Methods](#default-values-for-unstubbed-methods)
     *   [Descriptive Error Reporting](#descriptive-error-reporting)
+*   [How it Works](#️-how-it-works)
 *   [Generated Code Examples](GENERATED_CODE_EXAMPLES.md)
 *   [Known Limitations](#️-known-limitations)
 
@@ -166,15 +167,7 @@ For more detailed information, please refer to the official [documentation](http
 
 ---
 
-## ⚙️ How it Works
-
-`SwiftMocking` leverages the power of Swift macros to generate mock implementations of your protocols. When you apply the `@Mockable` macro to a protocol, it generates a new class that inherits from a `Mock` base class. This generated mock class conforms to the original protocol.
-
-The `Mock` base class uses `@dynamicMemberLookup` to intercept method calls. This allows `SwiftMocking` to provide a dynamic and flexible mocking experience. The use of parameter packs ensures that all method calls are type-safe and that the mock stays in sync with the protocol definition.
-
-This approach eliminates the need for manual mock implementations and provides a clean, expressive, and type-safe API for your tests.
-
----
+For detailed examples of how `@Mockable` expands different protocol definitions into mock implementations, see [Generated Code Examples](GENERATED_CODE_EXAMPLES.md).
 
 
 ## ⚡️ Usage
@@ -380,15 +373,15 @@ protocol NetworkService {
 }
 
 func testNetworkServiceCallback() async {
-    let mock = NetworkServiceMock()
+    let mock = MockNetworkService()
     let expectation = XCTestExpectation()
-    
+
     // Use .any matcher for the callback parameter
     when(mock.fetchUser(id: .equal("123"), completion: .any)).then { id, completion in
         // Control when and how the callback is executed
         completion(.success(User(id: id, name: "Test User")))
     }
-    
+
     mock.fetchUser(id: "123") { result in
         switch result {
         case .success(let user):
@@ -398,14 +391,14 @@ func testNetworkServiceCallback() async {
             XCTFail("Expected success")
         }
     }
-    
+
     await fulfillment(of: [expectation], timeout: 1.0)
 }
 ```
 
 This pattern is invaluable for testing:
 - Network operations with completion handlers
-- File I/O operations  
+- File I/O operations
 - Authentication services
 - Database operations
 - Event handlers and delegates
@@ -428,9 +421,17 @@ This will produce the following error:
 error: Unfulfilled call count. Actual: 2
 ```
 
+
 ---
 
-For detailed examples of how `@Mockable` expands different protocol definitions into mock implementations, see [Generated Code Examples](GENERATED_CODE_EXAMPLES.md).
+## ⚙️ How it Works
+
+`SwiftMocking` leverages the power of Swift macros to generate mock implementations of your protocols. When you apply the `@Mockable` macro to a protocol, it generates a new class that inherits from a `Mock` base class. This generated mock class conforms to the original protocol.
+
+The `Mock` base class uses `@dynamicMemberLookup` to intercept method calls. This allows `SwiftMocking` to provide a dynamic and flexible mocking experience. The use of parameter packs ensures that all method calls are type-safe and that the mock stays in sync with the protocol definition.
+
+This approach eliminates the need for manual mock implementations and provides a clean, expressive, and type-safe API for your tests.
+
 
 
 ## ⚠️ Known Limitations
