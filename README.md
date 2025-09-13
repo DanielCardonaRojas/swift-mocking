@@ -367,6 +367,52 @@ DefaultProvidableRegistry.shared.register(MyCustomType.self)
 let customValue = mock.getCustomType() // customValue will be MyCustomType(name: "Default", value: 0)
 ```
 
+### Testing Methods with Callbacks
+
+`SwiftMocking` excels at testing methods that use completion handlers or callbacks. This is particularly useful for testing asynchronous operations like network requests, file I/O, or any method that takes a closure parameter.
+
+When testing callbacks, use the `.any` matcher for the callback parameter and the `.then` closure to control how the callback is executed:
+
+```swift
+@Mockable
+protocol NetworkService {
+    func fetchUser(id: String, completion: @escaping (Result<User, Error>) -> Void)
+}
+
+func testNetworkServiceCallback() async {
+    let mock = NetworkServiceMock()
+    let expectation = XCTestExpectation()
+    
+    // Use .any matcher for the callback parameter
+    when(mock.fetchUser(id: .equal("123"), completion: .any)).then { id, completion in
+        // Control when and how the callback is executed
+        completion(.success(User(id: id, name: "Test User")))
+    }
+    
+    mock.fetchUser(id: "123") { result in
+        switch result {
+        case .success(let user):
+            XCTAssertEqual(user.name, "Test User")
+            expectation.fulfill()
+        case .failure:
+            XCTFail("Expected success")
+        }
+    }
+    
+    await fulfillment(of: [expectation], timeout: 1.0)
+}
+```
+
+This pattern is invaluable for testing:
+- Network operations with completion handlers
+- File I/O operations  
+- Authentication services
+- Database operations
+- Event handlers and delegates
+- Timer/delayed operations
+
+**Important:** When testing methods with callbacks, always use the `.any` matcher for callback parameters, as it's the only matcher that makes sense for closure types.
+
 ### Descriptive Error Reporting
 
 `Mockable` provides detailed error messages when a test assertion fails. For example, if you expect a function to be called 4 times but it was only called twice, you'll get a clear message indicating the discrepancy.
