@@ -183,7 +183,25 @@ final class SpyTests: XCTestCase {
         }
         XCTAssert(spy.verifyThrows(.error(TestError.self)))
     }
-    
+
+    func test_callback() async {
+        // represents something like: fetch(url: String, completion: @escaping (Int) -> Void)
+        let spy = Spy<String, (Int) -> Void, None, Void>()
+        let expectation = XCTestExpectation()
+
+        spy.when(calledWith: .any, .any).then { url, completion in
+            completion(7)
+        }
+
+        spy.call("", { num in
+            if num == 7 {
+                expectation.fulfill()
+            }
+        })
+
+        await fulfillment(of: [expectation], timeout: 1)
+    }
+
     func test_spy_invoke_race_condition() {
         let spy = Spy<Int, None, Void>()
         spy.when(calledWith: .any).thenReturn(Void())
