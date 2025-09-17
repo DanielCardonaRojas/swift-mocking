@@ -26,6 +26,7 @@
     *   [Descriptive Error Reporting](#descriptive-error-reporting)
 *   [How it Works](#️-how-it-works)
 *   [Generated Code Examples](GENERATED_CODE_EXAMPLES.md)
+*   [AI Agent Guide](#-ai-agent-guide)
 *   [Known Limitations](#️-known-limitations)
 
 ---
@@ -424,6 +425,39 @@ This will produce the following error:
 error: Unfulfilled call count. Actual: 2
 ```
 
+
+---
+
+## 🤖 AI Agent Guide
+
+SwiftMocking includes a comprehensive guide for AI coding assistants to help generate high-quality unit tests automatically. This guide enables AI tools like Claude Code, GitHub Copilot, and ChatGPT to understand SwiftMocking patterns and create consistent, well-structured tests.
+
+### Using the Agent Guide
+
+The [AGENT_GUIDE.md](AGENT_GUIDE.md) contains everything AI tools need to know about SwiftMocking, including:
+
+- Framework fundamentals and setup patterns
+- Stubbing and verification strategies
+- Argument matching techniques
+- Common testing scenarios and best practices
+- Integration with Swift Testing and XCTest
+
+### Quick Start for AI Tools
+
+Copy this URL to provide the complete guide to your preferred AI coding assistant:
+
+```
+https://raw.githubusercontent.com/DanielCardonaRojas/swift-mocking/main/AGENT_GUIDE.md
+```
+
+**Example Prompt:**
+```
+Please fetch and review this SwiftMocking guide: https://raw.githubusercontent.com/DanielCardonaRojas/swift-mocking/main/AGENT_GUIDE.md
+
+Then help me write comprehensive unit tests for my [YourService] protocol following the patterns and best practices in the guide.
+```
+
+For detailed instructions on using the guide with different AI tools, see [USING_AGENT_GUIDE.md](USING_AGENT_GUIDE.md).
 
 ---
 
