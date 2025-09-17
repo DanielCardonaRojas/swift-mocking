@@ -228,6 +228,12 @@ extension Spy where Effects == Throws {
     public func call(_ input: repeat each Input) throws -> Output {
         try invoke(repeat each input).get()
     }
+
+    public func asFunction() -> (repeat each Input) throws -> Output {
+        return { (args:  repeat each Input) in
+            try self.call(repeat each args)
+        }
+    }
 }
 
 // MARK: None throwing
@@ -244,6 +250,12 @@ extension Spy where Effects == None {
             fatalError("MockingError: \(error.message)")
         } catch {
             fatalError("\(error.localizedDescription)")
+        }
+    }
+
+    public func asFunction() -> (repeat each Input) -> Output {
+        return { (args:  repeat each Input) in
+            self.call(repeat each args)
         }
     }
 }
@@ -264,6 +276,12 @@ extension Spy where Effects == Async {
             fatalError("\(error.localizedDescription)")
         }
     }
+
+    public func asFunction() -> (repeat each Input) async -> Output {
+        return { (args:  repeat each Input) in
+            await self.call(repeat each args)
+        }
+    }
 }
 
 // MARK: AsyncThrows
@@ -275,6 +293,12 @@ extension Spy where Effects == AsyncThrows {
     @discardableResult
     public func call(_ input: repeat each Input) async throws -> Output {
         try invoke(repeat each input).get()
+    }
+
+    public func asFunction() -> (repeat each Input) async throws -> Output {
+        return { (args:  repeat each Input) in
+            try await self.call(repeat each args)
+        }
     }
 }
 
