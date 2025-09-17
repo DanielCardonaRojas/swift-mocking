@@ -244,4 +244,27 @@ final class MockitoTests: XCTestCase {
         }
         verify(mock.delete(key: "deleteKey")).throws()
     }
+
+    func testClosureStruct() async throws {
+        let loadNumberSpy = Spy<Void, AsyncThrows, [Int]>()
+        let saveNumberSpy = Spy<Int, AsyncThrows, Void>()
+
+        when(saveNumberSpy(.any)).then {
+            print(">>> number: \($0)")
+        }
+
+        when(loadNumberSpy(.any)).thenReturn([3])
+
+        let client = FetchClient(
+            loadNumber: { try await loadNumberSpy.call(()) },
+            saveNumber: saveNumberSpy.asFunction()
+        )
+
+        _ = try await client.loadNumber()
+        _ = try await client.saveNumber(3)
+
+        verify(loadNumberSpy(.any)).called()
+        verify(saveNumberSpy(3)).called()
+
+    }
 }

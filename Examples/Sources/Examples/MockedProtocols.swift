@@ -2,6 +2,10 @@ import Foundation
 import SwiftMocking
 
 
+struct FetchClient {
+    var loadNumber: () async throws -> [Int]
+    var saveNumber: (Int) async throws -> Void
+}
 
 // MARK: - Function Signature Variations
 
