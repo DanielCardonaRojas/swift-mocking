@@ -457,8 +457,6 @@ Please fetch and review this SwiftMocking guide: https://raw.githubusercontent.c
 Then help me write comprehensive unit tests for my [YourService] protocol following the patterns and best practices in the guide.
 ```
 
-For detailed instructions on using the guide with different AI tools, see [USING_AGENT_GUIDE.md](USING_AGENT_GUIDE.md).
-
 ---
 
 ## ⚙️ How it Works
