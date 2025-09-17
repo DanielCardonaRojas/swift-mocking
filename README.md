@@ -505,7 +505,21 @@ Then help me write comprehensive unit tests for my [YourService] protocol follow
 
 `SwiftMocking` leverages the power of Swift macros to generate mock implementations of your protocols. When you apply the `@Mockable` macro to a protocol, it generates a new class that inherits from a `Mock` base class. This generated mock class conforms to the original protocol.
 
-The `Mock` base class uses `@dynamicMemberLookup` to intercept method calls. This allows `SwiftMocking` to provide a dynamic and flexible mocking experience. The use of parameter packs ensures that all method calls are type-safe and that the mock stays in sync with the protocol definition.
+The `Mock` base class uses `@dynamicMemberLookup` to create and manage spies to for every protocol requirement.
+
+A Spy has this structure:
+
+```swift
+let spy = Spy<ParamType1, ParamType2, ParamTypeN, Effect, ReturnType>()
+
+// So for example:
+
+// Represents a function signature: (Bool, Int) async throws -> String?
+let methodSpy = Spy<Bool, Int, AsyncThrows, Optional<String>>()
+
+```
+
+The use of parameter packs here allows creating any number of parmeter types `ParamType1 ... ParamTypeN`.
 
 This approach eliminates the need for manual mock implementations and provides a clean, expressive, and type-safe API for your tests.
 
