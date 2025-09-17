@@ -12,9 +12,10 @@ This guide provides essential knowledge for AI agents to effectively write unit 
 6. [Stubbing Strategies](#stubbing-strategies)
 7. [Verification Patterns](#verification-patterns)
 8. [Advanced Features](#advanced-features)
-9. [Testing Framework Integration](#testing-framework-integration)
-10. [Common Testing Scenarios](#common-testing-scenarios)
-11. [Best Practices](#best-practices)
+9. [Closure-Based Testing](#closure-based-testing-tca-pattern)
+10. [Testing Framework Integration](#testing-framework-integration)
+11. [Common Testing Scenarios](#common-testing-scenarios)
+12. [Best Practices](#best-practices)
 
 ## Quick Start
 
@@ -296,6 +297,38 @@ mock.execute { value in
     result = value
 }
 verify(mock.execute(completion: .any)).called()
+```
+
+### Closure-Based Dependencies (TCA Pattern)
+For projects using The Composable Architecture (TCA) from Point-Free or closure-based dependency injection:
+
+```swift
+// Define dependency structure
+struct NetworkClient {
+    var fetchData: (URL) async throws -> Data
+    var uploadData: (Data, URL) async throws -> String
+}
+
+// Create spies for each closure
+let fetchSpy = Spy<URL, AsyncThrows, Data>()
+let uploadSpy = Spy<(Data, URL), AsyncThrows, String>()
+
+// Stub behaviors
+when(fetchSpy(.any)).thenReturn("response".data(using: .utf8)!)
+when(uploadSpy(.any, .any)).thenReturn("upload-id-123")
+
+// Create client with adapted spies
+let client = NetworkClient(
+    fetchData: adapt(fetchSpy),
+    uploadData: adapt(uploadSpy)
+)
+
+// Use and verify
+let data = try await client.fetchData(url)
+let uploadId = try await client.uploadData(data, url)
+
+verify(fetchSpy(.equal(url))).called(1)
+verify(uploadSpy(.any, .equal(url))).called(1)
 ```
 
 ## Verification Patterns
@@ -584,7 +617,46 @@ class UserServiceTests: XCTestCase {
 }
 ```
 
-### 5. Complex Interaction Testing
+### 5. Closure-Based Dependency Testing (TCA Pattern)
+```swift
+@Test func closureBasedClientWorks() async throws {
+    // Define dependency structure
+    struct APIClient {
+        var fetchUser: (String) async throws -> User
+        var updateUser: (User) async throws -> Void
+    }
+
+    // Create spies
+    let fetchSpy = Spy<String, AsyncThrows, User>()
+    let updateSpy = Spy<User, AsyncThrows, Void>()
+
+    // Stub behaviors
+    let testUser = User(id: "123", name: "John")
+    when(fetchSpy(.any)).thenReturn(testUser)
+    when(updateSpy(.any)).then { user in
+        print("Updating user: \(user.name)")
+    }
+
+    // Create client with spies
+    let client = APIClient(
+        fetchUser: adapt(fetchSpy),
+        updateUser: adapt(updateSpy)
+    )
+
+    // Use the client
+    let user = try await client.fetchUser("123")
+    var updatedUser = user
+    updatedUser.name = "John Updated"
+    try await client.updateUser(updatedUser)
+
+    // Verify interactions
+    #expect(user.id == "123")
+    verify(fetchSpy(.equal("123"))).called(1)
+    verify(updateSpy(.any(where: \.name, "John Updated"))).called(1)
+}
+```
+
+### 6. Complex Interaction Testing
 ```swift
 @Test func workflowExecutesInCorrectOrder() throws {
     let mockAuth = MockAuthService()
