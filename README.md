@@ -19,6 +19,7 @@
 *   [Usage](#️-usage)
     *   [Argument Matching](#argument-matching)
     *   [Dynamic Stubbing with `then` Closure](#dynamic-stubbing-with-then-closure)
+    *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Logging Invocations](#logging-invocations)
     *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Default Values for Unstubbed Methods](#default-values-for-unstubbed-methods)
