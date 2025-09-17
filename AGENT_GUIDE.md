@@ -255,6 +255,7 @@ when(mock.validate("invalid")).thenThrow(ValidationError.invalid)
 when(mock.connect(.any)).thenThrow(NetworkError.connectionFailed)
 ```
 
+
 ### Dynamic Responses with Closures
 ```swift
 // Inspect arguments and return dynamic values
@@ -519,17 +520,24 @@ class UserServiceTests: XCTestCase {
 ```swift
 @Test func networkServiceHandlesRetry() async throws {
     let mock = MockNetworkService()
+    let url = URL(string: "https://api.example.com/data")!
 
-    // First call fails, second succeeds
-    when(mock.fetch(.any))
-        .thenThrow(NetworkError.timeout)
-        .thenReturn(Data())
+    // For retry testing, use dynamic stubbing to simulate first failure, then success
+    var callCount = 0
+    when(mock.fetch(.equal(url))).thenReturn { _ in
+        callCount += 1
+        if callCount == 1 {
+            throw NetworkError.timeout  // First call fails
+        } else {
+            return "success".data(using: .utf8)!  // Second call succeeds
+        }
+    }
 
     let client = APIClient(networkService: mock)
     let data = try await client.fetchWithRetry(url: url)
 
     #expect(data != nil)
-    verify(mock.fetch(.any)).called(2)
+    verify(mock.fetch(.equal(url))).called(2)  // Called twice due to retry
 }
 ```
 
