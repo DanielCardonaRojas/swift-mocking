@@ -256,8 +256,8 @@ final class MockitoTests: XCTestCase {
         when(loadNumberSpy(.any)).thenReturn([3])
 
         let client = FetchClient(
-            loadNumber: { try await loadNumberSpy.call(()) },
-            saveNumber: saveNumberSpy.asFunction()
+            loadNumber: adapt(loadNumberSpy),
+            saveNumber: adapt(saveNumberSpy)
         )
 
         _ = try await client.loadNumber()
