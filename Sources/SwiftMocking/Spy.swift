@@ -122,6 +122,11 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         return stub
     }
 
+    /// Available so that spies can be used with `when` and `verify`.
+    public func callAsFunction(_ matchingInput: repeat ArgMatcher<each Input>) -> Interaction<repeat each Input, Effects, Output> {
+        Interaction(repeat each matchingInput, spy: self)
+    }
+
     /// Verifies that the spy's method was called at least once.
     /// - Parameter countMatcher: An optional ``ArgMatcher`` for `Int` to specify the expected call count. If `nil`, verifies at least one call.
     /// - Returns: `true` if the call count matches the criteria, `false` otherwise.
@@ -228,6 +233,12 @@ extension Spy where Effects == Throws {
     public func call(_ input: repeat each Input) throws -> Output {
         try invoke(repeat each input).get()
     }
+
+    public func asFunction() -> (repeat each Input) throws -> Output {
+        return { (args:  repeat each Input) in
+            try self.call(repeat each args)
+        }
+    }
 }
 
 // MARK: None throwing
@@ -244,6 +255,12 @@ extension Spy where Effects == None {
             fatalError("MockingError: \(error.message)")
         } catch {
             fatalError("\(error.localizedDescription)")
+        }
+    }
+
+    public func asFunction() -> (repeat each Input) -> Output {
+        return { (args:  repeat each Input) in
+            self.call(repeat each args)
         }
     }
 }
@@ -264,6 +281,12 @@ extension Spy where Effects == Async {
             fatalError("\(error.localizedDescription)")
         }
     }
+
+    public func asFunction() -> (repeat each Input) async -> Output {
+        return { (args:  repeat each Input) in
+            await self.call(repeat each args)
+        }
+    }
 }
 
 // MARK: AsyncThrows
@@ -275,6 +298,12 @@ extension Spy where Effects == AsyncThrows {
     @discardableResult
     public func call(_ input: repeat each Input) async throws -> Output {
         try invoke(repeat each input).get()
+    }
+
+    public func asFunction() -> (repeat each Input) async throws -> Output {
+        return { (args:  repeat each Input) in
+            try await self.call(repeat each args)
+        }
     }
 }
 

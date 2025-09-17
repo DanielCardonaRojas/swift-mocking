@@ -22,6 +22,7 @@
     *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Logging Invocations](#logging-invocations)
     *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
+    *   [Testing Closure-Based Dependencies](#testing-closure-based-dependencies)
     *   [Default Values for Unstubbed Methods](#default-values-for-unstubbed-methods)
     *   [Descriptive Error Reporting](#descriptive-error-reporting)
 *   [How it Works](#️-how-it-works)
@@ -365,6 +366,47 @@ This pattern is invaluable for testing:
 - Timer/delayed operations
 
 **Important:** When testing methods with callbacks, always use the `.any` matcher for callback parameters, as it's the only matcher that makes sense for closure types.
+
+### Testing Closure-Based Dependencies
+
+`SwiftMocking` also supports testing systems that use closures as dependencies instead of protocols. This is particularly useful for projects using The Composable Architecture (TCA) from Point-Free or similar dependency injection approaches.
+
+```swift
+// Define a struct with closure-based dependencies
+struct FetchClient {
+    var loadNumber: () async throws -> [Int]
+    var saveNumber: (Int) async throws -> Void
+}
+
+func testClosureBasedDependencies() async throws {
+    // Create spies for each closure
+    let loadNumberSpy = Spy<Void, AsyncThrows, [Int]>()
+    let saveNumberSpy = Spy<Int, AsyncThrows, Void>()
+
+    // Stub the behaviors
+    when(loadNumberSpy(.any)).thenReturn([1, 2, 3])
+    when(saveNumberSpy(.any)).then { number in
+        print("Saving number: \(number)")
+    }
+
+    // Create the client with adapted spies
+    let client = FetchClient(
+        loadNumber: adapt(loadNumberSpy),
+        saveNumber: adapt(saveNumberSpy)
+    )
+
+    // Use the client
+    let numbers = try await client.loadNumber()
+    try await client.saveNumber(42)
+
+    // Verify interactions
+    XCTAssertEqual(numbers, [1, 2, 3])
+    verify(loadNumberSpy(.any)).called(1)
+    verify(saveNumberSpy(42)).called(1)
+}
+```
+
+This approach provides the same testing capabilities as protocol-based mocking but works with closure-based dependency injection patterns. The `adapt()` function converts a `Spy` into a closure that can be used directly as a dependency.
 
 
 
