@@ -122,6 +122,11 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         return stub
     }
 
+    /// Available so that spies can be used with `when` and `verify`.
+    public func callAsFunction(_ matchingInput: repeat ArgMatcher<each Input>) -> Interaction<repeat each Input, Effects, Output> {
+        Interaction(repeat each matchingInput, spy: self)
+    }
+
     /// Verifies that the spy's method was called at least once.
     /// - Parameter countMatcher: An optional ``ArgMatcher`` for `Int` to specify the expected call count. If `nil`, verifies at least one call.
     /// - Returns: `true` if the call count matches the criteria, `false` otherwise.
