@@ -66,7 +66,8 @@ public enum MockableGenerator {
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
 
-                // Add default initializer
+                // Add default initializer only for Swift 6.2+
+                #if swift(>=6.2)
                 let initializer = InitializerDeclSyntax(
                     modifiers: [
                         DeclModifierSyntax(name: .keyword(.public)),
@@ -90,6 +91,7 @@ public enum MockableGenerator {
                     }
                 )
                 members.append(MemberBlockItemSyntax(decl: DeclSyntax(initializer)))
+                #endif
 
                 members.append(contentsOf: typeAliases.map({ MemberBlockItemSyntax(decl: $0)}))
                 members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
