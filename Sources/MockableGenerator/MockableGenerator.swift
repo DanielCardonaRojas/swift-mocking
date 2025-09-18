@@ -65,6 +65,32 @@ public enum MockableGenerator {
             ),
             memberBlock: MemberBlockSyntax {
                 var members = [MemberBlockItemSyntax]()
+
+                // Add default initializer
+                let initializer = InitializerDeclSyntax(
+                    modifiers: [
+                        DeclModifierSyntax(name: .keyword(.public)),
+                        DeclModifierSyntax(name: .keyword(.override))
+                    ],
+                    signature: FunctionSignatureSyntax(
+                        parameterClause: FunctionParameterClauseSyntax(parameters: FunctionParameterListSyntax([]))
+                    ),
+                    body: CodeBlockSyntax {
+                        ExpressionStmtSyntax(
+                            expression: FunctionCallExprSyntax(
+                                calledExpression: MemberAccessExprSyntax(
+                                    base: SuperExprSyntax(),
+                                    name: "init"
+                                ),
+                                leftParen: .leftParenToken(),
+                                arguments: LabeledExprListSyntax([]),
+                                rightParen: .rightParenToken()
+                            )
+                        )
+                    }
+                )
+                members.append(MemberBlockItemSyntax(decl: DeclSyntax(initializer)))
+
                 members.append(contentsOf: typeAliases.map({ MemberBlockItemSyntax(decl: $0)}))
                 members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
                 members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
