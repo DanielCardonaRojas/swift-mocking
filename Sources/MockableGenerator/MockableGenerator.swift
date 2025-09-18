@@ -70,6 +70,7 @@ public enum MockableGenerator {
                 #if swift(>=6.2)
                 let initializer = InitializerDeclSyntax(
                     modifiers: [
+                        DeclModifierSyntax(name: .keyword(.nonisolated)),
                         DeclModifierSyntax(name: .keyword(.public)),
                         DeclModifierSyntax(name: .keyword(.override))
                     ],
