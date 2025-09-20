@@ -16,7 +16,7 @@
 /// let invocation = Invocation(arguments: 1, "test")
 /// print(invocation.arguments) // prints "(1, "test")"
 /// ```
-public struct Invocation<each Input>: CustomDebugStringConvertible {
+public struct Invocation<each Input: Sendable>: CustomDebugStringConvertible, Sendable {
     public var debugDescription: String {
         var argStrings = [String]()
         for argument in repeat each arguments {
