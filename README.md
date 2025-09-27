@@ -133,7 +133,7 @@ class Store {
 }
 ```
 
-In your tests, you can use the generated `PricingServiceMock` to create a mock object and stub its functions.
+In your tests, you can use the generated `MockPricingService` to create a mock object and stub its functions.
 
 
 ```swift
@@ -142,7 +142,7 @@ import XCTest
 
 final class StoreTests: XCTestCase {
     func testItemRegistration() {
-        let mock = PricingServiceMock()
+        let mock = MockPricingService()
         let store = Store(pricingService: mock)
 
         // Stub specific calls
@@ -312,7 +312,7 @@ XCTAssertEqual(mock.calculate(a: 5, b: 10), 50)
 To enable logging for a specific mock instance, set the `isLoggingEnabled` property to `true`.
 
 ```swift
-let mock = PricingServiceMock()
+let mock = MockPricingService()
 mock.isLoggingEnabled = true
 
 // Any calls to mock.instance methods will now be logged to the console.
