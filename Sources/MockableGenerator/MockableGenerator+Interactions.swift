@@ -328,7 +328,7 @@ public extension MockableGenerator {
 
                                 #if canImport(SwiftSyntax601)
                                 GenericArgumentSyntax(
-                                    argument: .init(parameter.type)
+                                    argument: .init(removeAttributes(parameter.type))
                                 )
                                 #else
                                 GenericArgumentSyntax(
