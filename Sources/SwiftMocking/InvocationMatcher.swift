@@ -25,7 +25,7 @@
 ///     print("Invocation does not match.")
 /// }
 /// ```
-public struct InvocationMatcher<each I> {
+public struct InvocationMatcher<each I>: Sendable {
    let matchers: (repeat ArgMatcher<each I>)
 
     /// Initializes an `InvocationMatcher` with a variadic list of ``ArgMatcher``s.

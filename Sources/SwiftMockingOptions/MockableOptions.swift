@@ -21,9 +21,9 @@ import Foundation
 ///
 /// // This will generate a mock named MyServiceMock and include a Witness type.
 /// ```
-public struct MockableOptions: OptionSet {
+public struct MockableOptions: OptionSet, Sendable {
     public let rawValue: Int
-    public static var `default`: MockableOptions = [.prefixMock]
+    nonisolated(unsafe) public static var `default`: MockableOptions = [.prefixMock]
 
     /// Suffixes the generated mock type name with "Mock" (e.g., `MyServiceMock`).
     public static let suffixMock = MockableOptions(rawValue: 1 << 0)

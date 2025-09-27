@@ -20,7 +20,7 @@
 /// - ``Spy`` - The spy that records invocations for this interaction
 /// - ``InvocationMatcher`` - Matches method arguments
 /// - ``Stub`` - Defines return behavior for matched interactions
-public struct Interaction<each Input, Eff: Effect, Output> {
+public struct Interaction<each Input, Eff: Effect, Output>: Sendable {
     /// The matcher that defines the arguments for this interaction.
     public let invocationMatcher: InvocationMatcher<repeat each Input>
     /// The spy associated with this interaction.

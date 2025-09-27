@@ -27,13 +27,13 @@ import Foundation
 /// // Verifying a method was called with any string argument
 /// verify(spy.anotherMethod(.any)).called()
 /// ```
-public struct ArgMatcher<Argument> {
+public struct ArgMatcher<Argument>: Sendable {
     var precedence: MatcherPrecedence
-    let matcher: (Argument) -> Bool
+    let matcher: @Sendable (Argument) -> Bool
 
     public init(
         precedence: MatcherPrecedence = .typeMatch,
-        matcher: @escaping (Argument) -> Bool
+        matcher: @Sendable @escaping (Argument) -> Bool
     ) {
         self.precedence = precedence
         self.matcher = matcher
@@ -82,7 +82,7 @@ public struct ArgMatcher<Argument> {
     /// spy.when(calledWith: .any(that: { $0 % 2 == 0 })).thenReturn("even")
     /// ```
     public static func any(that predicate: @escaping (Argument) -> Bool) -> Self {
-        return .init(precedence: .predicate, matcher: predicate)
+        return .init(precedence: .predicate, matcher: { predicate($0) })
     }
 
     /// A matcher on Metatypes
@@ -557,7 +557,7 @@ public extension ArgMatcher where Argument: Collection, Argument.Element: Equata
     }
 }
 
-public struct MatcherPrecedence: Comparable, Hashable {
+public struct MatcherPrecedence: Comparable, Hashable, Sendable {
     public static let any: Self                = .init(value: 0)
     public static let typeMatch: Self          = .init(value: 100)
     public static let predicate: Self          = .init(value: 200)

@@ -44,7 +44,7 @@ protocol AnySpy: AnyObject {
 /// - ``Stub`` - Defines behavior for method calls
 /// - ``Interaction`` - Represents a method call for verification
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
-public class Spy<each Input, Effects: Effect, Output>: AnySpy {
+public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     public private(set) var invocations: [Invocation<repeat each Input>] = []
     public var isLoggingEnabled: Bool = false
@@ -234,7 +234,7 @@ extension Spy where Effects == Throws {
         try invoke(repeat each input).get()
     }
 
-    public func asFunction() -> (repeat each Input) throws -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) throws -> Output {
         return { (args:  repeat each Input) in
             try self.call(repeat each args)
         }
@@ -258,7 +258,7 @@ extension Spy where Effects == None {
         }
     }
 
-    public func asFunction() -> (repeat each Input) -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) -> Output {
         return { (args:  repeat each Input) in
             self.call(repeat each args)
         }
@@ -282,7 +282,7 @@ extension Spy where Effects == Async {
         }
     }
 
-    public func asFunction() -> (repeat each Input) async -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) async -> Output {
         return { (args:  repeat each Input) in
             await self.call(repeat each args)
         }
@@ -300,7 +300,7 @@ extension Spy where Effects == AsyncThrows {
         try invoke(repeat each input).get()
     }
 
-    public func asFunction() -> (repeat each Input) async throws -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) async throws -> Output {
         return { (args:  repeat each Input) in
             try await self.call(repeat each args)
         }
