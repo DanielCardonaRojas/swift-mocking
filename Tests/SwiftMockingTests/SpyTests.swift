@@ -51,7 +51,7 @@ final class SpyTests: XCTestCase {
         // Order of these does not matter since they have different precedence values
         spy.when(calledWith: .any).thenReturn(7)
         spy.when(calledWith: "hello").thenReturn(13)
-        spy.when(calledWith: .any(that: { @Sendable str in str.count > 8 })).thenReturn(17)
+        spy.when(calledWith: .any(that: { $0.count > 8 })).thenReturn(17)
 
         // Ensure matcher .any has lower priority
         XCTAssertEqual(spy.call("hello"), 13) // should be matched by .equal matcher

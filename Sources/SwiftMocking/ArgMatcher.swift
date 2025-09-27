@@ -81,8 +81,8 @@ public struct ArgMatcher<Argument>: Sendable {
     /// // Stubbing a method to return a value if the integer argument is even
     /// spy.when(calledWith: .any(that: { $0 % 2 == 0 })).thenReturn("even")
     /// ```
-    public static func any(that predicate: @Sendable @escaping (Argument) -> Bool) -> Self {
-        return .init(precedence: .predicate, matcher: predicate)
+    public static func any(that predicate: @escaping (Argument) -> Bool) -> Self {
+        return .init(precedence: .predicate, matcher: { predicate($0) })
     }
 
     /// A matcher on Metatypes
