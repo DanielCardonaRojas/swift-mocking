@@ -378,7 +378,7 @@ public extension MockableGenerator {
             #if canImport(SwiftSyntax601)
             genericArgs.append(GenericArgumentSyntax(argument: .init(removeAttributes(argType))))
             #else
-            genericArgs.append(GenericArgumentSyntax(argument: argType))
+            genericArgs.append(GenericArgumentSyntax(argument: removeAttributes(argType)))
             #endif
         }
 
