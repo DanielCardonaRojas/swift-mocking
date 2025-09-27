@@ -376,7 +376,7 @@ public extension MockableGenerator {
         for inputType in inputTypes {
             let argType = inputType
             #if canImport(SwiftSyntax601)
-            genericArgs.append(GenericArgumentSyntax(argument: .init(argType)))
+            genericArgs.append(GenericArgumentSyntax(argument: .init(removeAttributes(argType))))
             #else
             genericArgs.append(GenericArgumentSyntax(argument: argType))
             #endif

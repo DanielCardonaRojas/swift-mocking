@@ -322,4 +322,33 @@ final class FunctionSignatureTests: MacroTestCase {
             """
         }
     }
+
+    func testEscaping() {
+        assertMacro {
+            """
+            @Mockable
+            protocol CallbackService {
+                func execute(completion: @escaping (String) -> Void)
+            }
+            """
+        } expansion: {
+            """
+            protocol CallbackService {
+                func execute(completion: @escaping (String) -> Void)
+            }
+
+            #if DEBUG
+            class MockCallbackService: Mock, CallbackService {
+                func execute(completion: ArgMatcher<(String) -> Void>) -> Interaction<(String) -> Void, None, Void> {
+                    Interaction(completion, spy: super.execute)
+                }
+                func execute(completion: @escaping (String) -> Void) {
+                    return adapt(super.execute, completion)
+                }
+            }
+            #endif
+            """
+        }
+
+    }
 }
