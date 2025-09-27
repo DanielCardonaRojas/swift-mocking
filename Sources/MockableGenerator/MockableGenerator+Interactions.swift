@@ -378,12 +378,10 @@ public extension MockableGenerator {
                 leftAngle: .leftAngleToken(),
                 arguments: GenericArgumentListSyntax(
                     genericArgs.enumerated().map { (index, arg) in
-                        var processedArgument = arg
-                        processedArgument.argument = removeAttributes(arg.argument)
-                        if index < genericArgs.count - 1 {
-                            return processedArgument.with(\.trailingComma, .commaToken())
-                        }
-                        return processedArgument
+                        GenericArgumentSyntax(
+                            argument: arg.argument,
+                            trailingComma: index == genericArgs.count - 1 ? nil : .commaToken()
+                        )
                     }
                 ),
                 rightAngle: .rightAngleToken()
