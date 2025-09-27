@@ -311,7 +311,7 @@ struct NetworkClient {
 
 // Create spies for each closure
 let fetchSpy = Spy<URL, AsyncThrows, Data>()
-let uploadSpy = Spy<(Data, URL), AsyncThrows, String>()
+let uploadSpy = Spy<Data, URL, AsyncThrows, String>()
 
 // Stub behaviors
 when(fetchSpy(.any)).thenReturn("response".data(using: .utf8)!)

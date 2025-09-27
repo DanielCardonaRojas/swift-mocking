@@ -19,7 +19,6 @@
 *   [Usage](#️-usage)
     *   [Argument Matching](#argument-matching)
     *   [Dynamic Stubbing with `then` Closure](#dynamic-stubbing-with-then-closure)
-    *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Logging Invocations](#logging-invocations)
     *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Testing Closure-Based Dependencies](#testing-closure-based-dependencies)
@@ -68,7 +67,7 @@
 To add `SwiftMocking` to your Swift package, add it as a dependency in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.1.0"),
+.package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.3.0"),
 ```
 
 Then, add `SwiftMocking` to your target's dependencies:
@@ -134,7 +133,7 @@ class Store {
 }
 ```
 
-In your tests, you can use the generated `PricingServiceMock` to create a mock object and stub its functions.
+In your tests, you can use the generated `MockPricingService` to create a mock object and stub its functions.
 
 
 ```swift
@@ -143,7 +142,7 @@ import XCTest
 
 final class StoreTests: XCTestCase {
     func testItemRegistration() {
-        let mock = PricingServiceMock()
+        let mock = MockPricingService()
         let store = Store(pricingService: mock)
 
         // Stub specific calls
@@ -313,7 +312,7 @@ XCTAssertEqual(mock.calculate(a: 5, b: 10), 50)
 To enable logging for a specific mock instance, set the `isLoggingEnabled` property to `true`.
 
 ```swift
-let mock = PricingServiceMock()
+let mock = MockPricingService()
 mock.isLoggingEnabled = true
 
 // Any calls to mock.instance methods will now be logged to the console.
@@ -505,7 +504,21 @@ Then help me write comprehensive unit tests for my [YourService] protocol follow
 
 `SwiftMocking` leverages the power of Swift macros to generate mock implementations of your protocols. When you apply the `@Mockable` macro to a protocol, it generates a new class that inherits from a `Mock` base class. This generated mock class conforms to the original protocol.
 
-The `Mock` base class uses `@dynamicMemberLookup` to intercept method calls. This allows `SwiftMocking` to provide a dynamic and flexible mocking experience. The use of parameter packs ensures that all method calls are type-safe and that the mock stays in sync with the protocol definition.
+The `Mock` base class uses `@dynamicMemberLookup` to create and manage spies to for every protocol requirement.
+
+A Spy has this structure:
+
+```swift
+let spy = Spy<ParamType1, ParamType2, ParamTypeN, Effect, ReturnType>()
+
+// So for example:
+
+// Represents a function signature: (Bool, Int) async throws -> String?
+let methodSpy = Spy<Bool, Int, AsyncThrows, Optional<String>>()
+
+```
+
+The use of parameter packs here allows creating any number of parmeter types `ParamType1 ... ParamTypeN`.
 
 This approach eliminates the need for manual mock implementations and provides a clean, expressive, and type-safe API for your tests.
 
