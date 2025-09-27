@@ -191,7 +191,13 @@ public extension MockableGenerator {
             type: TypeSyntax(
                 IdentifierTypeSyntax(
                     name: .identifier("ArgMatcher"),
-                    genericArgumentClause: GenericArgumentClauseSyntax { GenericArgumentSyntax(argument: type) }
+                    genericArgumentClause: GenericArgumentClauseSyntax {
+                        #if canImport(SwiftSyntax601)
+                        GenericArgumentSyntax(argument: .init(type))
+                        #else
+                        GenericArgumentSyntax(argument: (type))
+                        #endif
+                    }
                 )
             )
         )
@@ -276,7 +282,7 @@ public extension MockableGenerator {
         genericWhereClause: GenericWhereClauseSyntax?
     ) -> FunctionDeclSyntax {
 
-        let (inputTypes, parameterNames, parameterLabels) = getFunctionParameters(funcDecl)
+        let (inputTypes, _, _) = getFunctionParameters(funcDecl)
         let outputType = getFunctionReturnType(funcDecl)
         let effectType = getFunctionEffectType(funcDecl)
 
@@ -319,9 +325,16 @@ public extension MockableGenerator {
                         IdentifierTypeSyntax(
                             name: .identifier("ArgMatcher"),
                             genericArgumentClause: GenericArgumentClauseSyntax {
+
+                                #if canImport(SwiftSyntax601)
+                                GenericArgumentSyntax(
+                                    argument: .init(removeAttributes(parameter.type))
+                                )
+                                #else
                                 GenericArgumentSyntax(
                                     argument: removeAttributes(parameter.type)
                                 )
+                                #endif
                             }
                         )
                     ),
@@ -361,16 +374,29 @@ public extension MockableGenerator {
         }
 
         for inputType in inputTypes {
-            var argType = inputType
-            genericArgs.append(GenericArgumentSyntax(argument: argType))
+            let argType = inputType
+            #if canImport(SwiftSyntax601)
+            genericArgs.append(GenericArgumentSyntax(argument: .init(removeAttributes(argType))))
+            #else
+            genericArgs.append(GenericArgumentSyntax(argument: removeAttributes(argType)))
+            #endif
         }
 
         if inputTypes.isEmpty {
+            #if canImport(SwiftSyntax601)
+            genericArgs.append(GenericArgumentSyntax(argument: .init(TypeSyntax(stringLiteral: "Void"))))
+            #else
             genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: "Void")))
+            #endif
         }
 
+        #if canImport(SwiftSyntax601)
+        genericArgs.append(GenericArgumentSyntax(argument: .init(TypeSyntax(stringLiteral: effectType.rawValue))))
+        genericArgs.append(GenericArgumentSyntax(argument: .init(outputType)))
+        #else
         genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.rawValue)))
         genericArgs.append(GenericArgumentSyntax(argument: outputType))
+        #endif
 
         let genericStubType = IdentifierTypeSyntax(
             name: .identifier("Interaction"),
@@ -378,12 +404,10 @@ public extension MockableGenerator {
                 leftAngle: .leftAngleToken(),
                 arguments: GenericArgumentListSyntax(
                     genericArgs.enumerated().map { (index, arg) in
-                        var processedArgument = arg
-                        processedArgument.argument = removeAttributes(arg.argument)
-                        if index < genericArgs.count - 1 {
-                            return processedArgument.with(\.trailingComma, .commaToken())
-                        }
-                        return processedArgument
+                        GenericArgumentSyntax(
+                            argument: arg.argument,
+                            trailingComma: index == genericArgs.count - 1 ? nil : .commaToken()
+                        )
                     }
                 ),
                 rightAngle: .rightAngleToken()
