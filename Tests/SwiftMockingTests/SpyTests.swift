@@ -80,7 +80,7 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(spy.invocations[1].arguments, "action2")
     }
 
-//    // MARK: - Conditional Stubbing
+    //    // MARK: - Conditional Stubbing
 
     func test_spy_conditionalStubbing_matchesCorrectly() {
         let spy = Spy<String, None, Int>()
@@ -240,45 +240,28 @@ final class SpyTests: XCTestCase {
 
         XCTAssertEqual(spy.stubs.count, iterationCount)
     }
+
+    func test_spy_with_results_param() {
+        let spy = Spy<Result<String, any Error>, None, Int>()
+        when(spy(.failure(.is(AnotherError.self)))).thenReturn(4)
+        when(spy(.failure(.any))).thenReturn(3)
+        when(spy(.success(.any))).thenReturn(-1)
+        when(spy(.success(.equal("3")))).thenReturn(7)
+
+        XCTAssertEqual(spy.call(.failure(TestError.example)), 3)
+        XCTAssertEqual(spy.call(.failure(AnotherError())), 4)
+        XCTAssertEqual(spy.call(.success("3")), 7)
+        XCTAssertEqual(spy.call(.success("hello")), -1)
+
+        let spy2 = Spy<Result<String, TestError>, None, Int>()
+        when(spy2(.failure(.equal(.example)))).thenReturn(9)
+        when(spy2(.failure(.any))).thenReturn(2)
+        when(spy2(.success(.any))).thenReturn(-1)
+        when(spy2(.success(.equal("3")))).thenReturn(7)
+
+        XCTAssertEqual(spy2.call(.failure(TestError.example)), 9)
+        XCTAssertEqual(spy2.call(.failure(TestError.other)), 2)
+        XCTAssertEqual(spy2.call(.success("3")), 7)
+        XCTAssertEqual(spy2.call(.success("hello")), -1)
+    }
 }
-
-    func test_spy_async_recordsInvocations_andReturnsStubbedValue() async {
-        let spy = Spy<String, Async, Int>()
-        spy.when(calledWith: .any).thenReturn(10)
-
-        let result1 = await spy.call("hello")
-        let result2 = await spy.call("world")
-
-        XCTAssertEqual(result1, 10)
-        XCTAssertEqual(result2, 10)
-
-        XCTAssertEqual(spy.invocations.count, 2)
-        XCTAssertEqual(spy.invocations[0].arguments, "hello")
-        XCTAssertEqual(spy.invocations[1].arguments, "world")
-    }
-
-    func test_spy_asyncThrows_recordsInvocations_andReturnsStubbedValue() async throws {
-        let spy = Spy<String, AsyncThrows, Int>()
-        spy.when(calledWith: .any).thenReturn(10)
-
-        let result1 = try await spy.call("hello")
-        let result2 = try await spy.call("world")
-
-        XCTAssertEqual(result1, 10)
-        XCTAssertEqual(result2, 10)
-
-        XCTAssertEqual(spy.invocations.count, 2)
-        XCTAssertEqual(spy.invocations[0].arguments, "hello")
-        XCTAssertEqual(spy.invocations[1].arguments, "world")
-    }
-
-    func test_spy_asyncThrows_verification() async {
-        let spy = Spy<String, AsyncThrows, Int>()
-        spy.when(calledWith: .any).thenThrow(TestError.example)
-        do {
-            _ = try await spy.call("something")
-        } catch {
-
-        }
-        XCTAssert(spy.verifyThrows(.error(TestError.self)))
-    }

@@ -474,7 +474,7 @@ public extension ArgMatcher where Argument == String {
 public extension ArgMatcher {
     /// A matcher that matches a `Result.success` case using a nested matcher for the success value.
     /// - Parameter valueMatcher: An `ArgMatcher` to apply to the success value.
-    static func success<T>(_ valueMatcher: ArgMatcher<T>) -> ArgMatcher<Result<T, Error>> {
+    static func success<T, E: Error>(_ valueMatcher: ArgMatcher<T>) -> ArgMatcher<Result<T, E>> {
         .init(precedence: valueMatcher.precedence, matcher: { result in
             switch result {
             case .success(let value):
