@@ -499,6 +499,19 @@ public extension ArgMatcher {
     }
 }
 
+public extension ArgMatcher {
+    static func `some`<V>(_ valueMatcher: ArgMatcher<V>) -> ArgMatcher<Optional<V>> {
+        .init(precedence: valueMatcher.precedence, matcher: { optional in
+            switch optional {
+            case .none:
+                return false
+            case .some(let value):
+                return valueMatcher(value)
+            }
+        })
+    }
+}
+
 // MARK: - Collection
 public extension ArgMatcher where Argument: Collection {
     /// A matcher that matches an empty collection.
