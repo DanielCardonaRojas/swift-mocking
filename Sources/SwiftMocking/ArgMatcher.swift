@@ -110,6 +110,19 @@ public struct ArgMatcher<Argument> {
         }
     }
 
+    /// A matcher that matches an argument if it can be cast to a specific type.
+    ///
+    /// This is useful when dealing with protocols or superclasses, and you want to match a specific concrete type.
+    /// For example casting an argument of type: `any CustomStringConvertible` to  `String`.
+    ///
+    /// - Parameter type: The type to check for casting.
+    /// - Returns: An `ArgMatcher` that matches if the argument can be cast to the given type.
+    public static func `is`<T>(_ type: T.Type) -> Self {
+        .init(precedence: .typeMatch) { argument in
+            (argument as? T) != nil
+        }
+    }
+
     public static func variadic<Element>(_ matchers: ArgMatcher<Element>...) -> ArgMatcher<[Element]> {
         variadic(Array(matchers))
     }
@@ -144,6 +157,8 @@ public extension ArgMatcher where Argument: Equatable {
         .init(precedence: .equalTo) { $0 == value }
     }
 }
+
+// MARK: - Comparable
 
 public extension ArgMatcher where Argument: Comparable {
     /// A matcher that matches an argument less than the given value.
@@ -388,6 +403,7 @@ extension ArgMatcher: ExpressibleByStringLiteral where Argument == String {
   }
 }
 
+// MARK: - String
 public extension ArgMatcher where Argument == String {
     /// A matcher that matches a string argument that contains the given substring.
     /// - Parameter substring: The substring to search for.
@@ -454,6 +470,36 @@ public extension ArgMatcher where Argument == String {
     }
 }
 
+// MARK: - Result
+public extension ArgMatcher {
+    /// A matcher that matches a `Result.success` case using a nested matcher for the success value.
+    /// - Parameter valueMatcher: An `ArgMatcher` to apply to the success value.
+    static func success<T>(_ valueMatcher: ArgMatcher<T>) -> ArgMatcher<Result<T, Error>> {
+        .init(precedence: valueMatcher.precedence, matcher: { result in
+            switch result {
+            case .success(let value):
+                return valueMatcher(value)
+            case .failure:
+                return false
+            }
+        })
+    }
+
+    /// A matcher that matches a `Result.failure` case using a nested matcher for the error.
+    /// - Parameter errorMatcher: An `ArgMatcher` to apply to the error value.
+    static func failure<T, E>(_ errorMatcher: ArgMatcher<E>) -> ArgMatcher<Result<T, E>> {
+        .init(precedence: errorMatcher.precedence, matcher: { result in
+            switch result {
+            case .success:
+                return false
+            case .failure(let err):
+                return errorMatcher(err)
+            }
+        })
+    }
+}
+
+// MARK: - Collection
 public extension ArgMatcher where Argument: Collection {
     /// A matcher that matches an empty collection.
     ///
@@ -557,6 +603,7 @@ public extension ArgMatcher where Argument: Collection, Argument.Element: Equata
     }
 }
 
+// MARK: - MatcherPrecendence
 public struct MatcherPrecedence: Comparable, Hashable {
     public static let any: Self                = .init(value: 0)
     public static let typeMatch: Self          = .init(value: 100)
