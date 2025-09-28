@@ -12,11 +12,24 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        swift-version: ['5.9', '6.0']
+        include:
+          - swift-version: '5.9'
+            xcode-version: 'Xcode_16.0.app'
+          - swift-version: '6.0'
+            xcode-version: 'Xcode_16.4.app'
+
     runs-on: macos-15
     steps:
     - uses: actions/checkout@v4
+    - name: List available Xcode versions
+      run: ls /Applications/ | grep Xcode
     - name: Select Xcode
-      run: sudo xcode-select -s /Applications/Xcode_16.2.app
+      run: sudo xcode-select -s /Applications/${{ matrix.xcode-version }}
+    - name: Print Swift version
+      run: swift --version
     - name: Skip macro validation
       run: defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
     - name: Run main project tests
