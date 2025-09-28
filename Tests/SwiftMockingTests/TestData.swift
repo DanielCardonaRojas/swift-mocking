@@ -7,6 +7,7 @@
 
 enum TestError: Error, Equatable {
     case example
+    case other
 }
 
 struct AnotherError: Error, Equatable {}
