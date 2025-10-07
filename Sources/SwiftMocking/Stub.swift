@@ -70,10 +70,7 @@ public class Stub<each I, Effects: Effect, O> {
     ///
     /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
     public func then(_ handler: @escaping (repeat each I) -> O) {
-        self.output = { invocation in
-            let returnValue = handler(repeat each invocation.arguments)
-            return Return.value(returnValue)
-        }
+        thenReturn(handler)
     }
 
     /// The precedence of this stub based on its invocation matcher.
@@ -91,5 +88,50 @@ extension Stub where Effects: Throwing {
     /// - Parameter error: The error to throw.
     public func thenThrow<E: Error>(_ error: E) {
         self.output = { _ in  Return.error(error) }
+    }
+
+    /// Defines a dynamic return value that can throw before producing the result.
+    /// - Parameter handler: A closure that can throw and returns the desired output.
+    public func thenReturn(_ handler: @escaping (repeat each I) throws -> O) {
+        self.output = { invocation in
+            Return(value: {
+                do {
+                    let returnValue = try handler(repeat each invocation.arguments)
+                    return .success(returnValue)
+                } catch {
+                    return .failure(error)
+                }
+            })
+        }
+    }
+}
+
+extension Stub where Effects: Asynchronous {
+    /// Defines a dynamic return value using an asynchronous closure.
+    /// - Parameter handler: An async closure that returns the desired output.
+    public func thenReturn(_ handler: @escaping (repeat each I) async -> O) {
+        self.output = { invocation in
+            Return(asyncValue: {
+                let returnValue = await handler(repeat each invocation.arguments)
+                return .success(returnValue)
+            })
+        }
+    }
+}
+
+extension Stub where Effects: Asynchronous, Effects: Throwing {
+    /// Defines a dynamic return value using an asynchronous closure that can throw.
+    /// - Parameter handler: An async closure that returns the desired output or throws.
+    public func thenReturn(_ handler: @escaping (repeat each I) async throws -> O) {
+        self.output = { invocation in
+            Return(asyncValue: {
+                do {
+                    let returnValue = try await handler(repeat each invocation.arguments)
+                    return .success(returnValue)
+                } catch {
+                    return .failure(error)
+                }
+            })
+        }
     }
 }
