@@ -35,6 +35,17 @@ public class Stub<each I, Effects: Effect, O> {
         self.output = { _ in  Return.value(output) }
     }
 
+    /// The precedence of this stub based on its invocation matcher.
+    ///
+    /// Stubs with higher precedence are matched first when multiple stubs
+    /// could apply to the same method call. This ensures that more specific
+    /// matchers take priority over general ones.
+    public var precedence: MatcherPrecedence {
+        .init(value: invocationMatcher.precedence)
+    }
+}
+
+extension Stub where Effects == None {
     /// Defines a dynamic return value using a closure that receives the method arguments.
     ///
     /// This allows you to create stubs with behavior that depends on the actual
@@ -71,15 +82,6 @@ public class Stub<each I, Effects: Effect, O> {
     /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
     public func then(_ handler: @escaping (repeat each I) -> O) {
         thenReturn(handler)
-    }
-
-    /// The precedence of this stub based on its invocation matcher.
-    ///
-    /// Stubs with higher precedence are matched first when multiple stubs
-    /// could apply to the same method call. This ensures that more specific
-    /// matchers take priority over general ones.
-    public var precedence: MatcherPrecedence {
-        .init(value: invocationMatcher.precedence)
     }
 }
 
