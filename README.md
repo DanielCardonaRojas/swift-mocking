@@ -366,6 +366,42 @@ This pattern is invaluable for testing:
 
 **Important:** When testing methods with callbacks, always use the `.any` matcher for callback parameters, as it's the only matcher that makes sense for closure types.
 
+### Waiting for Asynchronous Interactions
+
+When a system under test triggers an `async`/`async throws` dependency inside a detached task, you can wait for the interaction with the `until` helper. This utility polls the spy until a matching invocation is recorded or a timeout is reached.
+
+```swift
+@Mockable
+protocol Loader {
+    func refresh(id: String) async throws
+}
+
+struct Controller {
+    let refresh: (String) async throws -> Void
+
+    func start() {
+        Task {
+            _ = try? await refresh("primary")
+        }
+    }
+}
+
+func testControllerRefreshesInBackground() async throws {
+    let mock = MockLoader()
+    when(mock.refresh(id: .any)).thenReturn { _ in
+        try await Task.sleep(for: .milliseconds(25))
+    }
+
+    let sut = Controller(refresh: mock.refresh(id:))
+    sut.start()
+
+    try await until(mock.refresh(id: .equal("primary")))
+    verify(mock.refresh(id: .equal("primary"))).called()
+}
+```
+
+By default `until` waits up to one second, polling every 10 milliseconds. Adjust the timeout and polling interval via optional parameters when working with slower background work.
+
 ### Testing Closure-Based Dependencies
 
 `SwiftMocking` also supports testing systems that use closures as dependencies instead of protocols. This is particularly useful for projects using The Composable Architecture (TCA) from Point-Free or similar dependency injection approaches.
@@ -557,4 +593,3 @@ Xcode's autocomplete will prioritize methods in the order they are declared. Sin
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-

@@ -88,6 +88,23 @@ import Foundation
     verify(mock.fetchDataThrows(id: "success_id")).called(1)
 }
 
+@Test func test_until_waitsForBackgroundInteraction() async throws {
+    let spy = Spy<URL, AsyncThrows, Data>()
+    let url = URL(string: "https://example.com/feed")!
+    let response = Data("feed".utf8)
+
+    when(spy(.equal(url))).thenReturn { _ in
+        try await Task.sleep(for: .milliseconds(15))
+        return response
+    }
+
+    let controller = FeedController(fetch: adapt(spy))
+    controller.load(url: url)
+
+    try await until(spy(.equal(url)))
+    verify(spy(.equal(url))).called()
+}
+
 @Test func testCalculate() {
     let mockCalculator = MockCalculator()
     let even = ArgMatcher<Int>.any(that: { $0 % 2 == 0 })

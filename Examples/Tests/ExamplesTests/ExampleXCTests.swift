@@ -249,7 +249,7 @@ final class MockitoTests: XCTestCase {
         let loadNumberSpy = Spy<Void, AsyncThrows, [Int]>()
         let saveNumberSpy = Spy<Int, AsyncThrows, Void>()
 
-        when(saveNumberSpy(.any)).then {
+        when(saveNumberSpy(.any)).thenReturn {
             print(">>> number: \($0)")
         }
 
