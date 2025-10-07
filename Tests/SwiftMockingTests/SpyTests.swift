@@ -209,9 +209,7 @@ final class SpyTests: XCTestCase {
         sut.load("ping")
         verifyNever(spy(.any)) // Has not called spy at this point
 
-        try await waitUntil(timeout: .seconds(1)) {
-            spy.invocations.count == 1
-        }
+        try await until(spy(.equal("ping")))
 
         verify(spy("ping")).called()
     }
@@ -303,30 +301,8 @@ private struct FireAndForgetController {
 
     func load(_ value: String) {
         Task {
-            try await Task.sleep(for: .milliseconds(50))
+            try? await Task.sleep(for: .milliseconds(50))
             _ = try? await service(value)
         }
     }
-}
-
-private enum WaitError: Error {
-    case timeout
-}
-
-private func waitUntil(
-    timeout: Duration,
-    pollInterval: Duration = .milliseconds(10),
-    condition: @escaping () -> Bool
-) async throws {
-    let clock = ContinuousClock()
-    let deadline = clock.now + timeout
-
-    while clock.now < deadline {
-        if condition() {
-            return
-        }
-        try await Task.sleep(for: pollInterval)
-    }
-
-    throw WaitError.timeout
 }

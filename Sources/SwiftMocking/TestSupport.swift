@@ -134,6 +134,42 @@ public func verifyZeroInteractions(
     }
 }
 
+// MARK: Await utilities
+
+/// Waits until the provided asynchronous interaction has been recorded.
+///
+/// Use this helper when the code under test triggers an `async` or `async throws` dependency in a detached task,
+/// and you need to wait for that interaction before asserting on it.
+///
+/// ```
+/// await until(mock.load(.any))
+/// verify(mock.load(.any)).called()
+/// ```
+///
+/// - Parameters:
+///   - interaction: The interaction to observe.
+///   - timeout: Maximum duration to wait before throwing `UntilError.timeout`.
+///   - pollInterval: Delay between polling the spy for new invocations.
+/// - Throws: `UntilError.timeout` if the interaction is not observed within the timeout.
+public func until<each Input, Eff: Asynchronous, Output>(
+    _ interaction: Interaction<repeat each Input, Eff, Output>,
+    timeout: Duration = .seconds(1),
+    pollInterval: Duration = .milliseconds(10)
+) async throws {
+    let clock = ContinuousClock()
+    let deadline = clock.now + timeout
+
+    while clock.now < deadline {
+        let matchedCalls = interaction.spy.invocationCount(matching: interaction.invocationMatcher)
+        if matchedCalls > 0 {
+            return
+        }
+        try await Task.sleep(for: pollInterval)
+    }
+
+    throw UntilError.timeout
+}
+
 // MARK: Asserts
 
 public extension Assert {
