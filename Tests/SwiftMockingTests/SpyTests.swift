@@ -199,6 +199,23 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(result, 5)
     }
 
+    func test_asyncThrows_serviceInvokedInsideTask_eventuallyExecutes() async throws {
+        let spy = Spy<String, AsyncThrows, Void>()
+        spy.when(calledWith: .equal("ping")).thenReturn { _ in
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        let sut = FireAndForgetController(service: spy.asFunction())
+        sut.load("ping")
+        verifyNever(spy(.any)) // Has not called spy at this point
+
+        try await waitUntil(timeout: .seconds(1)) {
+            spy.invocations.count == 1
+        }
+
+        verify(spy("ping")).called()
+    }
+
     func test_callback() async {
         // represents something like: fetch(url: String, completion: @escaping (Int) -> Void)
         let spy = Spy<String, (Int) -> Void, None, Void>()
@@ -279,4 +296,37 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(spy2.call(.success("3")), 7)
         XCTAssertEqual(spy2.call(.success("hello")), -1)
     }
+}
+
+private struct FireAndForgetController {
+    let service: (String) async throws -> Void
+
+    func load(_ value: String) {
+        Task {
+            try await Task.sleep(for: .milliseconds(50))
+            _ = try? await service(value)
+        }
+    }
+}
+
+private enum WaitError: Error {
+    case timeout
+}
+
+private func waitUntil(
+    timeout: Duration,
+    pollInterval: Duration = .milliseconds(10),
+    condition: @escaping () -> Bool
+) async throws {
+    let clock = ContinuousClock()
+    let deadline = clock.now + timeout
+
+    while clock.now < deadline {
+        if condition() {
+            return
+        }
+        try await Task.sleep(for: pollInterval)
+    }
+
+    throw WaitError.timeout
 }
