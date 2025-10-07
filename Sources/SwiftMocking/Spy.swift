@@ -73,7 +73,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// - Parameter input: The arguments of the invocation.
     /// - Returns: The ``Return`` value from the matching stub.
     /// - Throws: ``MockingError/unStubbed`` if no matching stub is found.
-    func invoke(_ input: repeat each Input) throws -> Return<Output> {
+    func invoke(_ input: repeat each Input) throws -> Return<Effects, Output> {
         invocationsLock.lock()
         defer { invocationsLock.unlock() }
         let invocation = Invocation(arguments: repeat each input)
@@ -188,34 +188,6 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         return count == invocationMatchers.count
     }
 
-    /// Verifies that the spy's method threw an error matching the given `errorMatcher`.
-    /// - Parameter errorMatcher: An ``ArgMatcher`` for `Error` to specify the expected error.
-    /// - Returns: `true` if a matching error was thrown, `false` otherwise.
-    public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool {
-        var doesThrow = false
-        for invocation in invocations {
-            for stub in stubs {
-                if stub.invocationMatcher.isMatchedBy(invocation) {
-                    if let stubbedReturn = stub.returnValue(for: invocation) {
-                        do {
-                            try stubbedReturn.get()
-                        }
-                        catch {
-                            doesThrow = errorMatcher(error)
-                        }
-                    }
-                }
-            }
-        }
-        return doesThrow
-    }
-
-    /// Verifies that the spy's method threw any error.
-    /// - Returns: `true` if any error was thrown, `false` otherwise.
-    public func verifyThrows() -> Bool {
-        verifyThrows(.anyError())
-    }
-
     /// Clear stubs and invocations,  leaving the spy in a fresh state.
     public func clear() {
         stubs = []
@@ -239,6 +211,33 @@ extension Spy where Effects == Throws {
             try self.call(repeat each args)
         }
     }
+
+    /// Verifies that the spy's method threw an error matching the given `errorMatcher`.
+    /// - Parameter errorMatcher: An ``ArgMatcher`` for `Error` to specify the expected error.
+    /// - Returns: `true` if a matching error was thrown, `false` otherwise.
+    public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool {
+        var doesThrow = false
+        for invocation in invocations {
+            for stub in stubs where stub.invocationMatcher.isMatchedBy(invocation) {
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
+                switch stubbedReturn.resolve() {
+                case .success:
+                    break
+                case .failure(let error):
+                    doesThrow = errorMatcher(error)
+                }
+            }
+        }
+        return doesThrow
+    }
+
+    /// Verifies that the spy's method threw any error.
+    /// - Returns: `true` if any error was thrown, `false` otherwise.
+    public func verifyThrows() -> Bool {
+        verifyThrows(.anyError())
+    }
 }
 
 // MARK: None throwing
@@ -250,7 +249,8 @@ extension Spy where Effects == None {
     @discardableResult
     public func call(_ input: repeat each Input) -> Output {
         do {
-            return try invoke(repeat each input).get()
+            let returnValue = try invoke(repeat each input)
+            return returnValue.get()
         } catch let error as MockingError {
             fatalError("MockingError: \(error.message)")
         } catch {
@@ -274,7 +274,8 @@ extension Spy where Effects == Async {
     @discardableResult
     public func call(_ input: repeat each Input) async -> Output {
         do {
-            return try invoke(repeat each input).get()
+            let returnValue = try invoke(repeat each input)
+            return await returnValue.get()
         } catch let error as MockingError {
             fatalError("MockingError: \(error.message)")
         } catch {
@@ -297,7 +298,8 @@ extension Spy where Effects == AsyncThrows {
     /// - Throws: The error thrown by the method.
     @discardableResult
     public func call(_ input: repeat each Input) async throws -> Output {
-        try invoke(repeat each input).get()
+        let returnValue = try invoke(repeat each input)
+        return try await returnValue.get()
     }
 
     public func asFunction() -> (repeat each Input) async throws -> Output {
@@ -305,5 +307,32 @@ extension Spy where Effects == AsyncThrows {
             try await self.call(repeat each args)
         }
     }
-}
 
+    /// Verifies that the spy's method threw an error matching the given `errorMatcher`.
+    /// - Parameter errorMatcher: An ``ArgMatcher`` for `Error` to specify the expected error.
+    /// - Returns: `true` if a matching error was thrown, `false` otherwise.
+    public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool {
+        var doesThrow = false
+        for invocation in invocations {
+            for stub in stubs where stub.invocationMatcher.isMatchedBy(invocation) {
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
+                let resolved = await stubbedReturn.resolveAsync()
+                switch resolved {
+                case .success:
+                    break
+                case .failure(let error):
+                    doesThrow = errorMatcher(error)
+                }
+            }
+        }
+        return doesThrow
+    }
+
+    /// Verifies that the spy's method threw any error.
+    /// - Returns: `true` if any error was thrown, `false` otherwise.
+    public func verifyThrows() async -> Bool {
+        await verifyThrows(.anyError())
+    }
+}

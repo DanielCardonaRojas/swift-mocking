@@ -181,7 +181,8 @@ final class SpyTests: XCTestCase {
         } catch {
 
         }
-        XCTAssert(spy.verifyThrows(.error(TestError.self)))
+        let didThrow = await spy.verifyThrows(.error(TestError.self))
+        XCTAssert(didThrow)
     }
 
     func test_callback() async {

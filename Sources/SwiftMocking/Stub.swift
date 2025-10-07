@@ -13,7 +13,7 @@
 public class Stub<each I, Effects: Effect, O> {
     /// The ``InvocationMatcher`` that defines when this stub should be applied.
     public let invocationMatcher: InvocationMatcher<repeat each I>
-    var output: ((Invocation<repeat each I>) -> Return<O>)?
+    var output: ((Invocation<repeat each I>) -> Return<Effects, O>)?
 
     /// Initializes a `Stub` instance.
     /// - Parameter invocationMatcher: The ``InvocationMatcher`` that determines when this stub is active.
@@ -21,7 +21,7 @@ public class Stub<each I, Effects: Effect, O> {
         self.invocationMatcher = invocationMatcher
     }
 
-    func returnValue(for invocation: Invocation<repeat each I>) -> Return<O>? {
+    func returnValue(for invocation: Invocation<repeat each I>) -> Return<Effects, O>? {
         guard invocationMatcher.isMatchedBy(invocation) else {
             return nil
         }

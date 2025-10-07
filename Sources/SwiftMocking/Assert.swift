@@ -61,45 +61,6 @@ public class Assert<each Input, Eff: Effect, Output> {
         }
     }
 
-    /// Asserts that the spy's method threw an error.
-    /// - Parameter errorMatcher: An optional ``ArgMatcher`` for `Error` to specify the expected error. If `nil`, asserts that any error was thrown.
-    /// - Throws:
-    ///   - ``MockingError/didNotThrow`` if no error was thrown.
-    ///   - ``MockingError/didNotMatchThrown(_:)`` if an `errorMatcher` is provided and no thrown error matches it.
-    public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws {
-        var errors = [any Error]()
-        for invocation in spy.invocations {
-            for stub in spy.stubs {
-                // Is there is no programmed `Return` for this stub don't even bother trying to match
-                guard let stubbedReturn = stub.returnValue(for: invocation) else {
-                    continue
-                }
-
-                if stub.invocationMatcher.isMatchedBy(invocation) { // Found a candidate
-
-                    if let invocationMatcher {
-                        // If an invocation matcher is non nil than it also needs to match
-                        if invocationMatcher.isMatchedBy(invocation) {
-                            try Self.collectErrors(stubbedReturn, errors: &errors)
-                        }
-                    } else {
-                        try Self.collectErrors(stubbedReturn, errors: &errors)
-                    }
-                }
-            }
-        }
-
-        if errors.isEmpty {
-            throw MockingError.didNotThrow
-        }
-
-        if let errorMatcher, !errors.contains(where: errorMatcher.callAsFunction) {
-            throw MockingError.didNotMatchThrown(errors)
-        }
-
-        return
-    }
-
     /// Asserts that the mocked method was never called.
     ///
     /// This is a convenience method equivalent to `called(.equal(0))`.
@@ -137,11 +98,56 @@ public class Assert<each Input, Eff: Effect, Output> {
         }
     }
 
-    private static func collectErrors<O>(_ result: Return<O>, errors: inout [any Error]) throws {
-        do {
-            _ = try result.get()
-        } catch {
+    private static func collectErrors<O>(_ result: Return<Eff, O>, errors: inout [any Error]) {
+        guard let resolved = result.resolveIfSynchronous() else {
+            return
+        }
+        switch resolved {
+        case .success:
+            break
+        case .failure(let error):
             errors.append(error)
         }
+    }
+}
+
+extension Assert where Eff: Throwing {
+    /// Asserts that the spy's method threw an error.
+    /// - Parameter errorMatcher: An optional ``ArgMatcher`` for `Error` to specify the expected error. If `nil`, asserts that any error was thrown.
+    /// - Throws:
+    ///   - ``MockingError/didNotThrow`` if no error was thrown.
+    ///   - ``MockingError/didNotMatchThrown(_:)`` if an `errorMatcher` is provided and no thrown error matches it.
+    public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws {
+        var errors = [any Error]()
+        for invocation in spy.invocations {
+            for stub in spy.stubs {
+                // Is there is no programmed `Return` for this stub don't even bother trying to match
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
+
+                if stub.invocationMatcher.isMatchedBy(invocation) { // Found a candidate
+
+                    if let invocationMatcher {
+                        // If an invocation matcher is non nil than it also needs to match
+                        if invocationMatcher.isMatchedBy(invocation) {
+                            Self.collectErrors(stubbedReturn, errors: &errors)
+                        }
+                    } else {
+                        Self.collectErrors(stubbedReturn, errors: &errors)
+                    }
+                }
+            }
+        }
+
+        if errors.isEmpty {
+            throw MockingError.didNotThrow
+        }
+
+        if let errorMatcher, !errors.contains(where: errorMatcher.callAsFunction) {
+            throw MockingError.didNotMatchThrown(errors)
+        }
+
+        return
     }
 }
