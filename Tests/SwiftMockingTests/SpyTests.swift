@@ -185,6 +185,20 @@ final class SpyTests: XCTestCase {
         XCTAssert(didThrow)
     }
 
+    func test_spy_async_canUseAsyncReturnClosure() async throws {
+        let spy = Spy<String, AsyncThrows, Int>()
+        spy.when(calledWith: .any).thenReturn { value in
+            try await Task.sleep(for: .milliseconds(20))
+            return value.count
+        }
+
+        let result = try await spy.call("hello")
+        verify(spy(.any)).captured({ string in
+            XCTAssertEqual("hello", string)
+        })
+        XCTAssertEqual(result, 5)
+    }
+
     func test_callback() async {
         // represents something like: fetch(url: String, completion: @escaping (Int) -> Void)
         let spy = Spy<String, (Int) -> Void, None, Void>()
