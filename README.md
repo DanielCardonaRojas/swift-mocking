@@ -53,7 +53,6 @@
 | Static Methods | ✅ |
 | Generics | ✅ |
 | Subscripts | ✅ |
-| Initializers | ✅ |
 | `async` Methods | ✅ |
 | `throws` Methods | ✅ |
 | Variadic parameters | ✅ |
