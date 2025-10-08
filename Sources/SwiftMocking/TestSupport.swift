@@ -28,6 +28,50 @@ public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<rep
     interaction.spy.when(calledWith: interaction.invocationMatcher)
 }
 
+/// Registers a side-effect for a non-throwing interaction without configuring a return value.
+@discardableResult
+public func when<each Input, Output>(
+    _ interaction: Interaction<repeat each Input, None, Output>,
+    do handler: @escaping (repeat each Input) -> Void
+) -> Action<repeat each Input, None> {
+    return interaction.spy.registerAction(for: interaction.invocationMatcher) { action in
+        action.`do`(handler)
+    }
+}
+
+/// Registers a throwing side-effect for an interaction without configuring a return value.
+@discardableResult
+public func when<each Input, Output>(
+    _ interaction: Interaction<repeat each Input, Throws, Output>,
+    do handler: @escaping (repeat each Input) throws -> Void
+) -> Action<repeat each Input, Throws> {
+    return interaction.spy.registerAction(for: interaction.invocationMatcher) { action in
+        action.`do`(handler)
+    }
+}
+
+/// Registers an asynchronous side-effect for an interaction without configuring a return value.
+@discardableResult
+public func when<each Input, Output>(
+    _ interaction: Interaction<repeat each Input, Async, Output>,
+    do handler: @escaping (repeat each Input) async -> Void
+) -> Action<repeat each Input, Async> {
+    return interaction.spy.registerAction(for: interaction.invocationMatcher) { action in
+        action.`do`(handler)
+    }
+}
+
+/// Registers an asynchronous throwing side-effect for an interaction without configuring a return value.
+@discardableResult
+public func when<each Input, Output>(
+    _ interaction: Interaction<repeat each Input, AsyncThrows, Output>,
+    do handler: @escaping (repeat each Input) async throws -> Void
+) -> Action<repeat each Input, AsyncThrows> {
+    return interaction.spy.registerAction(for: interaction.invocationMatcher) { action in
+        action.`do`(handler)
+    }
+}
+
 /// Verifies that a specific interaction with a mock object has occurred.
 ///
 /// This function is used to assert that a mocked method was called with arguments
