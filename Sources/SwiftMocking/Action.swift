@@ -34,7 +34,7 @@ extension Action where Eff == None {
         }
     }
 
-    func performSync(_ invocation: Invocation<repeat each I>) {
+    func perform(_ invocation: Invocation<repeat each I>) {
         syncPerformer?(invocation)
     }
 }
@@ -47,7 +47,7 @@ extension Action where Eff == Throws {
         }
     }
 
-    func performThrowing(_ invocation: Invocation<repeat each I>) throws {
+    func perform(_ invocation: Invocation<repeat each I>) throws {
         try throwingPerformer?(invocation)
     }
 }
@@ -60,7 +60,7 @@ extension Action where Eff == Async {
         }
     }
 
-    func performAsync(_ invocation: Invocation<repeat each I>) async {
+    func perform(_ invocation: Invocation<repeat each I>) async {
         await asyncPerformer?(invocation)
     }
 }
@@ -73,7 +73,7 @@ extension Action where Eff == AsyncThrows {
         }
     }
 
-    func performAsyncThrowing(_ invocation: Invocation<repeat each I>) async throws {
+    func perform(_ invocation: Invocation<repeat each I>) async throws {
         try await asyncThrowingPerformer?(invocation)
     }
 }
