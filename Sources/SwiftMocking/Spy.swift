@@ -62,18 +62,12 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         }
 
         // search through stub for a return value
-        var matchingStub: Stub<repeat each Input, Effects, Output>?
 
+        var matchingStub = matchingStub(invocation: invocation)
 
         for action in actions .reversed() .sorted(by: { $0.precedence > $1.precedence }) {
             if action.invocationMatcher.isMatchedBy(invocation) {
                 action.perform(for: invocation)
-            }
-        }
-        for stub in stubs.reversed().sorted(by: { $0.precedence > $1.precedence }) {
-            if stub.invocationMatcher.isMatchedBy(invocation) {
-                matchingStub = stub
-                break
             }
         }
         guard let returnValue = matchingStub?.returnValue(for: invocation) else {
@@ -85,6 +79,17 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         }
 
         return returnValue
+    }
+
+    private func matchingStub(invocation: Invocation<repeat each Input>) -> Stub<repeat each Input, Effects, Output>? {
+        var matchingStub: Stub<repeat each Input, Effects, Output>?
+        for stub in stubs.reversed().sorted(by: { $0.precedence > $1.precedence }) {
+            if stub.invocationMatcher.isMatchedBy(invocation) {
+                matchingStub = stub
+                break
+            }
+        }
+        return matchingStub
     }
 
     /// Defines a stubbing behavior for the spy when called with specific argument matchers.
