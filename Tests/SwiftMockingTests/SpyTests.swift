@@ -203,6 +203,7 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, None, Void>()
         var captured: [String] = []
 
+        when(spy(.any)).thenReturn(())
         when(spy(.equal("track")), do: { value in
             captured.append(value)
         })
