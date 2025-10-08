@@ -29,12 +29,6 @@ public class Stub<each I, Effects: Effect, O> {
 
     }
 
-    /// Defines the return value for this stub.
-    /// - Parameter output: The value to return when this stub is matched.
-    public func thenReturn(_ output: O) {
-        self.output = { _ in  Return.value(output) }
-    }
-
     /// The precedence of this stub based on its invocation matcher.
     ///
     /// Stubs with higher precedence are matched first when multiple stubs
@@ -46,18 +40,17 @@ public class Stub<each I, Effects: Effect, O> {
 }
 
 extension Stub where Effects == None {
+    /// Defines the return value for this stub.
+    /// - Parameter output: The value to return when this stub is matched.
+    public func thenReturn(_ output: O) {
+        self.output = { _ in  Return.value(output) }
+    }
+
     /// Defines a dynamic return value using a closure that receives the method arguments.
     ///
     /// This allows you to create stubs with behavior that depends on the actual
     /// arguments passed to the method. The closure receives the same arguments
     /// as the original method and can compute a return value based on them.
-    ///
-    /// Example:
-    /// ```swift
-    /// when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
-    ///     return a + b  // Dynamic calculation based on arguments
-    /// }
-    /// ```
     ///
     /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
     public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
@@ -67,25 +60,29 @@ extension Stub where Effects == None {
         }
     }
 
-    /// Defines a dynamic return value using a closure that receives the method arguments.
-    ///
-    /// This is an alias for `thenReturn(_:)` that provides a more concise syntax
-    /// for dynamic stubbing scenarios.
-    ///
-    /// Example:
-    /// ```swift
-    /// when(mock.calculate(a: .any, b: .any)).then { a, b in
-    ///     return a * b  // Dynamic calculation
-    /// }
-    /// ```
-    ///
-    /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
-    public func then(_ handler: @escaping (repeat each I) -> O) {
-        thenReturn(handler)
-    }
 }
 
-extension Stub where Effects: Throwing {
+extension Stub where Effects == Throws {
+    /// Defines the return value for this stub.
+    /// - Parameter output: The value to return when this stub is matched.
+    public func thenReturn(_ output: O) {
+        self.output = { _ in  Return.value(output) }
+    }
+
+    /// Defines a dynamic return value using a closure that receives the method arguments.
+    ///
+    /// This allows you to create stubs with behavior that depends on the actual
+    /// arguments passed to the method. The closure receives the same arguments
+    /// as the original method and can compute a return value based on them.
+    ///
+    /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
+    public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
+        self.output = { invocation in
+            let returnValue = handler(repeat each invocation.arguments)
+            return Return.value(returnValue)
+        }
+    }
+
     /// Defines an error to be thrown when this stub is matched.
     /// - Parameter error: The error to throw.
     public func thenThrow<E: Error>(_ error: E) {
@@ -108,7 +105,26 @@ extension Stub where Effects: Throwing {
     }
 }
 
-extension Stub where Effects: Asynchronous {
+extension Stub where Effects == Async {
+    /// Defines the return value for this stub.
+    /// - Parameter output: The value to return when this stub is matched.
+    public func thenReturn(_ output: O) {
+        self.output = { _ in  Return.value(output) }
+    }
+
+    /// Defines a dynamic return value using a closure that receives the method arguments.
+    ///
+    /// This allows you to create stubs with behavior that depends on the actual
+    /// arguments passed to the method. The closure receives the same arguments
+    /// as the original method and can compute a return value based on them.
+    ///
+    /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
+    public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
+        self.output = { invocation in
+            let returnValue = handler(repeat each invocation.arguments)
+            return Return.value(returnValue)
+        }
+    }
     /// Defines a dynamic return value using an asynchronous closure.
     /// - Parameter handler: An async closure that returns the desired output.
     public func thenReturn(_ handler: @escaping (repeat each I) async -> O) {
@@ -121,7 +137,43 @@ extension Stub where Effects: Asynchronous {
     }
 }
 
-extension Stub where Effects: Asynchronous, Effects: Throwing {
+extension Stub where Effects == AsyncThrows {
+    /// Defines the return value for this stub.
+    /// - Parameter output: The value to return when this stub is matched.
+    public func thenReturn(_ output: O) {
+        self.output = { _ in  Return.value(output) }
+    }
+
+    /// Defines a dynamic return value using a closure that receives the method arguments.
+    ///
+    /// This allows you to create stubs with behavior that depends on the actual
+    /// arguments passed to the method. The closure receives the same arguments
+    /// as the original method and can compute a return value based on them.
+    ///
+    /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
+    public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
+        self.output = { invocation in
+            let returnValue = handler(repeat each invocation.arguments)
+            return Return.value(returnValue)
+        }
+    }
+    /// Defines an error to be thrown when this stub is matched.
+    /// - Parameter error: The error to throw.
+    public func thenThrow<E: Error>(_ error: E) {
+        self.output = { _ in Return.error(error) }
+    }
+
+    /// Defines a dynamic return value using an asynchronous closure.
+    /// - Parameter handler: An async closure that returns the desired output.
+    public func thenReturn(_ handler: @escaping (repeat each I) async -> O) {
+        self.output = { invocation in
+            Return(asyncValue: {
+                let returnValue = await handler(repeat each invocation.arguments)
+                return .success(returnValue)
+            })
+        }
+    }
+
     /// Defines a dynamic return value using an asynchronous closure that can throw.
     /// - Parameter handler: An async closure that returns the desired output or throws.
     public func thenReturn(_ handler: @escaping (repeat each I) async throws -> O) {

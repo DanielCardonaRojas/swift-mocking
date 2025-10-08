@@ -87,18 +87,6 @@ struct Return<Effects: Effect, R> {
     }
 }
 
-extension Return where Effects: Throwing {
-    /// Creates a `Return` instance that represents an error.
-    /// - Parameter error: The error to be returned.
-    /// - Returns: A `Return` instance encapsulating the error.
-    static func error<E: Error>(_ error: E) -> Return<Effects, R> {
-        if Effects.self is Asynchronous.Type {
-            return Return(asyncValue: { .failure(error) })
-        }
-        return Return(value: { .failure(error) })
-    }
-}
-
 extension Return where Effects == None {
     /// Retrieves the encapsulated value, crashing if an error was stored.
     /// - Returns: The success value.
@@ -113,6 +101,12 @@ extension Return where Effects == None {
 }
 
 extension Return where Effects == Throws {
+    /// Creates a `Return` instance that represents an error.
+    /// - Parameter error: The error to be returned.
+    /// - Returns: A `Return` instance encapsulating the error.
+    static func error<E: Error>(_ error: E) -> Return<Effects, R> {
+        return Return(value: { .failure(error) })
+    }
     /// Retrieves the encapsulated value or throws the encapsulated error.
     /// - Returns: The success value.
     /// - Throws: The encapsulated error if the `Return` instance represents an error.
@@ -136,6 +130,13 @@ extension Return where Effects == Async {
 }
 
 extension Return where Effects == AsyncThrows {
+    /// Creates a `Return` instance that represents an error.
+    /// - Parameter error: The error to be returned.
+    /// - Returns: A `Return` instance encapsulating the error.
+    static func error<E: Error>(_ error: E) -> Return<Effects, R> {
+        Return(asyncValue: { .failure(error) })
+    }
+
     /// Retrieves the encapsulated value asynchronously or throws the encapsulated error.
     /// - Returns: The success value.
     /// - Throws: The encapsulated error if the `Return` instance represents an error.

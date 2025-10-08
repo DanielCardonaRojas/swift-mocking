@@ -34,6 +34,7 @@ public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<rep
 /// matching the provided `Interaction`.
 /// It returns an `Assert` object, which allows you to specify the expected
 /// number of calls using `.called()` or to assert that it threw an error using `.throws()`.
+/// Note that async-throwing interactions require awaiting the `.throws()` assertion (e.g. `await verify(mock.load()).throws()`).
 ///
 /// Example:
 /// ```swift
@@ -210,7 +211,7 @@ public extension Assert {
     }
 }
 
-public extension Assert where Eff: Throwing {
+public extension Assert where Eff == Throws {
     /// Asserts that the mocked method threw an error.
     ///
     /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
@@ -222,6 +223,26 @@ public extension Assert where Eff: Throwing {
     ) {
         do {
             try doesThrow(errorMatcher)
+        } catch let error as MockingError {
+            reportIssue("\(error.message)", filePath: file, line: line)
+        } catch {
+            reportIssue("\(error.localizedDescription)", filePath: file, line: line)
+        }
+    }
+}
+
+public extension Assert where Eff == AsyncThrows {
+    /// Asserts asynchronously that the mocked method threw an error.
+    ///
+    /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
+    ///   Defaults to `.anyError()` if `nil`, meaning any error is expected.
+    func `throws`(
+        _ errorMatcher: ArgMatcher<any Error>? = nil,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        do {
+            try await doesThrow(errorMatcher)
         } catch let error as MockingError {
             reportIssue("\(error.message)", filePath: file, line: line)
         } catch {

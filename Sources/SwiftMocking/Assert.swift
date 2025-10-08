@@ -98,7 +98,7 @@ public class Assert<each Input, Eff: Effect, Output> {
         }
     }
 
-    private static func collectErrors<O>(_ result: Return<Eff, O>, errors: inout [any Error]) {
+    fileprivate static func collectErrors<O>(_ result: Return<Eff, O>, errors: inout [any Error]) {
         guard let resolved = result.resolveIfSynchronous() else {
             return
         }
@@ -111,7 +111,7 @@ public class Assert<each Input, Eff: Effect, Output> {
     }
 }
 
-extension Assert where Eff: Throwing {
+extension Assert where Eff == Throws {
     /// Asserts that the spy's method threw an error.
     /// - Parameter errorMatcher: An optional ``ArgMatcher`` for `Error` to specify the expected error. If `nil`, asserts that any error was thrown.
     /// - Throws:
@@ -149,5 +149,50 @@ extension Assert where Eff: Throwing {
         }
 
         return
+    }
+}
+
+extension Assert where Eff == AsyncThrows {
+    /// Asserts that the spy's asynchronous method threw an error.
+    /// - Parameter errorMatcher: An optional ``ArgMatcher`` for `Error` to specify the expected error. If `nil`, asserts that any error was thrown.
+    /// - Throws:
+    ///   - ``MockingError/didNotThrow`` if no error was thrown.
+    ///   - ``MockingError/didNotMatchThrown(_:)`` if an `errorMatcher` is provided and no thrown error matches it.
+    public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) async throws {
+        var errors = [any Error]()
+        for invocation in spy.invocations {
+            for stub in spy.stubs {
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
+
+                guard stub.invocationMatcher.isMatchedBy(invocation) else {
+                    continue
+                }
+
+                if let invocationMatcher {
+                    if invocationMatcher.isMatchedBy(invocation) {
+                        await Self.collectErrorsAsync(stubbedReturn, errors: &errors)
+                    }
+                } else {
+                    await Self.collectErrorsAsync(stubbedReturn, errors: &errors)
+                }
+            }
+        }
+
+        if errors.isEmpty {
+            throw MockingError.didNotThrow
+        }
+
+        if let errorMatcher, !errors.contains(where: errorMatcher.callAsFunction) {
+            throw MockingError.didNotMatchThrown(errors)
+        }
+    }
+
+    private static func collectErrorsAsync<O>(_ result: Return<Eff, O>, errors: inout [any Error]) async {
+        let resolved = await result.resolveAsync()
+        if case .failure(let error) = resolved {
+            errors.append(error)
+        }
     }
 }
