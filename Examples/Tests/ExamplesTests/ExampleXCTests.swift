@@ -88,7 +88,7 @@ final class MockitoTests: XCTestCase {
         } catch {
             XCTAssert(error is TestError)
         }
-        verify(mock.fetchDataThrows(id: "error_id")).throws()
+        await verify(mock.fetchDataThrows(id: "error_id")).throws()
 
         // Stub async throws method with success
         when(mock.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
@@ -101,9 +101,9 @@ final class MockitoTests: XCTestCase {
         let mockCalculator = MockCalculator()
         let even = ArgMatcher<Int>.any(that: { $0 % 2 == 0 })
         let odd = ArgMatcher<Int>.any(that: { $0 % 2 == 1 })
-        when(mockCalculator.calculate(odd, odd)).then(*)
-        when(mockCalculator.calculate(even, even)).then(-)
-        when(mockCalculator.calculate(.any, .any)).then(+)
+        when(mockCalculator.calculate(odd, odd)).thenReturn(*)
+        when(mockCalculator.calculate(even, even)).thenReturn(-)
+        when(mockCalculator.calculate(.any, .any)).thenReturn(+)
 
         XCTAssertEqual(mockCalculator.calculate(3, 3), 9, "Multiplies because both are odd")
         XCTAssertEqual(mockCalculator.calculate(3, 4), 7, "Sums because one is odd the other even")
@@ -141,8 +141,8 @@ final class MockitoTests: XCTestCase {
 
         let mock = MockFakeProvider()
 
-        when(mock.fakeData(.type(Person.self))).then { _ in encodedPerson }
-        when(mock.fakeData(.type(Pet.self))).then { _ in encodedPet }
+        when(mock.fakeData(.type(Person.self))).thenReturn { _ in encodedPerson }
+        when(mock.fakeData(.type(Pet.self))).thenReturn { _ in encodedPet }
 
         let conformance = mock as FakeProvider
 
