@@ -127,3 +127,48 @@ public extension Arrangement where Eff == AsyncThrows {
         }
     }
 }
+
+// MARK: - Void convenience aliases
+public extension Arrangement where Output == Void, Eff == None {
+    func then(_ handler: @escaping (repeat each I) -> Void) {
+        thenReturn(handler)
+    }
+}
+
+public extension Arrangement where Output == Void, Eff == Throws {
+    func then(_ handler: @escaping (repeat each I) -> Void) {
+        thenReturn(handler)
+    }
+
+    func then(_ handler: @escaping (repeat each I) throws -> Void) {
+        thenReturn(handler)
+    }
+}
+
+public extension Arrangement where Output == Void, Eff == Async {
+    func then(_ handler: @escaping (repeat each I) -> Void) {
+        thenReturn(handler)
+    }
+
+    func then(_ handler: @escaping (repeat each I) async -> Void) {
+        thenReturn(handler)
+    }
+}
+
+public extension Arrangement where Output == Void, Eff == AsyncThrows {
+    func then(_ handler: @escaping (repeat each I) -> Void) {
+        thenReturn(handler)
+    }
+
+    func then(_ handler: @escaping (repeat each I) async -> Void) {
+        thenReturn(handler)
+    }
+
+    func then(_ handler: @escaping (repeat each I) throws -> Void) {
+        thenReturn(handler)
+    }
+
+    func then(_ handler: @escaping (repeat each I) async throws -> Void) {
+        thenReturn(handler)
+    }
+}
