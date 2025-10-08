@@ -204,7 +204,7 @@ final class SpyTests: XCTestCase {
         var captured: [String] = []
 
         when(spy(.any)).thenReturn(())
-        when(spy(.equal("track")), do: { value in
+        when(spy(.equal("track"))).do({ value in
             captured.append(value)
         })
 
@@ -212,6 +212,72 @@ final class SpyTests: XCTestCase {
         spy.call("skip")
 
         XCTAssertEqual(captured, ["track"])
+    }
+
+    func test_untilWaitsForAsyncInteraction() async throws {
+        let spy = Spy<String, Async, Void>()
+        when(spy(.any)).thenReturn(())
+
+        let waiter = Task {
+            try await until(spy(.equal("ping")), timeout: .seconds(1))
+        }
+
+        try await Task.sleep(for: .milliseconds(20))
+        await spy.call("ping")
+
+        try await waiter.value
+    }
+
+    func test_untilAsyncTimesOutWhenNoCall() async {
+        let spy = Spy<String, Async, Void>()
+        when(spy(.any)).thenReturn(())
+
+        do {
+            try await until(spy(.equal("never")), timeout: .milliseconds(50))
+            XCTFail("Expected timeout")
+        } catch let error as UntilError {
+            switch error {
+            case .timeout:
+                break
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func test_untilWaitsForAsyncThrowingInteraction() async throws {
+        let spy = Spy<String, AsyncThrows, Void>()
+        when(spy(.any)).thenReturn { (_: String) async throws -> Void in
+            return ()
+        }
+
+        let waiter = Task {
+            try await until(spy(.equal("ping")), timeout: .seconds(1))
+        }
+
+        try await Task.sleep(for: .milliseconds(20))
+        _ = try? await spy.call("ping")
+
+        try await waiter.value
+    }
+
+    func test_untilAsyncThrowingTimesOutWhenNoCall() async {
+        let spy = Spy<String, AsyncThrows, Void>()
+        when(spy(.any)).thenReturn { (_: String) async throws -> Void in
+            return ()
+        }
+
+        do {
+            try await until(spy(.equal("never")), timeout: .milliseconds(50))
+            XCTFail("Expected timeout")
+        } catch let error as UntilError {
+            switch error {
+            case .timeout:
+                break
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 
     func test_asyncThrows_serviceInvokedInsideTask_eventuallyExecutes() async throws {

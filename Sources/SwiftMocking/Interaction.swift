@@ -35,6 +35,11 @@ public struct Interaction<each Input, Eff: Effect, Output> {
         self.spy = spy
     }
 
+    init(invocationMatcher: InvocationMatcher<repeat each Input>, spy: Spy<repeat each Input, Eff, Output>) {
+        self.invocationMatcher = invocationMatcher
+        self.spy = spy
+    }
+
     public func invocations() -> [(repeat each Input)]{
         var arguments = [(repeat each Input)]()
         for invocation in spy.invocations {
@@ -45,4 +50,3 @@ public struct Interaction<each Input, Eff: Effect, Output> {
         return arguments
     }
 }
-

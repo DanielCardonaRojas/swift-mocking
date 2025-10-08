@@ -23,53 +23,9 @@ import IssueReporting
 /// ```
 ///
 /// - Parameter interaction: An `Interaction` object representing the method call to stub.
-/// - Returns: A `Stub` object to configure the mock's behavior.
-public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>) -> Stub<repeat each Input, Eff, Output> {
+/// - Returns: An `Arrangement` object to configure the mock's behavior and side effects.
+public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>) -> Arrangement<repeat each Input, Eff, Output> {
     interaction.spy.when(calledWith: interaction.invocationMatcher)
-}
-
-/// Registers a side-effect for a non-throwing interaction without configuring a return value.
-@discardableResult
-public func when<each Input, Output>(
-    _ interaction: Interaction<repeat each Input, None, Output>,
-    do handler: @escaping (repeat each Input) -> Void
-) -> Action<repeat each Input, None> {
-    return interaction.spy.registerAction(for: interaction.invocationMatcher) { action in
-        action.`do`(handler)
-    }
-}
-
-/// Registers a throwing side-effect for an interaction without configuring a return value.
-@discardableResult
-public func when<each Input, Output>(
-    _ interaction: Interaction<repeat each Input, Throws, Output>,
-    do handler: @escaping (repeat each Input) throws -> Void
-) -> Action<repeat each Input, Throws> {
-    return interaction.spy.registerAction(for: interaction.invocationMatcher) { action in
-        action.`do`(handler)
-    }
-}
-
-/// Registers an asynchronous side-effect for an interaction without configuring a return value.
-@discardableResult
-public func when<each Input, Output>(
-    _ interaction: Interaction<repeat each Input, Async, Output>,
-    do handler: @escaping (repeat each Input) async -> Void
-) -> Action<repeat each Input, Async> {
-    return interaction.spy.registerAction(for: interaction.invocationMatcher) { action in
-        action.`do`(handler)
-    }
-}
-
-/// Registers an asynchronous throwing side-effect for an interaction without configuring a return value.
-@discardableResult
-public func when<each Input, Output>(
-    _ interaction: Interaction<repeat each Input, AsyncThrows, Output>,
-    do handler: @escaping (repeat each Input) async throws -> Void
-) -> Action<repeat each Input, AsyncThrows> {
-    return interaction.spy.registerAction(for: interaction.invocationMatcher) { action in
-        action.`do`(handler)
-    }
 }
 
 /// Verifies that a specific interaction with a mock object has occurred.
@@ -198,16 +154,23 @@ public func until<each Input, Output>(
 ) async throws {
     let tracker = FulfillmentTracker()
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        var actionReference: Action<repeat each Input, Async>?
         let timer = Task {
             try await Task.sleep(for: timeout)
             if await tracker.tryFulfill() {
+                if let actionReference {
+                    interaction.spy.removeAction(actionReference)
+                }
                 continuation.resume(throwing: UntilError.timeout)
             }
         }
 
-        _ = when(interaction, do: { (_: repeat each Input) async in
+        actionReference = when(interaction).do({ (_: repeat each Input) async in
             if await tracker.tryFulfill() {
                 timer.cancel()
+                if let actionReference {
+                    interaction.spy.removeAction(actionReference)
+                }
                 continuation.resume()
             }
         })
@@ -221,16 +184,23 @@ public func until<each Input, Output>(
 ) async throws {
     let tracker = FulfillmentTracker()
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        var actionReference: Action<repeat each Input, AsyncThrows>?
         let timer = Task {
             try await Task.sleep(for: timeout)
             if await tracker.tryFulfill() {
+                if let actionReference {
+                    interaction.spy.removeAction(actionReference)
+                }
                 continuation.resume(throwing: UntilError.timeout)
             }
         }
 
-        _ = when(interaction, do: { (_: repeat each Input) async throws in
+        actionReference = when(interaction) .do({ (_: repeat each Input) async throws in
             if await tracker.tryFulfill() {
                 timer.cancel()
+                if let actionReference {
+                    interaction.spy.removeAction(actionReference)
+                }
                 continuation.resume()
             }
         })

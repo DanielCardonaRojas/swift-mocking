@@ -100,14 +100,20 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// Defines a stubbing behavior for the spy when called with specific argument matchers.
     /// - Parameter matchingInput: A variadic list of ``ArgMatcher``s to match the input arguments.
     /// - Returns: A ``Stub`` instance to configure the return value or error.
-    public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Stub<repeat each Input, Effects, Output> {
-        when(calledWith: InvocationMatcher(matchers: repeat each matchingInput))
+    public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Arrangement<repeat each Input, Effects, Output> {
+        let interaction = Interaction(repeat each matchingInput, spy: self)
+        return Arrangement(interaction: interaction)
     }
 
     /// Defines a stubbing behavior for the spy when called with a specific invocation matcher.
     /// - Parameter invocationMatcher: An ``InvocationMatcher`` to match the input arguments.
     /// - Returns: A ``Stub`` instance to configure the return value or error.
-    public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
+    public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Arrangement<repeat each Input, Effects, Output> {
+        let interaction = Interaction(invocationMatcher: invocationMatcher, spy: self)
+        return Arrangement(interaction: interaction)
+    }
+
+    func createStub(for invocationMatcher: InvocationMatcher<repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
         stubsLock.lock()
         defer { stubsLock.unlock() }
         let stub = Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
@@ -126,6 +132,12 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         actions.append(action)
         actionsLock.unlock()
         return action
+    }
+
+    func removeAction(_ action: Action<repeat each Input, Effects>) {
+        actionsLock.lock()
+        actions.removeAll { $0 === action }
+        actionsLock.unlock()
     }
 
     /// Available so that spies can be used with `when` and `verify`.
