@@ -29,15 +29,15 @@
 /// }
 /// ```
 struct Return<Effects: Effect, R> {
-    typealias Deferred<V> = () -> Result<V, any Error>
+    typealias ThrowingDeferred<V> = () -> Result<V, any Error>
     typealias AsyncDeferred<V> = () async -> Result<V, any Error>
 
-    private let resolver: Deferred<R>?
+    private let resolver: ThrowingDeferred<R>?
     private let asyncResolver: AsyncDeferred<R>?
 
     /// Initializes a `Return` instance with a deferred result.
     /// - Parameter value: A closure that returns a `Result` containing either the success value or an error.
-    init(value: @escaping Deferred<R>) {
+    init(value: @escaping ThrowingDeferred<R>) {
         self.resolver = value
         self.asyncResolver = nil
     }
