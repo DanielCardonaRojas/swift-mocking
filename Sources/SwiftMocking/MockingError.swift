@@ -35,3 +35,8 @@ public struct MockingError: Error, Equatable {
     /// Indicates that no matching invocations were found for captured() inspection.
     public static let noMatchingInvocations = MockingError(message: "No matching invocations found for captured() inspection")
 }
+
+/// An error thrown when `until` fails to observe a matching interaction before timing out.
+public enum UntilError: Error {
+    case timeout
+}

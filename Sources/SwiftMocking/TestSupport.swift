@@ -34,6 +34,7 @@ public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<rep
 /// matching the provided `Interaction`.
 /// It returns an `Assert` object, which allows you to specify the expected
 /// number of calls using `.called()` or to assert that it threw an error using `.throws()`.
+/// Note that async-throwing interactions require awaiting the `.throws()` assertion (e.g. `await verify(mock.load()).throws()`).
 ///
 /// Example:
 /// ```swift
@@ -134,6 +135,42 @@ public func verifyZeroInteractions(
     }
 }
 
+// MARK: Await utilities
+
+/// Waits until the provided asynchronous interaction has been recorded.
+///
+/// Use this helper when the code under test triggers an `async` or `async throws` dependency in a detached task,
+/// and you need to wait for that interaction before asserting on it.
+///
+/// ```
+/// await until(mock.load(.any))
+/// verify(mock.load(.any)).called()
+/// ```
+///
+/// - Parameters:
+///   - interaction: The interaction to observe.
+///   - timeout: Maximum duration to wait before throwing `UntilError.timeout`.
+///   - pollInterval: Delay between polling the spy for new invocations.
+/// - Throws: `UntilError.timeout` if the interaction is not observed within the timeout.
+public func until<each Input, Eff: Asynchronous, Output>(
+    _ interaction: Interaction<repeat each Input, Eff, Output>,
+    timeout: Duration = .seconds(1),
+    pollInterval: Duration = .milliseconds(10)
+) async throws {
+    let clock = ContinuousClock()
+    let deadline = clock.now + timeout
+
+    while clock.now < deadline {
+        let matchedCalls = interaction.spy.invocationCount(matching: interaction.invocationMatcher)
+        if matchedCalls > 0 {
+            return
+        }
+        try await Task.sleep(for: pollInterval)
+    }
+
+    throw UntilError.timeout
+}
+
 // MARK: Asserts
 
 public extension Assert {
@@ -174,7 +211,7 @@ public extension Assert {
     }
 }
 
-public extension Assert where Eff: Throwing {
+public extension Assert where Eff == Throws {
     /// Asserts that the mocked method threw an error.
     ///
     /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
@@ -186,6 +223,26 @@ public extension Assert where Eff: Throwing {
     ) {
         do {
             try doesThrow(errorMatcher)
+        } catch let error as MockingError {
+            reportIssue("\(error.message)", filePath: file, line: line)
+        } catch {
+            reportIssue("\(error.localizedDescription)", filePath: file, line: line)
+        }
+    }
+}
+
+public extension Assert where Eff == AsyncThrows {
+    /// Asserts asynchronously that the mocked method threw an error.
+    ///
+    /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
+    ///   Defaults to `.anyError()` if `nil`, meaning any error is expected.
+    func `throws`(
+        _ errorMatcher: ArgMatcher<any Error>? = nil,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        do {
+            try await doesThrow(errorMatcher)
         } catch let error as MockingError {
             reportIssue("\(error.message)", filePath: file, line: line)
         } catch {

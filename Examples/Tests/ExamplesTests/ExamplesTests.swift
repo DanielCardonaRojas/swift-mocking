@@ -79,7 +79,7 @@ import Foundation
     } catch {
         #expect(error is TestError)
     }
-    verify(mock.fetchDataThrows(id: "error_id")).throws()
+    await verify(mock.fetchDataThrows(id: "error_id")).throws()
 
     // Stub async throws method with success
     when(mock.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
@@ -88,13 +88,30 @@ import Foundation
     verify(mock.fetchDataThrows(id: "success_id")).called(1)
 }
 
+@Test func test_until_waitsForBackgroundInteraction() async throws {
+    let spy = Spy<URL, AsyncThrows, Data>()
+    let url = URL(string: "https://example.com/feed")!
+    let response = Data("feed".utf8)
+
+    when(spy(.equal(url))).thenReturn { _ in
+        try await Task.sleep(for: .milliseconds(15))
+        return response
+    }
+
+    let controller = FeedController(fetch: adapt(spy))
+    controller.load(url: url)
+
+    try await until(spy(.equal(url)))
+    verify(spy(.equal(url))).called()
+}
+
 @Test func testCalculate() {
     let mockCalculator = MockCalculator()
     let even = ArgMatcher<Int>.any(that: { $0 % 2 == 0 })
     let odd = ArgMatcher<Int>.any(that: { $0 % 2 == 1 })
-    when(mockCalculator.calculate(odd, odd)).then(*)
-    when(mockCalculator.calculate(even, even)).then(-)
-    when(mockCalculator.calculate(.any, .any)).then(+)
+    when(mockCalculator.calculate(odd, odd)).thenReturn(*)
+    when(mockCalculator.calculate(even, even)).thenReturn(-)
+    when(mockCalculator.calculate(.any, .any)).thenReturn(+)
 
     #expect(mockCalculator.calculate(3, 3) == 9, "Multiplies because both are odd")
     #expect(mockCalculator.calculate(3, 4) == 7, "Sums because one is odd the other even")
@@ -181,7 +198,7 @@ import Foundation
     let expectation = "test"
 
     var capturedValue: String?
-    when(mock.execute(completion: .any)).then { completion in
+    when(mock.execute(completion: .any)).thenReturn { completion in
         completion(expectation)
     }
 

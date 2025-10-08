@@ -105,10 +105,19 @@ final class AssertTests: XCTestCase {
     func testNeverCalledIsEquivalentToCalledZero() throws {
         let assert1 = Assert(spy: spy)
         let assert2 = Assert(spy: spy)
-        
+
         XCTAssertNoThrow(try assert1.assert(.equal(0)))
-        
+
         assert2.neverCalled()
+    }
+
+    func testAsyncThrowsAssertion() async throws {
+        let asyncSpy = Spy<String, AsyncThrows, Void>()
+        when(asyncSpy(.any)).thenThrow(TestError.example)
+
+        _ = try? await asyncSpy.call("value")
+
+        await verify(asyncSpy(.any)).throws()
     }
     
     // MARK: - verifyZeroInteractions Tests

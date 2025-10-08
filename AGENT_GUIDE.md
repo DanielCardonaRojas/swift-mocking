@@ -158,6 +158,10 @@ when(mock.upload(.any)).thenThrow(NetworkError.timeout)
 // Usage
 let uploadId = try await mock.upload(data)
 verify(mock.upload(.any)).called(1)
+
+// Verifying failures requires awaiting the assertion
+when(mock.upload(.any)).thenThrow(NetworkError.timeout)
+await verify(mock.upload(.any)).throws()
 ```
 
 ### Methods with No Parameters/Returns
@@ -488,7 +492,7 @@ import SwiftMocking
         try await service.fetchUser(id: "invalid")
     }
 
-    verify(mock.getUser(id: "invalid")).throws()
+    await verify(mock.getUser(id: "invalid")).throws()
 }
 ```
 
@@ -509,7 +513,7 @@ class UserServiceTests: XCTestCase {
         verify(mock.getUser(id: "123")).called(1)
     }
 
-    func testUserServiceHandlesError() {
+    func testUserServiceHandlesError() async {
         let mock = MockUserService()
         when(mock.getUser(id: "invalid")).thenThrow(UserError.notFound)
 
@@ -519,7 +523,7 @@ class UserServiceTests: XCTestCase {
             XCTAssert(error is UserError)
         }
 
-        verify(mock.getUser(id: "invalid")).throws()
+        await verify(mock.getUser(id: "invalid")).throws()
     }
 }
 ```

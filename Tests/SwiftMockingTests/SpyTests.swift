@@ -181,7 +181,37 @@ final class SpyTests: XCTestCase {
         } catch {
 
         }
-        XCTAssert(spy.verifyThrows(.error(TestError.self)))
+        let didThrow = await spy.verifyThrows(.error(TestError.self))
+        XCTAssert(didThrow)
+    }
+
+    func test_spy_async_canUseAsyncReturnClosure() async throws {
+        let spy = Spy<String, AsyncThrows, Int>()
+        spy.when(calledWith: .any).thenReturn { value in
+            try await Task.sleep(for: .milliseconds(20))
+            return value.count
+        }
+
+        let result = try await spy.call("hello")
+        verify(spy(.any)).captured({ string in
+            XCTAssertEqual("hello", string)
+        })
+        XCTAssertEqual(result, 5)
+    }
+
+    func test_asyncThrows_serviceInvokedInsideTask_eventuallyExecutes() async throws {
+        let spy = Spy<String, AsyncThrows, Void>()
+        spy.when(calledWith: .equal("ping")).thenReturn { _ in
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        let sut = FireAndForgetController(service: spy.asFunction())
+        sut.load("ping")
+        verifyNever(spy(.any)) // Has not called spy at this point
+
+        try await until(spy(.equal("ping")))
+
+        verify(spy("ping")).called()
     }
 
     func test_callback() async {
@@ -189,7 +219,7 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, (Int) -> Void, None, Void>()
         let expectation = XCTestExpectation()
 
-        spy.when(calledWith: .any, .any).then { url, completion in
+        spy.when(calledWith: .any, .any).thenReturn { url, completion in
             completion(7)
         }
 
@@ -263,5 +293,16 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(spy2.call(.failure(TestError.other)), 2)
         XCTAssertEqual(spy2.call(.success("3")), 7)
         XCTAssertEqual(spy2.call(.success("hello")), -1)
+    }
+}
+
+private struct FireAndForgetController {
+    let service: (String) async throws -> Void
+
+    func load(_ value: String) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(50))
+            _ = try? await service(value)
+        }
     }
 }
