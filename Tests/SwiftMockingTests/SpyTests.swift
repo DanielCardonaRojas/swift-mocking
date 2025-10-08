@@ -219,7 +219,7 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, (Int) -> Void, None, Void>()
         let expectation = XCTestExpectation()
 
-        spy.when(calledWith: .any, .any).then { url, completion in
+        spy.when(calledWith: .any, .any).thenReturn { url, completion in
             completion(7)
         }
 
