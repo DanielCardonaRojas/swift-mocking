@@ -98,6 +98,12 @@ extension Return where Effects == None {
             fatalError("Unexpected error for non-throwing return: \(error)")
         }
     }
+
+    /// Creates a `Return` from a synchronous closure.
+    /// - Parameter producer: A closure that produces the value.
+    init(_ producer: @escaping () -> R) {
+        self.init(value: { .success(producer()) })
+    }
 }
 
 extension Return where Effects == Throws {
@@ -107,6 +113,19 @@ extension Return where Effects == Throws {
     static func error<E: Error>(_ error: E) -> Return<Effects, R> {
         return Return(value: { .failure(error) })
     }
+
+    /// Creates a `Return` from a throwing synchronous closure.
+    /// - Parameter producer: A closure that can throw and produces the value.
+    init(_ producer: @escaping () throws -> R) {
+        self.init(value: {
+            do {
+                return .success(try producer())
+            } catch {
+                return .failure(error)
+            }
+        })
+    }
+
     /// Retrieves the encapsulated value or throws the encapsulated error.
     /// - Returns: The success value.
     /// - Throws: The encapsulated error if the `Return` instance represents an error.
@@ -127,6 +146,12 @@ extension Return where Effects == Async {
             fatalError("Unexpected error for non-throwing async return: \(error)")
         }
     }
+
+    /// Creates a `Return` from an asynchronous closure.
+    /// - Parameter producer: An async closure that produces the value.
+    init(_ producer: @escaping () async -> R) {
+        self.init(asyncValue: { .success(await producer()) })
+    }
 }
 
 extension Return where Effects == AsyncThrows {
@@ -135,6 +160,18 @@ extension Return where Effects == AsyncThrows {
     /// - Returns: A `Return` instance encapsulating the error.
     static func error<E: Error>(_ error: E) -> Return<Effects, R> {
         Return(asyncValue: { .failure(error) })
+    }
+
+    /// Creates a `Return` from an asynchronous throwing closure.
+    /// - Parameter producer: An async closure that can throw and produces the value.
+    init(_ producer: @escaping () async throws -> R) {
+        self.init(asyncValue: {
+            do {
+                return .success(try await producer())
+            } catch {
+                return .failure(error)
+            }
+        })
     }
 
     /// Retrieves the encapsulated value asynchronously or throws the encapsulated error.
