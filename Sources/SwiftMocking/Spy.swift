@@ -64,12 +64,6 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         // search through stub for a return value
 
         var matchingStub = matchingStub(invocation: invocation)
-
-        for action in actions .reversed() .sorted(by: { $0.precedence > $1.precedence }) {
-            if action.invocationMatcher.isMatchedBy(invocation) {
-                action.perform(for: invocation)
-            }
-        }
         guard let returnValue = matchingStub?.returnValue(for: invocation) else {
             if let fallback = defaultProviderRegistry?.getDefaultForType(Output.self) {
                 return .value(fallback)
@@ -90,6 +84,15 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
             }
         }
         return matchingStub
+    }
+
+    private func matchingAction(invocation: Invocation<repeat each Input>) -> Action<repeat each Input, Effects>? {
+        for action in actions .reversed() .sorted(by: { $0.precedence > $1.precedence }) {
+            if action.invocationMatcher.isMatchedBy(invocation) {
+                return action
+            }
+        }
+        return nil
     }
 
     /// Defines a stubbing behavior for the spy when called with specific argument matchers.
