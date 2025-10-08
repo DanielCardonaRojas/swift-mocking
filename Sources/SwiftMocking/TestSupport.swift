@@ -181,38 +181,60 @@ public func verifyZeroInteractions(
 
 // MARK: Await utilities
 
-/// Waits until the provided asynchronous interaction has been recorded.
-///
-/// Use this helper when the code under test triggers an `async` or `async throws` dependency in a detached task,
-/// and you need to wait for that interaction before asserting on it.
-///
-/// ```
-/// await until(mock.load(.any))
-/// verify(mock.load(.any)).called()
-/// ```
-///
-/// - Parameters:
-///   - interaction: The interaction to observe.
-///   - timeout: Maximum duration to wait before throwing `UntilError.timeout`.
-///   - pollInterval: Delay between polling the spy for new invocations.
-/// - Throws: `UntilError.timeout` if the interaction is not observed within the timeout.
-public func until<each Input, Eff: Asynchronous, Output>(
-    _ interaction: Interaction<repeat each Input, Eff, Output>,
-    timeout: Duration = .seconds(1),
-    pollInterval: Duration = .milliseconds(10)
-) async throws {
-    let clock = ContinuousClock()
-    let deadline = clock.now + timeout
+private actor FulfillmentTracker {
+    private var fulfilled = false
 
-    while clock.now < deadline {
-        let matchedCalls = interaction.spy.invocationCount(matching: interaction.invocationMatcher)
-        if matchedCalls > 0 {
-            return
-        }
-        try await Task.sleep(for: pollInterval)
+    func tryFulfill() -> Bool {
+        guard !fulfilled else { return false }
+        fulfilled = true
+        return true
     }
+}
 
-    throw UntilError.timeout
+/// Waits until the provided async interaction has been recorded using action hooks.
+public func until<each Input, Output>(
+    _ interaction: Interaction<repeat each Input, Async, Output>,
+    timeout: Duration = .seconds(1)
+) async throws {
+    let tracker = FulfillmentTracker()
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        let timer = Task {
+            try await Task.sleep(for: timeout)
+            if await tracker.tryFulfill() {
+                continuation.resume(throwing: UntilError.timeout)
+            }
+        }
+
+        _ = when(interaction, do: { (_: repeat each Input) async in
+            if await tracker.tryFulfill() {
+                timer.cancel()
+                continuation.resume()
+            }
+        })
+    }
+}
+
+/// Waits until the provided async throwing interaction has been recorded using action hooks.
+public func until<each Input, Output>(
+    _ interaction: Interaction<repeat each Input, AsyncThrows, Output>,
+    timeout: Duration = .seconds(1)
+) async throws {
+    let tracker = FulfillmentTracker()
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        let timer = Task {
+            try await Task.sleep(for: timeout)
+            if await tracker.tryFulfill() {
+                continuation.resume(throwing: UntilError.timeout)
+            }
+        }
+
+        _ = when(interaction, do: { (_: repeat each Input) async throws in
+            if await tracker.tryFulfill() {
+                timer.cancel()
+                continuation.resume()
+            }
+        })
+    }
 }
 
 // MARK: Asserts
