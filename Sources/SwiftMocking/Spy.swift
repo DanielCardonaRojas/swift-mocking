@@ -87,7 +87,9 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     }
 
     private func matchingAction(invocation: Invocation<repeat each Input>) -> Action<repeat each Input, Effects>? {
-        for action in actions .reversed() .sorted(by: { $0.precedence > $1.precedence }) {
+        actionsLock.lock()
+        defer { actionsLock.unlock() }
+        for action in actions.reversed().sorted(by: { $0.precedence > $1.precedence }) {
             if action.invocationMatcher.isMatchedBy(invocation) {
                 return action
             }
@@ -208,7 +210,13 @@ extension Spy where Effects == Throws {
     /// - Throws: The error thrown by the method.
     @discardableResult
     public func call(_ input: repeat each Input) throws -> Output {
-        try invoke(repeat each input).get()
+        let invocation = Invocation(arguments: repeat each input)
+        let action = matchingAction(invocation: invocation)
+        let result = try invoke(repeat each input)
+        if let action {
+            try action.perform(invocation)
+        }
+        return try result.get()
     }
 
     public func asFunction() -> (repeat each Input) throws -> Output {
@@ -254,7 +262,12 @@ extension Spy where Effects == None {
     @discardableResult
     public func call(_ input: repeat each Input) -> Output {
         do {
+            let invocation = Invocation(arguments: repeat each input)
+            let action = matchingAction(invocation: invocation)
             let returnValue = try invoke(repeat each input)
+            if let action {
+                action.perform(invocation)
+            }
             return returnValue.get()
         } catch let error as MockingError {
             fatalError("MockingError: \(error.message)")
@@ -279,7 +292,12 @@ extension Spy where Effects == Async {
     @discardableResult
     public func call(_ input: repeat each Input) async -> Output {
         do {
+            let invocation = Invocation(arguments: repeat each input)
+            let action = matchingAction(invocation: invocation)
             let returnValue = try invoke(repeat each input)
+            if let action {
+                await action.perform(invocation)
+            }
             return await returnValue.get()
         } catch let error as MockingError {
             fatalError("MockingError: \(error.message)")
@@ -303,7 +321,12 @@ extension Spy where Effects == AsyncThrows {
     /// - Throws: The error thrown by the method.
     @discardableResult
     public func call(_ input: repeat each Input) async throws -> Output {
+        let invocation = Invocation(arguments: repeat each input)
+        let action = matchingAction(invocation: invocation)
         let returnValue = try invoke(repeat each input)
+        if let action {
+            try await action.perform(invocation)
+        }
         return try await returnValue.get()
     }
 
