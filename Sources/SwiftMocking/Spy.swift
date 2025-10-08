@@ -25,8 +25,10 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     public var isLoggingEnabled: Bool = false
     private let invocationsLock = NSLock()
     private let stubsLock = NSLock()
+    private let actionsLock = NSLock()
 
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
+    private(set) var actions: [Action<repeat each Input, Effects>] = []
     var defaultProviderRegistry: DefaultProvidableRegistry?
     var logger: ((Invocation<repeat each Input>) -> Void)?
     var invocationCount: Int {
@@ -62,8 +64,14 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         // search through stub for a return value
         var matchingStub: Stub<repeat each Input, Effects, Output>?
 
+
+        for action in actions .reversed() .sorted(by: { $0.precedence > $1.precedence }) {
+            if action.invocationMatcher.isMatchedBy(invocation) {
+                action.perform(for: invocation)
+            }
+        }
         for stub in stubs.reversed().sorted(by: { $0.precedence > $1.precedence }) {
-            if stub.invocationMatcher.isMatchedBy(Invocation(arguments: repeat each input)) {
+            if stub.invocationMatcher.isMatchedBy(invocation) {
                 matchingStub = stub
                 break
             }
@@ -95,6 +103,19 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         let stub = Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
         stubs.append(stub)
         return stub
+    }
+
+    @discardableResult
+    func registerAction(
+        for invocationMatcher: InvocationMatcher<repeat each Input>,
+        configure: (Action<repeat each Input, Effects>) -> Void
+    ) -> Action<repeat each Input, Effects> {
+        let action = Action<repeat each Input, Effects>(invocationMatcher: invocationMatcher)
+        configure(action)
+        actionsLock.lock()
+        actions.append(action)
+        actionsLock.unlock()
+        return action
     }
 
     /// Available so that spies can be used with `when` and `verify`.
@@ -166,6 +187,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// Clear stubs and invocations,  leaving the spy in a fresh state.
     public func clear() {
         stubs = []
+        actions = []
         invocations = []
     }
 }
