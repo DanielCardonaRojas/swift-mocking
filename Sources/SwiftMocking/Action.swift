@@ -7,19 +7,18 @@
 
 /// Represents a side-effect associated with an invocation matcher.
 ///
-/// Actions are executed when an invocation matches their matcher, allowing
+/// Actions are executed whenever an invocation matches their matcher, allowing
 /// callers to run custom closures without influencing the stubbed return value.
-public class Action<each I, Eff: Effect> {
+public final class Action<each I, Eff: Effect> {
     public let invocationMatcher: InvocationMatcher<repeat each I>
-    var handler: ((Invocation<repeat each I>) -> Return<Eff, Void>)?
+
+    fileprivate var syncPerformer: ((Invocation<repeat each I>) -> Void)?
+    fileprivate var throwingPerformer: ((Invocation<repeat each I>) throws -> Void)?
+    fileprivate var asyncPerformer: ((Invocation<repeat each I>) async -> Void)?
+    fileprivate var asyncThrowingPerformer: ((Invocation<repeat each I>) async throws -> Void)?
 
     init(invocationMatcher: InvocationMatcher<repeat each I>) {
         self.invocationMatcher = invocationMatcher
-    }
-
-    @discardableResult
-    func perform(for invocation: Invocation<repeat each I>) -> Return<Eff, Void>? {
-        handler?(invocation)
     }
 
     public var precedence: MatcherPrecedence {
@@ -30,51 +29,51 @@ public class Action<each I, Eff: Effect> {
 extension Action where Eff == None {
     /// Registers a synchronous action.
     public func `do`(_ handler: @escaping (repeat each I) -> Void) {
-        self.handler = { invocation in
-            Return<None, Void> {
-                .success(handler(repeat each invocation.arguments))
-            }
+        syncPerformer = { invocation in
+            handler(repeat each invocation.arguments)
         }
+    }
+
+    func performSync(_ invocation: Invocation<repeat each I>) {
+        syncPerformer?(invocation)
     }
 }
 
 extension Action where Eff == Throws {
     /// Registers a throwing synchronous action.
     public func `do`(_ handler: @escaping (repeat each I) throws -> Void) {
-        self.handler = { invocation in
-            Return<Throws, Void> {
-                Result {
-                    try handler(repeat each invocation.arguments)
-                }
-            }
+        throwingPerformer = { invocation in
+            try handler(repeat each invocation.arguments)
         }
+    }
+
+    func performThrowing(_ invocation: Invocation<repeat each I>) throws {
+        try throwingPerformer?(invocation)
     }
 }
 
 extension Action where Eff == Async {
     /// Registers an asynchronous action.
     public func `do`(_ handler: @escaping (repeat each I) async -> Void) {
-        self.handler = { invocation in
-            Return<Async, Void> {
-                await handler(repeat each invocation.arguments)
-                return .success(())
-            }
+        asyncPerformer = { invocation in
+            await handler(repeat each invocation.arguments)
         }
+    }
+
+    func performAsync(_ invocation: Invocation<repeat each I>) async {
+        await asyncPerformer?(invocation)
     }
 }
 
 extension Action where Eff == AsyncThrows {
     /// Registers an asynchronous throwing action.
     public func `do`(_ handler: @escaping (repeat each I) async throws -> Void) {
-        self.handler = { invocation in
-            Return<AsyncThrows, Void> {
-                do {
-                    try await handler(repeat each invocation.arguments)
-                    return .success(())
-                } catch {
-                    return .failure(error)
-                }
-            }
+        asyncThrowingPerformer = { invocation in
+            try await handler(repeat each invocation.arguments)
         }
+    }
+
+    func performAsyncThrowing(_ invocation: Invocation<repeat each I>) async throws {
+        try await asyncThrowingPerformer?(invocation)
     }
 }
