@@ -199,6 +199,20 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(result, 5)
     }
 
+    func test_whenHelperFiltersSpecificInteraction() {
+        let spy = Spy<String, None, Void>()
+        var captured: [String] = []
+
+        when(spy(.equal("track")), do: { value in
+            captured.append(value)
+        })
+
+        spy.call("track")
+        spy.call("skip")
+
+        XCTAssertEqual(captured, ["track"])
+    }
+
     func test_asyncThrows_serviceInvokedInsideTask_eventuallyExecutes() async throws {
         let spy = Spy<String, AsyncThrows, Void>()
         spy.when(calledWith: .equal("ping")).thenReturn { _ in
