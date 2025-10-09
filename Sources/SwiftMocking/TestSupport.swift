@@ -165,7 +165,8 @@ public func until<each Input, Output>(
             }
         }
 
-        actionReference = when(interaction).do({ (_: repeat each Input) async in
+        let action = Action<repeat each Input, Async>(invocationMatcher: interaction.invocationMatcher)
+        action.do { (_: repeat each Input) async in
             if await tracker.tryFulfill() {
                 timer.cancel()
                 if let actionReference {
@@ -173,7 +174,10 @@ public func until<each Input, Output>(
                 }
                 continuation.resume()
             }
-        })
+        }
+
+        actionReference = action
+        interaction.spy.registerAction(action)
     }
 }
 
@@ -195,7 +199,8 @@ public func until<each Input, Output>(
             }
         }
 
-        actionReference = when(interaction) .do({ (_: repeat each Input) async throws in
+        let action = Action<repeat each Input, AsyncThrows>(invocationMatcher: interaction.invocationMatcher)
+        action.do { (_: repeat each Input) async throws in
             if await tracker.tryFulfill() {
                 timer.cancel()
                 if let actionReference {
@@ -203,7 +208,10 @@ public func until<each Input, Output>(
                 }
                 continuation.resume()
             }
-        })
+        }
+
+        actionReference = action
+        interaction.spy.registerAction(action)
     }
 }
 

@@ -121,17 +121,12 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         return stub
     }
 
-    @discardableResult
     func registerAction(
-        for invocationMatcher: InvocationMatcher<repeat each Input>,
-        configure: (Action<repeat each Input, Effects>) -> Void
-    ) -> Action<repeat each Input, Effects> {
-        let action = Action<repeat each Input, Effects>(invocationMatcher: invocationMatcher)
-        configure(action)
+        _ action: Action<repeat each Input, Effects>
+    ) {
         actionsLock.lock()
         actions.append(action)
         actionsLock.unlock()
-        return action
     }
 
     func removeAction(_ action: Action<repeat each Input, Effects>) {
