@@ -23,8 +23,8 @@ import IssueReporting
 /// ```
 ///
 /// - Parameter interaction: An `Interaction` object representing the method call to stub.
-/// - Returns: An `Arrangement` object to configure the mock's behavior and side effects.
-public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>) -> Arrangement<repeat each Input, Eff, Output> {
+/// - Returns: An `Arrange` object to configure the mock's behavior and side effects.
+public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>) -> Arrange<repeat each Input, Eff, Output> {
     interaction.spy.when(calledWith: interaction.invocationMatcher)
 }
 

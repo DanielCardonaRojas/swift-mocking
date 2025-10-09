@@ -100,17 +100,17 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// Defines a stubbing behavior for the spy when called with specific argument matchers.
     /// - Parameter matchingInput: A variadic list of ``ArgMatcher``s to match the input arguments.
     /// - Returns: A ``Stub`` instance to configure the return value or error.
-    public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Arrangement<repeat each Input, Effects, Output> {
+    public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Arrange<repeat each Input, Effects, Output> {
         let interaction = Interaction(repeat each matchingInput, spy: self)
-        return Arrangement(interaction: interaction)
+        return Arrange(interaction: interaction)
     }
 
     /// Defines a stubbing behavior for the spy when called with a specific invocation matcher.
     /// - Parameter invocationMatcher: An ``InvocationMatcher`` to match the input arguments.
     /// - Returns: A ``Stub`` instance to configure the return value or error.
-    public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Arrangement<repeat each Input, Effects, Output> {
+    public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Arrange<repeat each Input, Effects, Output> {
         let interaction = Interaction(invocationMatcher: invocationMatcher, spy: self)
-        return Arrangement(interaction: interaction)
+        return Arrange(interaction: interaction)
     }
 
     func createStub(for invocationMatcher: InvocationMatcher<repeat each Input>) -> Stub<repeat each Input, Effects, Output> {

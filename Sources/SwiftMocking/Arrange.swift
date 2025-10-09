@@ -6,7 +6,7 @@
 //
 
 /// Facade that exposes both stubbing and action registration for a matched interaction.
-public final class Arrangement<each I, Eff: Effect, Output> {
+public final class Arrange<each I, Eff: Effect, Output> {
     private let interaction: Interaction<repeat each I, Eff, Output>
 
     init(interaction: Interaction<repeat each I, Eff, Output>) {
@@ -19,7 +19,7 @@ public final class Arrangement<each I, Eff: Effect, Output> {
 }
 
 // MARK: - None
-public extension Arrangement where Eff == None {
+public extension Arrange where Eff == None {
     func thenReturn(_ output: Output) {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
     }
@@ -36,7 +36,7 @@ public extension Arrangement where Eff == None {
 }
 
 // MARK: - Throws
-public extension Arrangement where Eff == Throws {
+public extension Arrange where Eff == Throws {
     func thenReturn(_ output: Output) {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
     }
@@ -57,7 +57,7 @@ public extension Arrangement where Eff == Throws {
 }
 
 // MARK: - Async
-public extension Arrangement where Eff == Async {
+public extension Arrange where Eff == Async {
     func thenReturn(_ output: Output) {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
     }
@@ -74,7 +74,7 @@ public extension Arrangement where Eff == Async {
 }
 
 // MARK: - AsyncThrows
-public extension Arrangement where Eff == AsyncThrows {
+public extension Arrange where Eff == AsyncThrows {
     func thenReturn(_ output: Output) {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
     }
@@ -95,25 +95,25 @@ public extension Arrangement where Eff == AsyncThrows {
 }
 
 // MARK: - Void convenience aliases
-public extension Arrangement where Output == Void, Eff == None {
+public extension Arrange where Output == Void, Eff == None {
     func then(_ handler: @escaping (repeat each I) -> Void) {
         thenReturn(handler)
     }
 }
 
-public extension Arrangement where Output == Void, Eff == Throws {
+public extension Arrange where Output == Void, Eff == Throws {
     func then(_ handler: @escaping (repeat each I) throws -> Void) {
         thenReturn(handler)
     }
 }
 
-public extension Arrangement where Output == Void, Eff == Async {
+public extension Arrange where Output == Void, Eff == Async {
     func then(_ handler: @escaping (repeat each I) async -> Void) {
         thenReturn(handler)
     }
 }
 
-public extension Arrangement where Output == Void, Eff == AsyncThrows {
+public extension Arrange where Output == Void, Eff == AsyncThrows {
     func then(_ handler: @escaping (repeat each I) async throws -> Void) {
         thenReturn(handler)
     }
