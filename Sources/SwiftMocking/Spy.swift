@@ -25,8 +25,10 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     public var isLoggingEnabled: Bool = false
     private let invocationsLock = NSLock()
     private let stubsLock = NSLock()
+    private let actionsLock = NSLock()
 
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
+    private(set) var actions: [Action<repeat each Input, Effects>] = []
     var defaultProviderRegistry: DefaultProvidableRegistry?
     var logger: ((Invocation<repeat each Input>) -> Void)?
     var invocationCount: Int {
@@ -60,14 +62,8 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         }
 
         // search through stub for a return value
-        var matchingStub: Stub<repeat each Input, Effects, Output>?
 
-        for stub in stubs.reversed().sorted(by: { $0.precedence > $1.precedence }) {
-            if stub.invocationMatcher.isMatchedBy(Invocation(arguments: repeat each input)) {
-                matchingStub = stub
-                break
-            }
-        }
+        var matchingStub = matchingStub(invocation: invocation)
         guard let returnValue = matchingStub?.returnValue(for: invocation) else {
             if let fallback = defaultProviderRegistry?.getDefaultForType(Output.self) {
                 return .value(fallback)
@@ -79,22 +75,64 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         return returnValue
     }
 
+    private func matchingStub(invocation: Invocation<repeat each Input>) -> Stub<repeat each Input, Effects, Output>? {
+        var matchingStub: Stub<repeat each Input, Effects, Output>?
+        for stub in stubs.reversed().sorted(by: { $0.precedence > $1.precedence }) {
+            if stub.invocationMatcher.isMatchedBy(invocation) {
+                matchingStub = stub
+                break
+            }
+        }
+        return matchingStub
+    }
+
+    private func matchingAction(invocation: Invocation<repeat each Input>) -> Action<repeat each Input, Effects>? {
+        actionsLock.lock()
+        defer { actionsLock.unlock() }
+        for action in actions.reversed().sorted(by: { $0.precedence > $1.precedence }) {
+            if action.invocationMatcher.isMatchedBy(invocation) {
+                return action
+            }
+        }
+        return nil
+    }
+
     /// Defines a stubbing behavior for the spy when called with specific argument matchers.
     /// - Parameter matchingInput: A variadic list of ``ArgMatcher``s to match the input arguments.
     /// - Returns: A ``Stub`` instance to configure the return value or error.
-    public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Stub<repeat each Input, Effects, Output> {
-        when(calledWith: InvocationMatcher(matchers: repeat each matchingInput))
+    public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Arrange<repeat each Input, Effects, Output> {
+        let interaction = Interaction(repeat each matchingInput, spy: self)
+        return Arrange(interaction: interaction)
     }
 
     /// Defines a stubbing behavior for the spy when called with a specific invocation matcher.
     /// - Parameter invocationMatcher: An ``InvocationMatcher`` to match the input arguments.
     /// - Returns: A ``Stub`` instance to configure the return value or error.
-    public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
+    public func when(calledWith invocationMatcher: InvocationMatcher <repeat each Input>) -> Arrange<repeat each Input, Effects, Output> {
+        let interaction = Interaction(invocationMatcher: invocationMatcher, spy: self)
+        return Arrange(interaction: interaction)
+    }
+
+    func createStub(for invocationMatcher: InvocationMatcher<repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
         stubsLock.lock()
         defer { stubsLock.unlock() }
         let stub = Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
         stubs.append(stub)
         return stub
+    }
+
+    func registerAction(
+        _ action: Action<repeat each Input, Effects>
+    ) {
+        actionsLock.lock()
+        actions.append(action)
+        actionsLock.unlock()
+    }
+
+    func removeAction(_ action: Action<repeat each Input, Effects>) {
+        actionsLock.lock()
+        actions.removeAll { $0 === action }
+        actionsLock.unlock()
     }
 
     /// Available so that spies can be used with `when` and `verify`.
@@ -166,6 +204,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// Clear stubs and invocations,  leaving the spy in a fresh state.
     public func clear() {
         stubs = []
+        actions = []
         invocations = []
     }
 }
@@ -178,7 +217,13 @@ extension Spy where Effects == Throws {
     /// - Throws: The error thrown by the method.
     @discardableResult
     public func call(_ input: repeat each Input) throws -> Output {
-        try invoke(repeat each input).get()
+        let invocation = Invocation(arguments: repeat each input)
+        let action = matchingAction(invocation: invocation)
+        let result = try invoke(repeat each input)
+        if let action {
+            try action.perform(invocation)
+        }
+        return try result.get()
     }
 
     public func asFunction() -> (repeat each Input) throws -> Output {
@@ -224,7 +269,12 @@ extension Spy where Effects == None {
     @discardableResult
     public func call(_ input: repeat each Input) -> Output {
         do {
+            let invocation = Invocation(arguments: repeat each input)
+            let action = matchingAction(invocation: invocation)
             let returnValue = try invoke(repeat each input)
+            if let action {
+                action.perform(invocation)
+            }
             return returnValue.get()
         } catch let error as MockingError {
             fatalError("MockingError: \(error.message)")
@@ -249,7 +299,12 @@ extension Spy where Effects == Async {
     @discardableResult
     public func call(_ input: repeat each Input) async -> Output {
         do {
+            let invocation = Invocation(arguments: repeat each input)
+            let action = matchingAction(invocation: invocation)
             let returnValue = try invoke(repeat each input)
+            if let action {
+                await action.perform(invocation)
+            }
             return await returnValue.get()
         } catch let error as MockingError {
             fatalError("MockingError: \(error.message)")
@@ -273,7 +328,12 @@ extension Spy where Effects == AsyncThrows {
     /// - Throws: The error thrown by the method.
     @discardableResult
     public func call(_ input: repeat each Input) async throws -> Output {
+        let invocation = Invocation(arguments: repeat each input)
+        let action = matchingAction(invocation: invocation)
         let returnValue = try invoke(repeat each input)
+        if let action {
+            try await action.perform(invocation)
+        }
         return try await returnValue.get()
     }
 
