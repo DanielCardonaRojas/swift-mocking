@@ -302,6 +302,25 @@ when(mock.calculate(a: .any, b: .any)).thenReturn(*)
 XCTAssertEqual(mock.calculate(a: 5, b: 10), 50)
 ```
 
+### Arranging Side Effects with `do`
+
+Every `when(...)` call returns an arrangement object that can both stub return values and register side effects. Use `.do { … }` when you need to observe or mutate state without altering the stubbed response:
+
+```swift
+var events: [String] = []
+
+when(mock.refresh(id: .equal("primary"))).do { id in
+    events.append("refresh called with \(id)")
+}
+
+when(mock.refresh(id: .equal("primary"))).then()
+
+mock.refresh(id: "primary")
+XCTAssertEqual(events, ["refresh called with primary"])
+```
+
+For `Void`-returning interactions you can use the convenience alias `then { … }` instead of calling `thenReturn(())`. This keeps call sites concise while still allowing the same effect-specific APIs (throwing, async, async-throwing) shown above.
+
 ### Logging Invocations
 
 `SwiftMocking` provides a simple way to log method invocations on your mock objects. This can be useful for debugging tests and understanding the flow of interactions. You can enable logging on a per-instance or per-type basis.
@@ -336,7 +355,7 @@ func testNetworkServiceCallback() async {
     let expectation = XCTestExpectation()
 
     // Use .any matcher for the callback parameter
-    when(mock.fetchUser(id: .equal("123"), completion: .any)).then { id, completion in
+when(mock.fetchUser(id: .equal("123"), completion: .any)).then { id, completion in
         // Control when and how the callback is executed
         completion(.success(User(id: id, name: "Test User")))
     }
@@ -387,7 +406,7 @@ struct Controller {
 
 func testControllerRefreshesInBackground() async throws {
     let mock = MockLoader()
-    when(mock.refresh(id: .any)).thenReturn { _ in
+when(mock.refresh(id: .any)).then { _ in
         try await Task.sleep(for: .milliseconds(25))
     }
 
