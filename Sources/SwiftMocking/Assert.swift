@@ -98,7 +98,7 @@ public class Assert<each Input, Eff: Effect, Output> {
         }
     }
 
-    fileprivate static func collectErrors<O>(_ result: Return<Eff, O>, errors: inout [any Error]) {
+    fileprivate static func collectErrors<O>(_ result: Return<Throws, O>, errors: inout [any Error]) {
         guard let resolved = result.resolveIfSynchronous() else {
             return
         }

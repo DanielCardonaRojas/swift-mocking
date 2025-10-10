@@ -93,13 +93,8 @@ extension Stub where Effects == Throws {
     /// - Parameter handler: A closure that can throw and returns the desired output.
     public func thenReturn(_ handler: @escaping (repeat each I) throws -> O) {
         self.output = { invocation in
-            Return(value: {
-                do {
-                    let returnValue = try handler(repeat each invocation.arguments)
-                    return .success(returnValue)
-                } catch {
-                    return .failure(error)
-                }
+            Return(throwingValue: {
+                try handler(repeat each invocation.arguments)
             })
         }
     }
@@ -130,8 +125,7 @@ extension Stub where Effects == Async {
     public func thenReturn(_ handler: @escaping (repeat each I) async -> O) {
         self.output = { invocation in
             Return(asyncValue: {
-                let returnValue = await handler(repeat each invocation.arguments)
-                return .success(returnValue)
+                await handler(repeat each invocation.arguments)
             })
         }
     }
@@ -168,8 +162,7 @@ extension Stub where Effects == AsyncThrows {
     public func thenReturn(_ handler: @escaping (repeat each I) async -> O) {
         self.output = { invocation in
             Return(asyncValue: {
-                let returnValue = await handler(repeat each invocation.arguments)
-                return .success(returnValue)
+                await handler(repeat each invocation.arguments)
             })
         }
     }
@@ -178,13 +171,8 @@ extension Stub where Effects == AsyncThrows {
     /// - Parameter handler: An async closure that returns the desired output or throws.
     public func thenReturn(_ handler: @escaping (repeat each I) async throws -> O) {
         self.output = { invocation in
-            Return(asyncValue: {
-                do {
-                    let returnValue = try await handler(repeat each invocation.arguments)
-                    return .success(returnValue)
-                } catch {
-                    return .failure(error)
-                }
+            Return(asyncThrowingValue: {
+                try await handler(repeat each invocation.arguments)
             })
         }
     }
