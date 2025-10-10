@@ -102,11 +102,11 @@ protocol PricingService {
 
 ```swift
 class PricingServiceMock: Mock, PricingService {
-    func price(_ item: String) throws -> Int {
-        return try adaptThrowing(super.price, item)
-    }
     func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
         Interaction(item, spy: super.price)
+    }
+    func price(_ item: String) throws -> Int {
+        return try adaptThrowing(super.price, item)
     }
 }
 ```
@@ -374,19 +374,12 @@ when(mock.fetchUser(id: .equal("123"), completion: .any)).then { id, completion 
 }
 ```
 
-This pattern is invaluable for testing:
-- Network operations with completion handlers
-- File I/O operations
-- Authentication services
-- Database operations
-- Event handlers and delegates
-- Timer/delayed operations
 
 **Important:** When testing methods with callbacks, always use the `.any` matcher for callback parameters, as it's the only matcher that makes sense for closure types.
 
 ### Waiting for Asynchronous Interactions
 
-When a system under test triggers an `async`/`async throws` dependency inside a detached task, you can wait for the interaction with the `until` helper. This utility polls the spy until a matching invocation is recorded or a timeout is reached.
+When a system under test triggers an `async`/`async throws` dependency inside a detached task, you can wait for the interaction with the `until` helper.
 
 ```swift
 @Mockable
@@ -418,7 +411,6 @@ when(mock.refresh(id: .any)).then { _ in
 }
 ```
 
-By default `until` waits up to one second, polling every 10 milliseconds. Adjust the timeout and polling interval via optional parameters when working with slower background work.
 
 ### Testing Closure-Based Dependencies
 
