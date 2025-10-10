@@ -29,101 +29,125 @@
 /// }
 /// ```
 struct Return<Effects: Effect, R> {
-    typealias ThrowingDeferred<V> = () -> Result<V, any Error>
-    typealias AsyncDeferred<V> = () async -> Result<V, any Error>
+    private let syncResolver: (() -> R)?
+    private let throwingResolver: (() throws -> R)?
+    private let asyncResolver: (() async -> R)?
+    private let asyncThrowingResolver: (() async throws -> R)?
 
-    private let resolver: ThrowingDeferred<R>?
-    private let asyncResolver: AsyncDeferred<R>?
-
-    /// Initializes a `Return` instance with a deferred result.
-    /// - Parameter value: A closure that returns a `Result` containing either the success value or an error.
-    init(value: @escaping ThrowingDeferred<R>) {
-        self.resolver = value
+    /// Initializes a `Return` instance with a synchronous resolver.
+    init(syncValue value: @escaping () -> R) {
+        self.syncResolver = value
+        self.throwingResolver = nil
         self.asyncResolver = nil
+        self.asyncThrowingResolver = nil
     }
 
-    /// Initializes a `Return` instance with an asynchronous deferred result.
-    /// - Parameter value: An async closure that returns a `Result` containing either the success value or an error.
-    init(asyncValue value: @escaping AsyncDeferred<R>) {
-        self.resolver = nil
+    /// Initializes a `Return` instance with a throwing resolver.
+    init(throwingValue value: @escaping () throws -> R) {
+        self.syncResolver = nil
+        self.throwingResolver = value
+        self.asyncResolver = nil
+        self.asyncThrowingResolver = nil
+    }
+
+    /// Initializes a `Return` instance with an asynchronous resolver.
+    init(asyncValue value: @escaping () async -> R) {
+        self.syncResolver = nil
+        self.throwingResolver = nil
         self.asyncResolver = value
+        self.asyncThrowingResolver = nil
+    }
+
+    /// Initializes a `Return` instance with an asynchronous throwing resolver.
+    init(asyncThrowingValue value: @escaping () async throws -> R) {
+        self.syncResolver = nil
+        self.throwingResolver = nil
+        self.asyncResolver = nil
+        self.asyncThrowingResolver = value
     }
 
     /// Creates a `Return` instance that represents a success value.
     /// - Parameter value: The success value to be returned.
     /// - Returns: A `Return` instance encapsulating the success value.
     static func value(_ value: R) -> Return<Effects, R> {
-        if Effects.self is Asynchronous.Type {
-            return Return(asyncValue: { .success(value) })
+        switch Effects.self {
+        case is None.Type:
+            return Return(syncValue: { value })
+        case is Throws.Type:
+            return Return(throwingValue: { value })
+        case is Async.Type:
+            return Return(asyncValue: { value })
+        case is AsyncThrows.Type:
+            return Return(asyncThrowingValue: { value })
+        default:
+            fatalError("Unknown effect type: \(Effects.self)")
         }
-        return Return(value: { .success(value) })
     }
 
-    /// Resolves the deferred value into a `Result`.
-    /// - Returns: The stored result for this return value.
-    func resolve() -> Result<R, any Error> {
-        guard let resolver else {
-            fatalError("Attempted to synchronously resolve an asynchronous return.")
-        }
-        return resolver()
-    }
-
-    /// Attempts to resolve the value synchronously if a synchronous resolver exists.
-    /// - Returns: The stored result if a synchronous resolver is present, otherwise `nil`.
-    func resolveIfSynchronous() -> Result<R, any Error>? {
-        resolver?()
-    }
-
-    /// Resolves the deferred value asynchronously into a `Result`.
-    /// - Returns: The stored result for this return value.
-    func resolveAsync() async -> Result<R, any Error> {
-        if let asyncResolver {
-            return await asyncResolver()
-        }
-        if let resolver {
-            return resolver()
-        }
-        fatalError("Return has no resolver.")
-    }
 }
 
 extension Return where Effects == None {
+    /// Resolves the deferred value into a `Result`.
+    /// - Returns: The stored result for this return value.
+    func resolve() -> Result<R, any Error> {
+        guard let syncResolver else {
+            fatalError("Return has no resolver.")
+        }
+        return .success(syncResolver())
+    }
+
     /// Retrieves the encapsulated value, crashing if an error was stored.
     /// - Returns: The success value.
     func get() -> R {
-        switch resolve() {
-        case .success(let value):
-            return value
-        case .failure(let error):
-            fatalError("Unexpected error for non-throwing return: \(error)")
+        guard let syncResolver else {
+            fatalError("Return has no resolver.")
         }
+        return syncResolver()
     }
 
     /// Creates a `Return` from a synchronous closure.
     /// - Parameter producer: A closure that produces the value.
     init(_ producer: @escaping () -> R) {
-        self.init(value: { .success(producer()) })
+        self.init(syncValue: producer)
     }
 }
 
 extension Return where Effects == Throws {
+    /// Resolves the deferred value into a `Result`.
+    /// - Returns: The stored result for this return value.
+    func resolve() -> Result<R, any Error> {
+        guard let throwingResolver else {
+            fatalError("Return has no resolver.")
+        }
+        do {
+            return .success(try throwingResolver())
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    /// Attempts to resolve the value synchronously if a synchronous resolver exists.
+    /// - Returns: The stored result if a synchronous resolver is present, otherwise `nil`.
+    func resolveIfSynchronous() -> Result<R, any Error>? {
+        guard let throwingResolver else { return nil }
+        do {
+            return .success(try throwingResolver())
+        } catch {
+            return .failure(error)
+        }
+    }
+
     /// Creates a `Return` instance that represents an error.
     /// - Parameter error: The error to be returned.
     /// - Returns: A `Return` instance encapsulating the error.
     static func error<E: Error>(_ error: E) -> Return<Effects, R> {
-        return Return(value: { .failure(error) })
+        return Return(throwingValue: { throw error })
     }
 
     /// Creates a `Return` from a throwing synchronous closure.
     /// - Parameter producer: A closure that can throw and produces the value.
     init(_ producer: @escaping () throws -> R) {
-        self.init(value: {
-            do {
-                return .success(try producer())
-            } catch {
-                return .failure(error)
-            }
-        })
+        self.init(throwingValue: producer)
     }
 
     /// Retrieves the encapsulated value or throws the encapsulated error.
@@ -136,42 +160,56 @@ extension Return where Effects == Throws {
 }
 
 extension Return where Effects == Async {
+    /// Resolves the deferred value asynchronously into a `Result`.
+    /// - Returns: The stored result for this return value.
+    func resolveAsync() async -> Result<R, any Error> {
+        guard let asyncResolver else {
+            fatalError("Return has no resolver.")
+        }
+        return .success(await asyncResolver())
+    }
+
     /// Retrieves the encapsulated value asynchronously, crashing if an error was stored.
     /// - Returns: The success value.
     func get() async -> R {
-        switch await resolveAsync() {
-        case .success(let value):
-            return value
-        case .failure(let error):
-            fatalError("Unexpected error for non-throwing async return: \(error)")
+        guard let asyncResolver else {
+            fatalError("Return has no resolver.")
         }
+        return await asyncResolver()
     }
 
     /// Creates a `Return` from an asynchronous closure.
     /// - Parameter producer: An async closure that produces the value.
     init(_ producer: @escaping () async -> R) {
-        self.init(asyncValue: { .success(await producer()) })
+        self.init(asyncValue: producer)
     }
 }
 
 extension Return where Effects == AsyncThrows {
+    /// Resolves the deferred value asynchronously into a `Result`.
+    /// - Returns: The stored result for this return value.
+    func resolveAsync() async -> Result<R, any Error> {
+        guard let asyncThrowingResolver else {
+            fatalError("Return has no resolver.")
+        }
+        do {
+            return .success(try await asyncThrowingResolver())
+        } catch {
+            return .failure(error)
+        }
+    }
+
     /// Creates a `Return` instance that represents an error.
     /// - Parameter error: The error to be returned.
     /// - Returns: A `Return` instance encapsulating the error.
     static func error<E: Error>(_ error: E) -> Return<Effects, R> {
-        Return(asyncValue: { .failure(error) })
+        Return(asyncThrowingValue: { throw error })
     }
 
     /// Creates a `Return` from an asynchronous throwing closure.
     /// - Parameter producer: An async closure that can throw and produces the value.
     init(_ producer: @escaping () async throws -> R) {
-        self.init(asyncValue: {
-            do {
-                return .success(try await producer())
-            } catch {
-                return .failure(error)
-            }
-        })
+        self.init(asyncThrowingValue: producer)
     }
 
     /// Retrieves the encapsulated value asynchronously or throws the encapsulated error.

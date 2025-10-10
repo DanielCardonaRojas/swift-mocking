@@ -45,7 +45,7 @@ final class ReturnTests: XCTestCase {
         let expectation = XCTestExpectation(description: "async closure invoked")
         let subject = Return<Async, String>(asyncValue: {
             expectation.fulfill()
-            return .success("value")
+            return "value"
         })
 
         let result = await subject.get()
