@@ -51,10 +51,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// - Returns: The ``Return`` value from the matching stub.
     /// - Throws: ``MockingError/unStubbed`` if no matching stub is found.
     func invoke(_ input: repeat each Input) throws -> Return<Effects, Output> {
-        invocationsLock.lock()
-        defer { invocationsLock.unlock() }
-        let invocation = Invocation(arguments: repeat each input)
-        invocations.append(invocation)
+        let invocation = intake(repeat each input)
 
         // Log invocations
         if isLoggingEnabled {
@@ -63,7 +60,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
 
         // search through stub for a return value
 
-        var matchingStub = matchingStub(invocation: invocation)
+        let matchingStub = matchingStub(invocation: invocation)
         guard let returnValue = matchingStub?.returnValue(for: invocation) else {
             if let fallback = defaultProviderRegistry?.getDefaultForType(Output.self) {
                 return .value(fallback)
@@ -73,6 +70,15 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         }
 
         return returnValue
+    }
+
+
+    private func intake(_ input: repeat each Input) -> Invocation<repeat each Input> {
+        invocationsLock.lock()
+        defer { invocationsLock.unlock() }
+        let invocation = Invocation(arguments: repeat each input)
+        invocations.append(invocation)
+        return invocation
     }
 
     private func matchingStub(invocation: Invocation<repeat each Input>) -> Stub<repeat each Input, Effects, Output>? {
