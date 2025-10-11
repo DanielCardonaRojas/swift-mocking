@@ -203,7 +203,6 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, None, Void>()
         var captured: [String] = []
 
-        when(spy(.any)).thenReturn(())
         when(spy(.equal("track"))).do({ value in
             captured.append(value)
         })
@@ -216,7 +215,6 @@ final class SpyTests: XCTestCase {
 
     func test_untilWaitsForAsyncInteraction() async throws {
         let spy = Spy<String, Async, Void>()
-        when(spy(.any)).thenReturn(())
 
         let waiter = Task {
             try await until(spy(.equal("ping")), timeout: .seconds(1))
@@ -230,7 +228,6 @@ final class SpyTests: XCTestCase {
 
     func test_untilAsyncTimesOutWhenNoCall() async {
         let spy = Spy<String, Async, Void>()
-        when(spy(.any)).thenReturn(())
 
         do {
             try await until(spy(.equal("never")), timeout: .milliseconds(50))
