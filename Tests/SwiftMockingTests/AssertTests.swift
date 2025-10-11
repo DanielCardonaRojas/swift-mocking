@@ -9,7 +9,6 @@ final class AssertTests: XCTestCase {
     override func setUp() {
         super.setUp()
         spy = Spy()
-        spy.when(calledWith: .any).thenReturn(())
     }
 
     func testAssertCalled() throws {
@@ -56,7 +55,6 @@ final class AssertTests: XCTestCase {
 
     func testDoesThrowFailsWhenNoErrorThrown() {
         let throwingSpy = Spy<String, Throws, Void>()
-        throwingSpy.when(calledWith: .any).thenReturn(())
         _ = try? throwingSpy.call("test")
 
         let assert = Assert(spy: throwingSpy)
@@ -187,7 +185,6 @@ final class AssertTests: XCTestCase {
     
     func testCapturedWithMultipleArguments() throws {
         let multiArgSpy = Spy<String, Int, None, Void>()
-        multiArgSpy.when(calledWith: .any, .any).thenReturn(())
         
         multiArgSpy.call("first", 1)
         multiArgSpy.call("second", 2)
