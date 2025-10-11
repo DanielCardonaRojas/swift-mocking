@@ -5,6 +5,7 @@
 //  Created by Daniel Cardona on 6/07/25.
 //
 
+import Foundation
 import IssueReporting
 
 // MARK: Mockito utilities
@@ -137,10 +138,14 @@ public func verifyZeroInteractions(
 
 // MARK: Await utilities
 
-private actor FulfillmentTracker {
+private final class FulfillmentTracker {
     private var fulfilled = false
+    private let lock = NSLock()
 
     func tryFulfill() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
         guard !fulfilled else { return false }
         fulfilled = true
         return true
@@ -156,7 +161,7 @@ public func until<each Input, Output>(
         var actionReference: Action<repeat each Input, None>?
         let timer = Task {
             try await Task.sleep(for: timeout)
-            if await tracker.tryFulfill() {
+            if tracker.tryFulfill() {
                 if let actionReference {
                     interaction.spy.removeAction(actionReference)
                 }
@@ -188,7 +193,7 @@ public func until<each Input, Output>(
         var actionReference: Action<repeat each Input, Async>?
         let timer = Task {
             try await Task.sleep(for: timeout)
-            if await tracker.tryFulfill() {
+            if tracker.tryFulfill() {
                 if let actionReference {
                     interaction.spy.removeAction(actionReference)
                 }
@@ -198,7 +203,7 @@ public func until<each Input, Output>(
 
         let action = Action<repeat each Input, Async>(invocationMatcher: interaction.invocationMatcher)
         action.do { (_: repeat each Input) async in
-            if await tracker.tryFulfill() {
+            if tracker.tryFulfill() {
                 timer.cancel()
                 if let actionReference {
                     interaction.spy.removeAction(actionReference)
@@ -222,7 +227,7 @@ public func until<each Input, Output>(
         var actionReference: Action<repeat each Input, AsyncThrows>?
         let timer = Task {
             try await Task.sleep(for: timeout)
-            if await tracker.tryFulfill() {
+            if tracker.tryFulfill() {
                 if let actionReference {
                     interaction.spy.removeAction(actionReference)
                 }
@@ -232,7 +237,7 @@ public func until<each Input, Output>(
 
         let action = Action<repeat each Input, AsyncThrows>(invocationMatcher: interaction.invocationMatcher)
         action.do { (_: repeat each Input) async throws in
-            if await tracker.tryFulfill() {
+            if tracker.tryFulfill() {
                 timer.cancel()
                 if let actionReference {
                     interaction.spy.removeAction(actionReference)
