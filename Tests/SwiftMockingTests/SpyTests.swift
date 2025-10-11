@@ -213,6 +213,17 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(captured, ["track"])
     }
 
+    func test_await_until() async throws {
+        let spy = Spy<String, None, Void>()
+        Task {
+            try await Task.sleep(for: .milliseconds(50))
+            spy.call("")
+        }
+
+        try await until(spy(.any))
+        verify(spy(.any)).called()
+    }
+
     func test_untilWaitsForAsyncInteraction() async throws {
         let spy = Spy<String, Async, Void>()
 

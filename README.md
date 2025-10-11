@@ -379,35 +379,26 @@ when(mock.fetchUser(id: .equal("123"), completion: .any)).then { id, completion 
 
 ### Waiting for Asynchronous Interactions
 
-When a system under test triggers an `async`/`async throws` dependency inside a detached task, you can wait for the interaction with the `until` helper.
+When a system under test triggers a dependency inside a detached task, you can wait for the interaction with the `until` helper.
 
 ```swift
-@Mockable
-protocol Loader {
-    func refresh(id: String) async throws
-}
-
 struct Controller {
     let refresh: (String) async throws -> Void
 
     func start() {
         Task {
-            _ = try? await refresh("primary")
+            try await Task.sleep(for: .milliseconds(25))
+            try await refresh("primary")
         }
     }
 }
 
 func testControllerRefreshesInBackground() async throws {
-    let mock = MockLoader()
-when(mock.refresh(id: .any)).then { _ in
-        try await Task.sleep(for: .milliseconds(25))
-    }
-
-    let sut = Controller(refresh: mock.refresh(id:))
+    let spy = Spy<String, AsyncThrows, Void>()
+    let sut = Controller(refresh: adapt(spy))
     sut.start()
-
-    try await until(mock.refresh(id: .equal("primary")))
-    verify(mock.refresh(id: .equal("primary"))).called()
+    try await until(spy("primary"))
+    verify(spy("primary")).called()
 }
 ```
 
