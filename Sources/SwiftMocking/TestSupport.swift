@@ -147,6 +147,37 @@ private actor FulfillmentTracker {
     }
 }
 
+public func until<each Input, Output>(
+    _ interaction: Interaction<repeat each Input, None, Output>,
+    timeout: Duration = .seconds(1)
+) async throws {
+    let tracker = FulfillmentTracker()
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        var actionReference: Action<repeat each Input, None>?
+        let timer = Task {
+            try await Task.sleep(for: timeout)
+            if await tracker.tryFulfill() {
+                if let actionReference {
+                    interaction.spy.removeAction(actionReference)
+                }
+                continuation.resume(throwing: UntilError.timeout)
+            }
+        }
+
+        let action = Action<repeat each Input, None>(invocationMatcher: interaction.invocationMatcher)
+        action.do({ (_: repeat each Input) in
+                timer.cancel()
+                if let actionReference {
+                    interaction.spy.removeAction(actionReference)
+                }
+                continuation.resume()
+        })
+
+        actionReference = action
+        interaction.spy.registerAction(action)
+    }
+}
+
 /// Waits until the provided async interaction has been recorded using action hooks.
 public func until<each Input, Output>(
     _ interaction: Interaction<repeat each Input, Async, Output>,
