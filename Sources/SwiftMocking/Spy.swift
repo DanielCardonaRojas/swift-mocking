@@ -11,9 +11,6 @@ import Foundation
 /// You can use a ``Spy`` to verify that a method was called with specific arguments, or to check how many times it was called.
 /// Spies are useful for testing interactions between objects.
 ///
-/// You don't create spies manually. Instead, you use the ``Mockable`` macro to generate a spy for a protocol, or a ``Mock`` to create them
-/// through dynamic member lookup subscripts.
-///
 /// ## Related Types
 /// - ``Mock`` - Base class that manages and provides access to spies
 /// - ``Stub`` - Defines behavior for method calls
@@ -195,7 +192,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         var count = 0
         for invocation in invocations {
             if index >= invocationMatchers.count {
-                return false 
+                return false
             }
             let invocationMatcher = invocationMatchers[index]
             if invocationMatcher.isMatchedBy(invocation) {
