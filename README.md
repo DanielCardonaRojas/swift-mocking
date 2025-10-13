@@ -292,7 +292,7 @@ protocol Calculator {
 
 // Calculate summing
 when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
-    // Note that no casting is required. a and here are of type Int
+    // Note that no casting is required, a and b are of type Int.
     return a + b
 }
 XCTAssertEqual(mock.calculate(a: 5, b: 10), 15)
