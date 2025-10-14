@@ -41,7 +41,7 @@ open class Mock: DefaultProvider {
 
     /// Stores spies per protocol requirement. Keys in the outermost dictionary correspond to the Mock type,
     /// keys in the inner dictionary are function or variable names. This enables tracking spies for static requirements.
-    static private var spies_: [String: [String: [AnySpy]]] = [:]
+    static private var spies_: [String: [String: [AnySpy]]] = MockScope.storageProvider.storage
 
     private static let lock = NSLock()
     private let lock = NSLock()
@@ -145,3 +145,5 @@ open class Mock: DefaultProvider {
         }
     }
 }
+
+
