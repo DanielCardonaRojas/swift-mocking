@@ -8,6 +8,7 @@
 import Testing
 import SwiftMocking
 
+#if swift(>=6.1)
 // Tests run in parallel
 struct StaticTests {
     let callCount = 1000
@@ -30,3 +31,4 @@ struct StaticTests {
     }
 
 }
+#endif

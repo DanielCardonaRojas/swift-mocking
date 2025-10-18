@@ -7,6 +7,7 @@
 
 import Testing
 
+#if swift(>=6.1)
 public struct MockScopeTrait: TestTrait, TestScoping {
   public func provideScope(
     for test: Test,
@@ -24,3 +25,4 @@ public extension Trait where Self == MockScopeTrait {
         Self()
     }
 }
+#endif
