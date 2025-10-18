@@ -39,10 +39,6 @@ open class Mock: DefaultProvider {
     /// Stores spies per protocol  requirement. Keys are function or variable names.
     private(set) var spies: [String: [AnySpy]] = [:]
 
-    /// Stores spies per protocol requirement. Keys in the outermost dictionary correspond to the Mock type,
-    /// keys in the inner dictionary are function or variable names. This enables tracking spies for static requirements.
-    static private var spies_: [String: [String: [AnySpy]]] = [:]
-
     private static let lock = NSLock()
     private let lock = NSLock()
 
@@ -56,7 +52,8 @@ open class Mock: DefaultProvider {
 
     public static var isLoggingEnabled: Bool = false {
         didSet {
-            for dict in spies_.values {
+            let provider = MockScope.storageProvider
+            for dict in provider.storage.values {
                 for spyGroup in dict.values {
                     spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
                 }
@@ -67,7 +64,8 @@ open class Mock: DefaultProvider {
     public init() { }
 
     static var spies: [String: [AnySpy]] {
-        spies_["\(Self.self)"] ?? [:]
+        let provider = MockScope.storageProvider
+        return provider.storage["\(Self.self)"] ?? [:]
     }
 
     /// Provides a ``Spy`` instance for the given member name.
@@ -106,19 +104,19 @@ open class Mock: DefaultProvider {
     public static subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
         lock.lock()
         defer { lock.unlock() }
+        let provider = MockScope.storageProvider
         let thisType = "\(Self.self)" // The name of the subclass mock
-        if spies_[thisType] == nil {
-            spies_[thisType] = [:]
-        }
+        var storage = provider.storage[thisType] ?? [:]
 
-        if let spyGroup = spies_[thisType]?[member], let existingSpy = spyGroup.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> }) {
+        if let spyGroup = storage[member], let existingSpy = spyGroup.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> }) {
             return existingSpy
         } else {
             let spy = Spy<repeat each Input, Eff, Output>()
             spy.configureLogger(label: "\(Self.self).\(member)")
             spy.isLoggingEnabled = isLoggingEnabled
             spy.defaultProviderRegistry = defaultProviderRegistry
-            spies_[thisType]?[member, default: []].append(spy)
+            storage[member, default: []].append(spy)
+            provider.storage[thisType] = storage
             return spy
         }
     }
@@ -138,7 +136,8 @@ open class Mock: DefaultProvider {
     /// Call this method in your test's `tearDown` to ensure that each test starts with a
     /// clean mock object, free from any interactions or stubs from previous tests.
     public static func clear() {
-        for dict in spies_.values {
+        let provider = MockScope.storageProvider
+        for dict in provider.storage.values {
             for spyGroup in dict.values {
                 spyGroup.forEach({ $0.clear() })
             }

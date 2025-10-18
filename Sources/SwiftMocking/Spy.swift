@@ -26,9 +26,9 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
 
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
     private(set) var actions: [Action<repeat each Input, Effects>] = []
-    var defaultProviderRegistry: DefaultProvidableRegistry? = .default
+    public var defaultProviderRegistry: DefaultProvidableRegistry? = .default
     var logger: ((Invocation<repeat each Input>) -> Void)?
-    var invocationCount: Int {
+    public var invocationCount: Int {
         invocations.count
     }
 

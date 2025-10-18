@@ -22,6 +22,7 @@
     *   [Logging Invocations](#logging-invocations)
     *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Testing Closure-Based Dependencies](#testing-closure-based-dependencies)
+    *   [Test Isolation for Concurrent Testing](#test-isolation-for-concurrent-testing)
     *   [Default Values for Unstubbed Methods](#default-values-for-unstubbed-methods)
     *   [Descriptive Error Reporting](#descriptive-error-reporting)
 *   [How it Works](#️-how-it-works)
@@ -43,6 +44,7 @@
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
 | **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what and how code gets generated. |
 | **XCTest and Testing support** | SwiftMocking uses [swift-issue-reporting](https://github.com/pointfreeco/swift-issue-reporting) and exposes testing utilities to both XCTest and [swift-testing](https://github.com/swiftlang/swift-testing) frameworks. |
+| **Test Isolation for Concurrency** | Provides automatic spy isolation for concurrent test execution through MockingTestCase and test scoping traits. |
 
 ### Protocol Feature Support
 
@@ -66,7 +68,7 @@
 To add `SwiftMocking` to your Swift package, add it as a dependency in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.3.0"),
+.package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.5.0"),
 ```
 
 Then, add `SwiftMocking` to your target's dependencies:
@@ -444,7 +446,14 @@ func testClosureBasedDependencies() async throws {
 
 This approach provides the same testing capabilities as protocol-based mocking but works with closure-based dependency injection patterns. The `adapt()` function converts a `Spy` into a closure that can be used directly as a dependency.
 
+### Test Isolation for Concurrent Testing
 
+SwiftMocking provides test isolation to ensure concurrent tests don't interfere with each other when using static mocks. This is essential for Swift Testing which runs tests in parallel by default.
+
+- **XCTest**: Inherit from `MockingTestCase` instead of `XCTestCase` for automatic spy isolation
+- **Swift Testing**: Use the `@Test(.mocking)` trait to enable test scoping
+
+Without proper isolation, concurrent tests can experience race conditions where static spies accumulate calls from multiple tests, making verification assertions unpredictable.
 
 ### Default Values for Unstubbed Methods
 
