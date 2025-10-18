@@ -18,12 +18,12 @@ import Foundation
 ///     // Interact with mocks. Static requirements stay isolated to this scope.
 /// }
 /// ```
-enum MockScope {
+public enum MockScope {
     @TaskLocal
     static var storageProvider: SpyStorageProvider = SpyStorageProvider()
 
     /// Returns the storage provider bound to the current task.
-    static var currentStorage: SpyStorageProvider {
+    public static var currentStorage: SpyStorageProvider {
         storageProvider
     }
 
@@ -32,8 +32,8 @@ enum MockScope {
     ///   - provider: Storage provider used within the body.
     ///   - body: Synchronous closure to run with the provider.
     /// - Returns: The value returned by the closure.
-    static func withStorage<R>(
-        _ provider: SpyStorageProvider,
+    public static func withStorage<R>(
+        _ provider: SpyStorageProvider = .init(),
         body: () throws -> R
     ) rethrows -> R {
         try $storageProvider.withValue(provider, operation: body)
@@ -45,7 +45,7 @@ enum MockScope {
     ///   - body: Asynchronous closure to run with the provider.
     /// - Returns: The value returned by the closure.
     static func withStorage<R>(
-        _ provider: SpyStorageProvider,
+        _ provider: SpyStorageProvider = .init(),
         body: () async throws -> R
     ) async rethrows -> R {
         try await $storageProvider.withValue(provider, operation: body)
