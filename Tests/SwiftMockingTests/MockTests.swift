@@ -2,7 +2,7 @@
 import XCTest
 @testable import SwiftMocking
 
-final class MockTests: XCTestCase {
+final class MockTests: MockingTestCase {
     func testSubscript_WhenSpyDoesNotExist_CreatesNewSpy() {
         let mock = Mock()
         let spy: Spy<Int, None, Void> = mock.myFunction
@@ -84,6 +84,26 @@ final class MockTests: XCTestCase {
         _ = PrinterMock.print(.any)
         XCTAssertEqual(LoggerMock.spies.values.count, 1)
         XCTAssertEqual(PrinterMock.spies.values.count, 1)
+    }
+
+    func testScopedStatic() async throws {
+        MockScope.withStorage {
+            let spy: Spy<String, None, Void> = Mock.someMethod
+            for _ in 1...100 {
+                spy.call("")
+            }
+        }
+        MockScope.withStorage {
+            let spy: Spy<String, None, Void> = Mock.someMethod
+            for _ in 1...100 {
+                spy.call("")
+            }
+        }
+
+        try await Task.sleep(for: .milliseconds(50))
+
+        let spy: Spy<String, None, Void> = Mock.someMethod
+        XCTAssertEqual(spy.invocations.count, .zero)
     }
 
     func testLogger() async throws {
