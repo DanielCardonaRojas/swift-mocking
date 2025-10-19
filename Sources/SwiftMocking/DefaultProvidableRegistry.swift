@@ -45,8 +45,8 @@ public struct DefaultProvidableRegistry {
 
 
     /// The internal storage for the registered `DefaultProviding` instances.
-    var providers: [DefaultProviding] = []
-    
+    var providers: [String : DefaultProviding] = [:]
+
     /// Creates a new, empty `DefaultProvidableRegistry`.
     public init() { }
 
@@ -58,10 +58,13 @@ public struct DefaultProvidableRegistry {
     /// - Parameter type: The type for which a default value is requested.
     /// - Returns: An optional default value of type `T`, or `nil` if no suitable provider is found.
     public func getDefaultForType<T>(_ type: T.Type) -> T? {
-        for provider in providers {
-            if let defaultValue = provider.createDefault() as? T {
-                return defaultValue
-            }
+        let parsed = MetatypeParser.parse(T.self)
+        guard let provider = providers[parsed.name] else {
+            return nil
+        }
+
+        if let defaultValue = provider.createDefault() as? T {
+            return defaultValue
         }
 
         return nil
@@ -75,7 +78,7 @@ public struct DefaultProvidableRegistry {
     ///
     /// - Parameter providing: The `DefaultProviding` instance to register.
     public mutating func register(_ providing: DefaultProviding) {
-        providers.append(providing)
+        providers[providing.defaultType.name] = providing
     }
 
     /// Deregisters a `DefaultProviding` instance from the registry.
@@ -84,6 +87,6 @@ public struct DefaultProvidableRegistry {
     ///
     /// - Parameter providing: The `DefaultProviding` instance to deregister.
     public mutating func deregister(_ providing: DefaultProviding) {
-        providers.removeAll(where: { $0.defaultType == providing.defaultType })
+        providers.removeValue(forKey: providing.defaultType.name)
     }
 }

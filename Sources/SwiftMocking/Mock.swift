@@ -33,8 +33,8 @@ open class Mock: DefaultProvider {
         Self.self as Mock.Type
     }
 
-    public var defaultProviderRegistry: DefaultProvidableRegistry = .default
-    public static var defaultProviderRegistry: DefaultProvidableRegistry = .default
+    public var defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
+    public static var defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
 
     /// Stores spies per protocol  requirement. Keys are function or variable names.
     private(set) var spies: [String: [AnySpy]] = [:]
