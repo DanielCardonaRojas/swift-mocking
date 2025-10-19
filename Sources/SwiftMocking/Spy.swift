@@ -26,7 +26,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
 
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
     private(set) var actions: [Action<repeat each Input, Effects>] = []
-    public var defaultProviderRegistry: DefaultProvidableRegistry? = .default
+    public var defaultProviderRegistry: DefaultProvidableRegistry? = MockScope.fallbackValueRegistry
     var logger: ((Invocation<repeat each Input>) -> Void)?
     public var invocationCount: Int {
         invocations.count
