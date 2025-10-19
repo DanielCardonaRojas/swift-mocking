@@ -45,7 +45,7 @@
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
 | **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what and how code gets generated. |
 | **XCTest and Testing support** | SwiftMocking uses [swift-issue-reporting](https://github.com/pointfreeco/swift-issue-reporting) and exposes testing utilities to both XCTest and [swift-testing](https://github.com/swiftlang/swift-testing) frameworks. |
-| **Test Isolation for Concurrency** | Provides automatic spy isolation for concurrent test execution through MockingTestCase and test scoping traits. |
+| **Test Isolation for Concurrency** | Provides isolation for concurrent test execution through [TaskLocal](https://www.hackingwithswift.com/quick-start/concurrency/how-to-create-and-use-task-local-values). |
 
 ### Protocol Feature Support
 
