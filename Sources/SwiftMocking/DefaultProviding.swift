@@ -55,5 +55,11 @@ public extension DefaultProviding {
         .init(String.self, create: { "" })
     }
 
+    /// Creates a provider that returns a specific concrete value.
+    /// This is used by DefaultValuesTrait to register test-scoped default values.
+    static func valueProvider<T>(_ value: T) -> DefaultProviding {
+        .init(T.self, create: { value })
+    }
+
 }
 
