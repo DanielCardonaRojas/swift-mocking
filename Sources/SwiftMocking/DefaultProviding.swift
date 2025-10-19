@@ -56,7 +56,22 @@ public extension DefaultProviding {
     }
 
     /// Creates a provider that returns a specific concrete value.
-    /// This is used by DefaultValuesTrait to register test-scoped default values.
+    ///
+    /// This method is used internally by `DefaultValuesTrait` to register test-scoped default values.
+    /// It captures the concrete value and its type, creating a provider that will return the exact
+    /// same value whenever a default of that type is requested.
+    ///
+    /// ## Example
+    ///
+    /// ```swift
+    /// let provider = DefaultProviding.valueProvider("Hello World")
+    /// // This provider will return "Hello World" for any String default request
+    /// ```
+    ///
+    /// - Parameter value: The concrete value to be returned by this provider. The value's type
+    ///   determines which type requests this provider will satisfy.
+    ///
+    /// - Returns: A `DefaultProviding` instance that returns the specified value for its type.
     static func valueProvider<T>(_ value: T) -> DefaultProviding {
         .init(T.self, create: { value })
     }

@@ -23,6 +23,7 @@
     *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Testing Closure-Based Dependencies](#testing-closure-based-dependencies)
     *   [Test Isolation for Concurrent Testing](#test-isolation-for-concurrent-testing)
+    *   [Test-Scoped Default Values](#test-scoped-default-values)
     *   [Default Values for Unstubbed Methods](#default-values-for-unstubbed-methods)
     *   [Descriptive Error Reporting](#descriptive-error-reporting)
 *   [How it Works](#️-how-it-works)
@@ -454,6 +455,60 @@ SwiftMocking provides test isolation to ensure concurrent tests don't interfere 
 - **Swift Testing**: Use the `@Test(.mocking)` trait to enable test scoping
 
 Without proper isolation, concurrent tests can experience race conditions where static spies accumulate calls from multiple tests, making verification assertions unpredictable.
+
+### Test-Scoped Default Values
+
+SwiftMocking provides a powerful trait-based system for injecting custom default values that are scoped to individual tests or test suites. This allows you to provide specific default return values for unstubbed mock methods within the scope of a test execution.
+
+#### Using .withDefaults Trait
+
+```swift
+import Testing
+import SwiftMocking
+
+@Test(.withDefaults("Test User", 42, true))
+func testWithCustomDefaults() {
+    let mock = MockUserService()
+
+    // Unstubbed methods return the custom defaults
+    let name = mock.getUserName()     // Returns "Test User"
+    let age = mock.getUserAge()       // Returns 42
+    let isActive = mock.isUserActive() // Returns true
+
+    #expect(name == "Test User")
+    #expect(age == 42)
+    #expect(isActive == true)
+}
+```
+
+#### Suite-Level Default Values
+
+Apply default values to an entire test suite:
+
+```swift
+@Suite(.withDefaults("Default User"))
+struct UserServiceTests {
+    @Test
+    func testUserCreation() {
+        let mock = MockUserService()
+        let name = mock.getUserName() // Returns "Default User"
+    }
+
+    @Test(.withDefaults("Override User"))
+    func testWithOverride() {
+        let mock = MockUserService()
+        let name = mock.getUserName() // Returns "Override User"
+    }
+}
+```
+
+#### Benefits
+
+- **Test Isolation**: Each test gets its own isolated default value scope
+- **Concrete Values**: Use actual instances instead of static default implementations
+- **Type Safety**: Compile-time validation ensures type correctness
+- **Flexible**: Different tests can have different defaults for the same types
+- **Composable**: Works seamlessly with other traits like `.mocking`
 
 ### Default Values for Unstubbed Methods
 

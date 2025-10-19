@@ -22,6 +22,11 @@ public enum MockScope {
     @TaskLocal
     static var storageProvider: SpyStorageProvider = SpyStorageProvider()
 
+    /// Task-local registry for default values used by spy instances.
+    ///
+    /// This registry is used by spy instances to provide default values for unstubbed method calls.
+    /// It can be overridden within a task scope using `withDefaults(_:body:)` to provide
+    /// test-specific default values.
     @TaskLocal
     static var fallbackValueRegistry: DefaultProvidableRegistry = .default
 
@@ -54,6 +59,21 @@ public enum MockScope {
         try await $storageProvider.withValue(provider, operation: body)
     }
 
+    /// Executes an asynchronous closure with a custom default value registry.
+    ///
+    /// This method establishes a task-local scope where all spy instances created within
+    /// the closure will use the specified default value registry instead of the global one.
+    /// This is primarily used internally by `DefaultValuesTrait` to provide test-scoped
+    /// default values.
+    ///
+    /// - Parameters:
+    ///   - provider: The default value registry to use within the scope. Defaults to the
+    ///     global default registry.
+    ///   - body: The asynchronous closure to execute with the custom registry.
+    ///
+    /// - Returns: The value returned by the closure.
+    ///
+    /// - Throws: Any error thrown by the closure.
     static func withDefaults<R>(
         _ provider: DefaultProvidableRegistry = .default,
         body: () async throws -> R
