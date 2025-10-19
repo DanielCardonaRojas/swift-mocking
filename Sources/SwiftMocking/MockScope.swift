@@ -22,6 +22,9 @@ public enum MockScope {
     @TaskLocal
     static var storageProvider: SpyStorageProvider = SpyStorageProvider()
 
+    @TaskLocal
+    static var fallbackValueRegistry: DefaultProvidableRegistry = .default
+
     /// Returns the storage provider bound to the current task.
     public static var currentStorage: SpyStorageProvider {
         storageProvider
@@ -49,6 +52,13 @@ public enum MockScope {
         body: () async throws -> R
     ) async rethrows -> R {
         try await $storageProvider.withValue(provider, operation: body)
+    }
+
+    static func withDefaults<R>(
+        _ provider: DefaultProvidableRegistry = .default,
+        body: () async throws -> R
+    ) async rethrows -> R {
+        try await $fallbackValueRegistry.withValue(provider, operation: body)
     }
 }
 
