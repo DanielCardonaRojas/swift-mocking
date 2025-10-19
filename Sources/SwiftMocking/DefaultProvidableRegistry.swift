@@ -58,7 +58,8 @@ public struct DefaultProvidableRegistry {
     /// - Parameter type: The type for which a default value is requested.
     /// - Returns: An optional default value of type `T`, or `nil` if no suitable provider is found.
     public func getDefaultForType<T>(_ type: T.Type) -> T? {
-        guard let provider = providers["\(T.self)"] else {
+        let parsed = MetatypeParser.parse(T.self)
+        guard let provider = providers[parsed.name] else {
             return nil
         }
 
