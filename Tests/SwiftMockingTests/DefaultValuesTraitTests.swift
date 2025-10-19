@@ -8,6 +8,7 @@
 import Testing
 import SwiftMocking
 
+#if swift(>=6.1)
 @Suite(.withDefaults("Hello"))
 struct DefaultValuesTraitTests {
     @Test
@@ -55,3 +56,4 @@ func testIsolationFromDefaultValues() async throws {
     // Should get the global default (empty string), not custom values from other tests
     #expect(result == "")
 }
+#endif
