@@ -218,17 +218,6 @@ extension Spy where Effects == Throws {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
-    @available(*, deprecated, message: "Use callAsFunction")
-    @discardableResult
-    public func call(_ input: repeat each Input) throws -> Output {
-        let invocation = Invocation(arguments: repeat each input)
-        let action = matchingAction(invocation: invocation)
-        let result = try invoke(repeat each input)
-        if let action {
-            try action.perform(invocation)
-        }
-        return try result.get()
-    }
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) throws -> Output {
         let invocation = Invocation(arguments: repeat each input)
@@ -280,24 +269,6 @@ extension Spy where Effects == None {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error.
-    @available(*, deprecated, message: "Use callAsFunction")
-    @discardableResult
-    public func call(_ input: repeat each Input) -> Output {
-        do {
-            let invocation = Invocation(arguments: repeat each input)
-            let action = matchingAction(invocation: invocation)
-            let returnValue = try invoke(repeat each input)
-            if let action {
-                action.perform(invocation)
-            }
-            return returnValue.get()
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
-        } catch {
-            fatalError("\(error.localizedDescription)")
-        }
-    }
-    
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) -> Output {
         do {
@@ -328,24 +299,6 @@ extension Spy where Effects == Async {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error, as `Async` effects are not expected to throw.
-    @available(*, deprecated, message: "Use callAsFunction")
-    @discardableResult
-    public func call(_ input: repeat each Input) async -> Output {
-        do {
-            let invocation = Invocation(arguments: repeat each input)
-            let action = matchingAction(invocation: invocation)
-            let returnValue = try invoke(repeat each input)
-            if let action {
-                await action.perform(invocation)
-            }
-            return await returnValue.get()
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
-        } catch {
-            fatalError("\(error.localizedDescription)")
-        }
-    }
-    
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) async -> Output {
         do {
@@ -376,18 +329,6 @@ extension Spy where Effects == AsyncThrows {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
-    @available(*, deprecated, message: "Use callAsFunction")
-    @discardableResult
-    public func call(_ input: repeat each Input) async throws -> Output {
-        let invocation = Invocation(arguments: repeat each input)
-        let action = matchingAction(invocation: invocation)
-        let returnValue = try invoke(repeat each input)
-        if let action {
-            try await action.perform(invocation)
-        }
-        return try await returnValue.get()
-    }
-    
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) async throws -> Output {
         let invocation = Invocation(arguments: repeat each input)
