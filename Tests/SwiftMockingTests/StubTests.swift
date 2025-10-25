@@ -7,7 +7,7 @@ final class StubTests: XCTestCase {
     func testReturnValue() {
         let stub = Stub<String, None, Int>(invocationMatcher: .init(matchers: .any))
         stub.thenReturn(42)
-        let returnValue = try? stub.returnValue(for: .init(arguments: "test"))?.get()
+        let returnValue = stub.returnValue(for: .init(arguments: "test"))?.get()
         XCTAssertEqual(returnValue, 42)
     }
 
@@ -16,7 +16,7 @@ final class StubTests: XCTestCase {
         stub.thenReturn { (input: String) in
             input.count
         }
-        let returnValue = try? stub.returnValue(for: .init(arguments: "test"))?.get()
+        let returnValue = stub.returnValue(for: .init(arguments: "test"))?.get()
         XCTAssertEqual(returnValue, 4)
     }
 

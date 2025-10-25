@@ -8,19 +8,19 @@
 
 // MARK: Void cases - Workaround for current parameter pack extension limitations
 public func adapt<Output>(_ spy: Spy<Void, Async, Output>) -> @Sendable () async ->  Output {
-    { await spy.call(()) }
+    { await spy(()) }
 }
 
 public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> @Sendable () async throws ->  Output {
-    { try await spy.call(()) }
+    { try await spy(()) }
 }
 
 public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> @Sendable () throws ->  Output {
-    { try spy.call(()) }
+    { try spy(()) }
 }
 
 public func adapt<Output>(_ spy: Spy<Void, None, Output>) -> @Sendable () ->  Output {
-    { spy.call(()) }
+    { spy(()) }
 }
 
 // MARK:  asFunction wrappers (to keep a consistent API)

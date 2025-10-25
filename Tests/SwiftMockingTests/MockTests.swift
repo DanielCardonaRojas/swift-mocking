@@ -53,8 +53,8 @@ final class MockTests: MockingTestCase {
         let spy1: Spy<Int, None, Void> = mock.myFunction
         let spy2: Spy<String, None, Void> = mock.anotherFunction
 
-        spy1.call(42)
-        spy2.call("test")
+        spy1(42)
+        spy2("test")
 
         XCTAssertEqual(spy1.invocations.count, 1)
         XCTAssertEqual(spy2.invocations.count, 1)
@@ -90,13 +90,13 @@ final class MockTests: MockingTestCase {
         MockScope.withStorage {
             let spy: Spy<String, None, Void> = Mock.someMethod
             for _ in 1...100 {
-                spy.call("")
+                spy("")
             }
         }
         MockScope.withStorage {
             let spy: Spy<String, None, Void> = Mock.someMethod
             for _ in 1...100 {
-                spy.call("")
+                spy("")
             }
         }
 
@@ -136,8 +136,8 @@ final class MockTests: MockingTestCase {
             logExpectation.fulfill()
         }
 
-        logInteraction.spy.call("")
-        printInteraction.spy.call("")
+        logInteraction.spy("")
+        printInteraction.spy("")
 
         await fulfillment(of: [printExpectation, logExpectation], timeout: 1)
     }
