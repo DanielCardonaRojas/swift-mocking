@@ -12,13 +12,13 @@ final class AssertTests: XCTestCase {
     }
 
     func testAssertCalled() throws {
-        spy.call("test")
+        spy("test")
         let assert = Assert(spy: spy)
         try assert.assert(nil)
     }
 
     func testAssertCalledWithMatcher() throws {
-        spy.call("test")
+        spy("test")
         let assert = Assert(invocationMatcher: .init(matchers: .equal("test")), spy: spy)
         try assert.assert(nil)
     }
@@ -34,7 +34,7 @@ final class AssertTests: XCTestCase {
     }
 
     func testAssertCalledFailsWhenNoMatchingInvocations() {
-        spy.call("other")
+        spy("other")
         let assert = Assert(invocationMatcher: .init(matchers: .equal("test")), spy: spy)
         XCTAssertThrowsError(try assert.assert(nil)) {
             guard let error = $0 as? MockingError else {
@@ -47,7 +47,7 @@ final class AssertTests: XCTestCase {
     func testDoesThrow() throws {
         let throwingSpy = Spy<String, Throws, Void>()
         throwingSpy.when(calledWith: .any).thenThrow(TestError.example)
-        _ = try? throwingSpy.call("test")
+        _ = try? throwingSpy("test")
 
         let assert = Assert(spy: throwingSpy)
         try assert.doesThrow()
@@ -55,7 +55,7 @@ final class AssertTests: XCTestCase {
 
     func testDoesThrowFailsWhenNoErrorThrown() {
         let throwingSpy = Spy<String, Throws, Void>()
-        _ = try? throwingSpy.call("test")
+        _ = try? throwingSpy("test")
 
         let assert = Assert(spy: throwingSpy)
         XCTAssertThrowsError(try assert.doesThrow()) {
@@ -69,7 +69,7 @@ final class AssertTests: XCTestCase {
     func testDoesThrowWithMatcher() throws {
         let throwingSpy = Spy<String, Throws, Void>()
         throwingSpy.when(calledWith: .any).thenThrow(TestError.example)
-        _ = try? throwingSpy.call("test")
+        _ = try? throwingSpy("test")
 
         let assert = Assert(spy: throwingSpy)
         try assert.doesThrow(.error(TestError.self))
@@ -78,7 +78,7 @@ final class AssertTests: XCTestCase {
     func testDoesThrowWithMatcherFailsWhenWrongError() {
         let throwingSpy = Spy<String, Throws, Void>()
         throwingSpy.when(calledWith: .any).thenThrow(AnotherError())
-        _ = try? throwingSpy.call("test")
+        _ = try? throwingSpy("test")
 
         let assert = Assert(spy: throwingSpy)
         XCTAssertThrowsError(try assert.doesThrow(.error(TestError.self))) {
@@ -95,7 +95,7 @@ final class AssertTests: XCTestCase {
     }
 
     func testNeverCalledWithSpecificMatcherSucceedsWhenDifferentArgumentCalled() {
-        spy.call("different")
+        spy("different")
         let assert = Assert(invocationMatcher: .init(matchers: .equal("test")), spy: spy)
         assert.neverCalled()
     }
@@ -113,7 +113,7 @@ final class AssertTests: XCTestCase {
         let asyncSpy = Spy<String, AsyncThrows, Void>()
         when(asyncSpy(.any)).thenThrow(TestError.example)
 
-        _ = try? await asyncSpy.call("value")
+        _ = try? await asyncSpy("value")
 
         await verify(asyncSpy(.any)).throws()
     }
@@ -143,9 +143,9 @@ final class AssertTests: XCTestCase {
         let mock = TestMock()
         
         // Make some method calls to record invocations
-        mock.testMethod.call("test1")
-        mock.testMethod.call("test2")
-        mock.anotherMethod.call(42)
+        mock.testMethod("test1")
+        mock.testMethod("test2")
+        mock.anotherMethod(42)
         
         // Verify total invocation count is correct
         let totalInvocations = mock.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
@@ -155,8 +155,8 @@ final class AssertTests: XCTestCase {
     // MARK: - captured() Tests
     
     func testCapturedBasicFunctionality() throws {
-        spy.call("hello")
-        spy.call("world")
+        spy("hello")
+        spy("world")
         
         var capturedArguments: [String] = []
         let assert = Assert(spy: spy)
@@ -169,9 +169,9 @@ final class AssertTests: XCTestCase {
     }
     
     func testCapturedWithMatcher() throws {
-        spy.call("hello")
-        spy.call("world")
-        spy.call("test")
+        spy("hello")
+        spy("world")
+        spy("test")
         
         var capturedArguments: [String] = []
         let assert = Assert(invocationMatcher: .init(matchers: .startsWith("t")), spy: spy)
@@ -186,8 +186,8 @@ final class AssertTests: XCTestCase {
     func testCapturedWithMultipleArguments() throws {
         let multiArgSpy = Spy<String, Int, None, Void>()
         
-        multiArgSpy.call("first", 1)
-        multiArgSpy.call("second", 2)
+        multiArgSpy("first", 1)
+        multiArgSpy("second", 2)
         
         var capturedPairs: [(String, Int)] = []
         let assert = Assert(spy: multiArgSpy)
@@ -215,7 +215,7 @@ final class AssertTests: XCTestCase {
     }
     
     func testCapturedThrowsWhenNoMatchingInvocationsWithMatcher() {
-        spy.call("hello")
+        spy("hello")
         let assert = Assert(invocationMatcher: .init(matchers: .equal("world")), spy: spy)
         
         XCTAssertThrowsError(try assert.captures { _ in }) { error in
@@ -227,7 +227,7 @@ final class AssertTests: XCTestCase {
     }
     
     func testCapturedInspectorCanThrow() {
-        spy.call("test")
+        spy("test")
         let assert = Assert(spy: spy)
         
         // Test core captures() method that propagates inspector errors
@@ -241,8 +241,8 @@ final class AssertTests: XCTestCase {
     }
     
     func testCapturedAfterCallVerification() {
-        spy.call("test")
-        spy.call("hello")
+        spy("test")
+        spy("hello")
         
         var capturedArguments: [String] = []
         let assert = Assert(spy: spy)
@@ -257,8 +257,8 @@ final class AssertTests: XCTestCase {
     }
     
     func testCapturedWithTestSupportExtension() {
-        spy.call("hello")
-        spy.call("world")
+        spy("hello")
+        spy("world")
         
         var capturedArguments: [String] = []
         let assert = Assert(spy: spy)

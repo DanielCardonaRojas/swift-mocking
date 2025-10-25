@@ -10,8 +10,8 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, None, Int>()
         spy.when(calledWith:.any).thenReturn(10)
 
-        XCTAssertEqual(spy.call("hello"), 10)
-        XCTAssertEqual(spy.call("world"), 10)
+        XCTAssertEqual(spy("hello"), 10)
+        XCTAssertEqual(spy("world"), 10)
 
 
         XCTAssertEqual(spy.invocations.count, 2)
@@ -22,8 +22,8 @@ final class SpyTests: XCTestCase {
     func test_spy_recordsInvocations_verify_counts() {
         let spy = Spy<String, None, Int>()
         spy.when(calledWith:.any).thenReturn(10)
-        spy.call( "hello" )
-        spy.call( "hello" )
+        spy( "hello" )
+        spy( "hello" )
         XCTAssert(spy.verify(calledWith: .equal("hello"), count: .equal(2)))
     }
 
@@ -31,7 +31,7 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, None, Int>()
         spy.when(calledWith:"hello").thenReturn(10)
         spy.when(calledWith:"hello").thenReturn(13)
-        let result = spy.call( "hello" )
+        let result = spy( "hello" )
         XCTAssertEqual(result, 13)
     }
 
@@ -42,7 +42,7 @@ final class SpyTests: XCTestCase {
         spy.when(calledWith: .any).thenReturn(7)
 
         // Ensure matcher .any has lower priority
-        let result = spy.call( "hello" )
+        let result = spy( "hello" )
         XCTAssertEqual(result, 13)
     }
 
@@ -54,17 +54,17 @@ final class SpyTests: XCTestCase {
         spy.when(calledWith: .any(that: { $0.count > 8 })).thenReturn(17)
 
         // Ensure matcher .any has lower priority
-        XCTAssertEqual(spy.call("hello"), 13) // should be matched by .equal matcher
-        XCTAssertEqual(spy.call("long_input"), 17) // should be matched by predicate matcher
-        XCTAssertEqual(spy.call("short"), 7) // Should be matched by any matcher
+        XCTAssertEqual(spy("hello"), 13) // should be matched by .equal matcher
+        XCTAssertEqual(spy("long_input"), 17) // should be matched by predicate matcher
+        XCTAssertEqual(spy("short"), 7) // Should be matched by any matcher
     }
 
     func test_spy_withVoidInput_recordsInvocations_andReturnsStubbedValue() {
         let spy = Spy<Void, None, String>()
         spy.when(calledWith:.any).thenReturn("success")
 
-        XCTAssertEqual(spy.call(()), "success")
-        XCTAssertEqual(spy.call(()), "success")
+        XCTAssertEqual(spy(()), "success")
+        XCTAssertEqual(spy(()), "success")
 
         XCTAssertEqual(spy.invocations.count, 2)
     }
@@ -72,8 +72,8 @@ final class SpyTests: XCTestCase {
     func test_spy_withVoidOutput_recordsInvocations() {
         let spy = Spy<String, None, Void>()
         spy.defaultProviderRegistry = .default
-        spy.call("action1")
-        spy.call("action2")
+        spy("action1")
+        spy("action2")
 
         XCTAssertEqual(spy.invocations.count, 2)
         XCTAssertEqual(spy.invocations[0].arguments, "action1")
@@ -88,8 +88,8 @@ final class SpyTests: XCTestCase {
         spy.when(calledWith:.equal("apple")).thenReturn(1)
         spy.when(calledWith:.any).thenReturn(7)
 
-        XCTAssertEqual(spy.call("apple"), 1, "Should match 'apple' specific stub")
-        XCTAssertEqual(spy.call("unknown"), 7, "Should match any other specific stub")
+        XCTAssertEqual(spy("apple"), 1, "Should match 'apple' specific stub")
+        XCTAssertEqual(spy("unknown"), 7, "Should match any other specific stub")
         XCTAssert(spy.verifyCalled(.equal(2)))
     }
 
@@ -97,9 +97,9 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, None, Int>()
 
         spy.when(calledWith:.any).thenReturn(1)
-        spy.call("apple")
-        spy.call("lemon")
-        spy.call("banana")
+        spy("apple")
+        spy("lemon")
+        spy("banana")
 
         XCTAssert(spy.verifyInOrder([
             InvocationMatcher(matchers: "apple"),
@@ -118,17 +118,17 @@ final class SpyTests: XCTestCase {
         spy.when(calledWith:.equal("Hello")).thenReturn(3)
         spy.when(calledWith:.any).thenReturn(7)
 
-        XCTAssertEqual(spy.call("Hola"), 2, "Should match any other specific stub")
-        XCTAssertEqual(spy.call("Hello"), 3, "Should match any other specific stub")
-        XCTAssertEqual(spy.call("unknown"), 7, "Should match any other specific stub")
+        XCTAssertEqual(spy("Hola"), 2, "Should match any other specific stub")
+        XCTAssertEqual(spy("Hello"), 3, "Should match any other specific stub")
+        XCTAssertEqual(spy("unknown"), 7, "Should match any other specific stub")
     }
 
     func test_spy_conditionalStubbing_withMultipleArguments() {
         let spy = Spy<String, Int, None, String>()
         spy.when(calledWith:.equal("itemA"), .lessThan(15)).thenReturn("A10")
         spy.when(calledWith:.equal("itemB"), .equal(23)).thenReturn("B23")
-        XCTAssertEqual(spy.call("itemA", 10), "A10", "Should match itemA and 10")
-        XCTAssertEqual(spy.call("itemB", 23), "B23", "Should match itemB and 23")
+        XCTAssertEqual(spy("itemA", 10), "A10", "Should match itemA and 10")
+        XCTAssertEqual(spy("itemB", 23), "B23", "Should match itemB and 23")
         XCTAssertEqual(spy.invocations.count, 2)
     }
 
@@ -136,7 +136,7 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, Throws, Int>()
         spy.when(calledWith: .any).thenThrow(TestError.example)
         do {
-            try spy.call("something")
+            try spy("something")
         } catch {
 
         }
@@ -147,8 +147,8 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, Async, Int>()
         spy.when(calledWith: .any).thenReturn(10)
 
-        let result1 = await spy.call("hello")
-        let result2 = await spy.call("world")
+        let result1 = await spy("hello")
+        let result2 = await spy("world")
 
         XCTAssertEqual(result1, 10)
         XCTAssertEqual(result2, 10)
@@ -162,8 +162,8 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, AsyncThrows, Int>()
         spy.when(calledWith: .any).thenReturn(10)
 
-        let result1 = try await spy.call("hello")
-        let result2 = try await spy.call("world")
+        let result1 = try await spy("hello")
+        let result2 = try await spy("world")
 
         XCTAssertEqual(result1, 10)
         XCTAssertEqual(result2, 10)
@@ -177,7 +177,7 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, AsyncThrows, Int>()
         spy.when(calledWith: .any).thenThrow(TestError.example)
         do {
-            _ = try await spy.call("something")
+            _ = try await spy("something")
         } catch {
 
         }
@@ -192,7 +192,7 @@ final class SpyTests: XCTestCase {
             return value.count
         }
 
-        let result = try await spy.call("hello")
+        let result = try await spy("hello")
         verify(spy(.any)).captured({ string in
             XCTAssertEqual("hello", string)
         })
@@ -207,8 +207,8 @@ final class SpyTests: XCTestCase {
             captured.append(value)
         })
 
-        spy.call("track")
-        spy.call("skip")
+        spy("track")
+        spy("skip")
 
         XCTAssertEqual(captured, ["track"])
     }
@@ -217,7 +217,7 @@ final class SpyTests: XCTestCase {
         let spy = Spy<String, None, Void>()
         Task {
             try await Task.sleep(for: .milliseconds(50))
-            spy.call("")
+            spy("")
         }
 
         try await until(spy(.any))
@@ -232,7 +232,7 @@ final class SpyTests: XCTestCase {
         }
 
         try await Task.sleep(for: .milliseconds(20))
-        await spy.call("ping")
+        await spy("ping")
 
         try await waiter.value
     }
@@ -264,7 +264,7 @@ final class SpyTests: XCTestCase {
         }
 
         try await Task.sleep(for: .milliseconds(20))
-        _ = try? await spy.call("ping")
+        _ = try? await spy("ping")
 
         try await waiter.value
     }
@@ -312,7 +312,7 @@ final class SpyTests: XCTestCase {
             completion(7)
         }
 
-        spy.call("", { num in
+        spy("", { num in
             if num == 7 {
                 expectation.fulfill()
             }
@@ -331,7 +331,7 @@ final class SpyTests: XCTestCase {
         for i in 0..<iterationCount {
             group.enter()
             queue.async {
-                spy.call(i)
+                spy(i)
                 group.leave()
             }
         }
@@ -362,15 +362,16 @@ final class SpyTests: XCTestCase {
 
     func test_spy_with_results_param() {
         let spy = Spy<Result<String, any Error>, None, Int>()
+        
         when(spy(.failure(.is(AnotherError.self)))).thenReturn(4)
         when(spy(.failure(.any))).thenReturn(3)
         when(spy(.success(.any))).thenReturn(-1)
         when(spy(.success(.equal("3")))).thenReturn(7)
 
-        XCTAssertEqual(spy.call(.failure(TestError.example)), 3)
-        XCTAssertEqual(spy.call(.failure(AnotherError())), 4)
-        XCTAssertEqual(spy.call(.success("3")), 7)
-        XCTAssertEqual(spy.call(.success("hello")), -1)
+        XCTAssertEqual(spy(.failure(TestError.example)), 3)
+        XCTAssertEqual(spy(.failure(AnotherError())), 4)
+        XCTAssertEqual(spy(.success("3")), 7)
+        XCTAssertEqual(spy(.success("hello")), -1)
 
         let spy2 = Spy<Result<String, TestError>, None, Int>()
         when(spy2(.failure(.equal(.example)))).thenReturn(9)
@@ -378,10 +379,10 @@ final class SpyTests: XCTestCase {
         when(spy2(.success(.any))).thenReturn(-1)
         when(spy2(.success(.equal("3")))).thenReturn(7)
 
-        XCTAssertEqual(spy2.call(.failure(TestError.example)), 9)
-        XCTAssertEqual(spy2.call(.failure(TestError.other)), 2)
-        XCTAssertEqual(spy2.call(.success("3")), 7)
-        XCTAssertEqual(spy2.call(.success("hello")), -1)
+        XCTAssertEqual(spy2(.failure(TestError.example)), 9)
+        XCTAssertEqual(spy2(.failure(TestError.other)), 2)
+        XCTAssertEqual(spy2(.success("3")), 7)
+        XCTAssertEqual(spy2(.success("hello")), -1)
     }
 }
 

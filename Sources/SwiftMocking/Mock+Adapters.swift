@@ -23,7 +23,7 @@ public extension Mock {
     /// - Returns: The result of the spy invocation.
     static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = spy.call(repeat each input)
+        let result = spy(repeat each input)
         return result
     }
 
@@ -38,7 +38,7 @@ public extension Mock {
     /// - Returns: The result of the spy invocation.
     func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = spy.call(repeat each input)
+        let result = spy(repeat each input)
         return result
     }
 
@@ -53,7 +53,7 @@ public extension Mock {
     /// - Returns: The result of the async spy invocation.
     static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = await spy.call(repeat each input)
+        let result = await spy(repeat each input)
         return result
     }
 
@@ -68,7 +68,7 @@ public extension Mock {
     /// - Returns: The result of the async spy invocation.
     func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = await spy.call(repeat each input)
+        let result = await spy(repeat each input)
         return result
     }
 
@@ -84,7 +84,7 @@ public extension Mock {
     /// - Throws: Any error thrown by the spy or stubbed behavior.
     static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = try spy.call(repeat each input)
+        let result = try spy(repeat each input)
         return result
     }
 
@@ -100,7 +100,7 @@ public extension Mock {
     /// - Throws: Any error thrown by the spy or stubbed behavior.
     func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = try spy.call(repeat each input)
+        let result = try spy(repeat each input)
         return result
     }
 
@@ -117,7 +117,7 @@ public extension Mock {
     /// - Throws: Any error thrown by the spy or stubbed behavior.
     static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = try await spy.call(repeat each input)
+        let result = try await spy(repeat each input)
         return result
     }
 
@@ -134,7 +134,7 @@ public extension Mock {
     /// - Throws: Any error thrown by the spy or stubbed behavior.
     func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = try await spy.call(repeat each input)
+        let result = try await spy(repeat each input)
         return result
     }
 
