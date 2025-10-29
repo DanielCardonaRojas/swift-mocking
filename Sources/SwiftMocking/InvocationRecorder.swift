@@ -2,7 +2,7 @@
 //  InvocationRecorder.swift
 //  swift-mocking
 //
-//  Created by Claude Code
+//  Created by Daniel Cardona
 //
 
 import Foundation
