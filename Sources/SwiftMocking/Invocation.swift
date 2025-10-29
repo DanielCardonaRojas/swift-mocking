@@ -5,6 +5,8 @@
 //  Created by Daniel Cardona on 8/07/25.
 //
 
+import Foundation
+
 /// Represents a captured invocation of a function for later inspection.
 ///
 /// An `Invocation` is a container for the arguments passed to a function during a specific call.
@@ -17,6 +19,8 @@
 /// print(invocation.arguments) // prints "(1, "test")"
 /// ```
 public struct Invocation<each Input>: CustomDebugStringConvertible {
+    /// Unique identifier for this specific invocation
+    public let invocationID: UUID = UUID()
     public var debugDescription: String {
         var argStrings = [String]()
         for argument in repeat each arguments {

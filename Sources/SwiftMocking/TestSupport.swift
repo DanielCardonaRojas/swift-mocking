@@ -73,14 +73,55 @@ public func verifyInOrder<each Input, Eff: Effect, Output>(
     file: StaticString = #filePath,
     line: UInt = #line
 ) {
-    let spy = interactions[0].spy
-    var matchers = [InvocationMatcher<repeat each Input>]()
-    for interaction in interactions {
-        matchers.append(interaction.invocationMatcher)
-    }
+    // Check if all interactions are from the same spy (backward compatibility)
+    let firstSpyID = interactions[0].spy.spyID
+    let isSingleSpy = interactions.allSatisfy { $0.spy.spyID == firstSpyID }
 
-    if !spy.verifyInOrder(matchers) {
-        reportIssue("Did not find sequence of interactions", filePath: file, line: line)
+    if isSingleSpy {
+        // Use original single-spy verification for better performance and compatibility
+        let spy = interactions[0].spy
+        var matchers = [InvocationMatcher<repeat each Input>]()
+        for interaction in interactions {
+            matchers.append(interaction.invocationMatcher)
+        }
+
+        if !spy.verifyInOrder(matchers) {
+            reportIssue("Did not find sequence of interactions", filePath: file, line: line)
+        }
+    } else {
+        // Use cross-spy verification
+        let verifiables: [any CrossSpyVerifiable] = interactions.map { $0 as CrossSpyVerifiable }
+        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables)
+        if !success {
+            reportIssue("Did not find sequence of cross-spy interactions", filePath: file, line: line)
+        }
+    }
+}
+
+/// Verifies that a sequence of interactions across multiple mock objects occurred in the specified order.
+///
+/// This function enables cross-spy call order verification, allowing you to verify that method calls
+/// across different mock objects occurred in a specific chronological order.
+///
+/// Example:
+/// ```swift
+/// verifyInOrder([
+///     mock1.firstMethod(),
+///     mock2.secondMethod(arg: 1),
+///     mock1.thirdMethod()
+/// ])
+/// ```
+///
+/// - Parameters:
+///   - verifiables: An array of `CrossSpyVerifiable` objects representing the expected sequence of calls.
+public func verifyInOrder(
+    _ verifiables: [any CrossSpyVerifiable],
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    let success = CrossSpyVerificationEngine.verifyInOrder(verifiables)
+    if !success {
+        reportIssue("Did not find sequence of cross-spy interactions", filePath: file, line: line)
     }
 }
 

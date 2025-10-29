@@ -80,5 +80,37 @@ public enum MockScope {
     ) async rethrows -> R {
         try await $fallbackValueRegistry.withValue(provider, operation: body)
     }
+
+    /// Clears all spy storage and the global invocation recorder.
+    ///
+    /// This function should be called between tests to ensure clean state
+    /// for both individual spy invocations and cross-spy verification.
+    public static func clearAll() {
+        storageProvider.storage.removeAll()
+        Task {
+            await InvocationRecorder.shared.clear()
+        }
+    }
+
+    /// Executes a closure with a clean mock environment.
+    ///
+    /// This method automatically clears all spy storage and invocation recorder
+    /// before and after the provided closure, ensuring test isolation.
+    ///
+    /// - Parameter body: Closure to execute with clean mock state
+    /// - Returns: The value returned by the closure
+    public static func withCleanEnvironment<R>(
+        body: () async throws -> R
+    ) async rethrows -> R {
+        await InvocationRecorder.shared.clear()
+        return try await withStorage(SpyStorageProvider()) {
+            defer {
+                Task {
+                    await InvocationRecorder.shared.clear()
+                }
+            }
+            return try await body()
+        }
+    }
 }
 
