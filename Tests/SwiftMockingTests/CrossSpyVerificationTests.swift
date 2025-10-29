@@ -36,8 +36,8 @@ class CrossSpyVerificationTests: XCTestCase {
         spy2.configureLogger(label: "spy2.method")
 
         // Execute method calls
-        _ = spy1.call("test")
-        _ = spy2.call(42)
+        _ = spy1("test")
+        _ = spy2(42)
 
         // Check that invocations were recorded globally
         let recordings = await InvocationRecorder.shared.snapshot()
@@ -55,7 +55,7 @@ class CrossSpyVerificationTests: XCTestCase {
         let spy = Spy<String, None, Int>()
         spy.configureLogger(label: "test.method")
 
-        _ = spy.call("test")
+        _ = spy("test")
 
         // Verify recording exists
         let recordingsBefore = await InvocationRecorder.shared.snapshot()
@@ -100,9 +100,9 @@ class CrossSpyVerificationTests: XCTestCase {
         spy2.configureLogger(label: "spy2.method")
 
         // Execute method calls in specific order
-        _ = spy1.call("first")
-        _ = spy2.call(42)
-        _ = spy1.call("second")
+        _ = spy1("first")
+        _ = spy2(42)
+        _ = spy1("second")
 
         // Create verification objects manually
         let interaction1 = Interaction(.any, spy: spy1)
@@ -125,8 +125,8 @@ class CrossSpyVerificationTests: XCTestCase {
         spy2.configureLogger(label: "spy2.method")
 
         // Execute in one order
-        _ = spy1.call("first")
-        _ = spy2.call(42)
+        _ = spy1("first")
+        _ = spy2(42)
 
         // Create verification objects in wrong order
         let interaction1 = Interaction(.any, spy: spy2)  // Wrong order - spy2 before spy1
@@ -147,7 +147,7 @@ class CrossSpyVerificationTests: XCTestCase {
         spy2.configureLogger(label: "spy2.method")
 
         // Execute only partial sequence
-        _ = spy1.call("first")
+        _ = spy1("first")
         // Missing spy2 call
 
         // Create verification for both calls
@@ -170,7 +170,7 @@ class CrossSpyVerificationTests: XCTestCase {
         spy.configureLogger(label: "test.method")
 
         let interaction = Interaction(.any, spy: spy)
-        let result: Int = spy.call("hello")
+        spy("hello")
 
         let invocationId = try XCTUnwrap(spy.invocations.first?.invocationID)
 
