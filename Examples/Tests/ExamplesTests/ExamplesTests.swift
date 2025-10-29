@@ -37,6 +37,63 @@ import Foundation
     ])
 }
 
+@Test func test_crossSpyVerifyInOrder_sameMockDifferentMethods() async throws {
+    let mock = MockNetworkService()
+    let requestURL = URL(string: "https://example.com/request")!
+    let downloadURL = URL(string: "https://example.com/download")!
+    let uploadURL = URL(string: "https://example.com/upload")!
+    let requestBody = Data()
+    let uploadResponse = HTTPURLResponse(
+        url: uploadURL,
+        statusCode: 201,
+        httpVersion: nil,
+        headerFields: nil
+    )!
+
+    when(mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()))
+        .thenReturn("{}".data(using: .utf8)!)
+    when(mock.download(from: .equal(downloadURL)))
+        .thenReturn(downloadURL)
+    when(mock.upload(to: .equal(uploadURL), data: .equal(requestBody)))
+        .thenReturn(("uploaded".data(using: .utf8)!, uploadResponse))
+
+    _ = try await mock.request(url: requestURL, method: "GET", headers: nil)
+    _ = try await mock.download(from: downloadURL)
+    _ = try await mock.upload(to: uploadURL, data: requestBody)
+
+    let verifiables: [any CrossSpyVerifiable] = [
+        mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()),
+        mock.download(from: .equal(downloadURL)),
+        mock.upload(to: .equal(uploadURL), data: .equal(requestBody))
+    ]
+    verifyInOrder(verifiables)
+}
+
+@Test func test_crossSpyVerifyInOrder_differentMocks() throws {
+    struct PurchaseEvent: Identifiable {
+        let id = UUID()
+        let item: String
+    }
+
+    let pricing = MockPricingService()
+    let analytics = MockAnalyticsProtocol()
+
+    when(pricing.price("apple")).thenReturn(13)
+    when(pricing.price("banana")).thenReturn(21)
+
+    _ = try pricing.price("apple")
+    let event = PurchaseEvent(item: "apple")
+    analytics.logEvent(event)
+    _ = try pricing.price("banana")
+
+    let verifiables: [any CrossSpyVerifiable] = [
+        pricing.price("apple"),
+        analytics.logEvent(.any(PurchaseEvent.self)),
+        pricing.price("banana")
+    ]
+    verifyInOrder(verifiables)
+}
+
 @Test func test_verifyThrows() {
     let mock = MockPricingService()
     let store = Store(pricingService: mock)

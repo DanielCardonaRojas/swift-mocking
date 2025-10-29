@@ -46,6 +46,67 @@ final class MockitoTests: XCTestCase {
         ])
     }
 
+    func test_crossSpyVerifyInOrder_sameMockDifferentMethods() async throws {
+        let mock = MockNetworkService()
+        let requestURL = URL(string: "https://example.com/request")!
+        let downloadURL = URL(string: "https://example.com/download")!
+        let uploadURL = URL(string: "https://example.com/upload")!
+        let uploadPayload = Data()
+        let uploadResponse = HTTPURLResponse(
+            url: uploadURL,
+            statusCode: 201,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+
+        when(mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()))
+            .thenReturn(Data("{}".utf8))
+        when(mock.download(from: .equal(downloadURL)))
+            .thenReturn(downloadURL)
+        when(mock.upload(to: .equal(uploadURL), data: .equal(uploadPayload)))
+            .thenReturn((Data("uploaded".utf8), uploadResponse))
+
+        let requestData = try await mock.request(url: requestURL, method: "GET", headers: nil)
+        XCTAssertEqual(requestData, Data("{}".utf8))
+
+        let downloaded = try await mock.download(from: downloadURL)
+        XCTAssertEqual(downloaded, downloadURL)
+
+        let (responseBody, response) = try await mock.upload(to: uploadURL, data: uploadPayload)
+        XCTAssertEqual(responseBody, Data("uploaded".utf8))
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 201)
+
+        verifyInOrder([
+            mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()),
+            mock.download(from: .equal(downloadURL)),
+            mock.upload(to: .equal(uploadURL), data: .equal(uploadPayload))
+        ])
+    }
+
+    func test_crossSpyVerifyInOrder_differentMocks() throws {
+        struct PurchaseEvent: Identifiable {
+            let id = UUID()
+            let item: String
+        }
+
+        let pricing = MockPricingService()
+        let analytics = MockAnalyticsProtocol()
+
+        when(pricing.price("apple")).thenReturn(13)
+        when(pricing.price("banana")).thenReturn(21)
+
+        XCTAssertEqual(try pricing.price("apple"), 13)
+        let event = PurchaseEvent(item: "apple")
+        analytics.logEvent(event)
+        XCTAssertEqual(try pricing.price("banana"), 21)
+
+        verifyInOrder([
+            pricing.price("apple"),
+            analytics.logEvent(.any(PurchaseEvent.self)),
+            pricing.price("banana")
+        ])
+    }
+
     func test_verifyThrows() {
         let mock = MockPricingService()
         let store = Store(pricingService: mock)
