@@ -120,9 +120,14 @@ extension Interaction: CrossSpyVerifiable {
         // Check method label match
         guard recorded.methodLabel == methodLabel else { return false }
 
-        // For now, we'll accept any argument match within the same spy/method
-        // A more sophisticated implementation would check argument matchers
-        // but that requires deeper integration with the type system
-        return true
+        // Grab the invocation by id
+        guard let invocation = spy.invocations.first(
+            where: { $0.invocationID == recorded.invocationID
+            }) else {
+            return false
+        }
+
+        // Attempt to match invocation with that of the interaction
+        return invocationMatcher.isMatchedBy(invocation)
     }
 }

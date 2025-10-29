@@ -165,11 +165,14 @@ class CrossSpyVerificationTests: XCTestCase {
         XCTAssertTrue(success, "Empty verification should always succeed")
     }
 
-    func test_interaction_conformsToCrossSpyVerifiable() {
+    func test_interaction_conformsToCrossSpyVerifiable() throws {
         let spy = Spy<String, None, Int>()
         spy.configureLogger(label: "test.method")
 
         let interaction = Interaction(.any, spy: spy)
+        let result: Int = spy.call("hello")
+
+        let invocationId = try XCTUnwrap(spy.invocations.first?.invocationID)
 
         // Test that Interaction conforms to CrossSpyVerifiable
         XCTAssertEqual(interaction.spyID, spy.spyID)
@@ -179,7 +182,7 @@ class CrossSpyVerificationTests: XCTestCase {
         let recorded = Recorded(
             index: 0,
             spyID: spy.spyID,
-            invocationID: UUID(),
+            invocationID: invocationId,
             methodLabel: spy.methodLabel,
             arguments: ["test"]
         )
