@@ -51,53 +51,6 @@ public func verify<each Input, Eff: Effect, Output>(
     Assert(invocationMatcher: interaction.invocationMatcher, spy: interaction.spy)
 }
 
-/// Verifies that a sequence of interactions with a mock object occurred in the specified order.
-///
-/// This function takes an array of `Interaction` objects and asserts that they were
-/// called sequentially on the same mock object. If the order of calls does not match
-/// the provided sequence, an issue is reported.
-///
-/// Example:
-/// ```swift
-/// verifyInOrder([
-///     mock.firstMethod(),
-///     mock.secondMethod(arg: 1),
-///     mock.thirdMethod()
-/// ])
-/// ```
-///
-/// - Parameters:
-///   - interactions: An array of `Interaction` objects representing the expected sequence of calls.
-public func verifyInOrder<each Input, Eff: Effect, Output>(
-    _ interactions: [Interaction<repeat each Input, Eff, Output>],
-    file: StaticString = #filePath,
-    line: UInt = #line
-) {
-    // Check if all interactions are from the same spy (backward compatibility)
-    let firstSpyID = interactions[0].spy.spyID
-    let isSingleSpy = interactions.allSatisfy { $0.spy.spyID == firstSpyID }
-
-    if isSingleSpy {
-        // Use original single-spy verification for better performance and compatibility
-        let spy = interactions[0].spy
-        var matchers = [InvocationMatcher<repeat each Input>]()
-        for interaction in interactions {
-            matchers.append(interaction.invocationMatcher)
-        }
-
-        if !spy.verifyInOrder(matchers) {
-            reportIssue("Did not find sequence of interactions", filePath: file, line: line)
-        }
-    } else {
-        // Use cross-spy verification
-        let verifiables: [any CrossSpyVerifiable] = interactions.map { $0 as CrossSpyVerifiable }
-        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables)
-        if !success {
-            reportIssue("Did not find sequence of cross-spy interactions", filePath: file, line: line)
-        }
-    }
-}
-
 /// Verifies that a sequence of interactions across multiple mock objects occurred in the specified order.
 ///
 /// This function enables cross-spy call order verification, allowing you to verify that method calls
