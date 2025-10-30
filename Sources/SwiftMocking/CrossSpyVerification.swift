@@ -27,10 +27,19 @@ public protocol CrossSpyVerifiable {
 /// Verification engine that processes cross-spy call order verification
 public enum CrossSpyVerification {
 
+    /// Result of a partial verification failure, containing matched interactions and remaining expected count
+    public struct Result {
+        /// The interactions that were successfully matched in order
+        public let matched: [Recorded]
+
+        /// The number of expected interactions that were not found
+        public let expectedRemaining: Int
+    }
+
     /// Verifies that a sequence of cross-spy interactions occurred in the specified order
     /// - Parameter verifiables: Array of verification descriptors in expected order
-    /// - Returns: nil if all interactions occurred in the specified order and an array of recordings when fails
-    public static func verifyInOrder(_ verifiables: [any CrossSpyVerifiable]) -> [Recorded]? {
+    /// - Returns: nil if all interactions occurred in the specified order, or a Result containing matched interactions and remaining expected count on partial match
+    public static func verifyInOrder(_ verifiables: [any CrossSpyVerifiable]) -> Result? {
         guard !verifiables.isEmpty else { return nil }
 
         // Get snapshot synchronously using a blocking call
@@ -70,7 +79,10 @@ public enum CrossSpyVerification {
             return nil
         }
 
-        return recordings
+        // Partial match: return matched recordings and remaining expected count
+        let matched = Array(recordings.prefix(lastMatchedIndex + 1))
+        let expectedRemaining = verifiables.count - verificationIndex
+        return Result(matched: matched, expectedRemaining: expectedRemaining)
     }
 }
 

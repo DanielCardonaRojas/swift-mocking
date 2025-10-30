@@ -72,9 +72,9 @@ public func verifyInOrder(
     file: StaticString = #filePath,
     line: UInt = #line
 ) {
-    let recordings = CrossSpyVerification.verifyInOrder(verifiables)
-    if let recordings {
-        let matchedSequenceDescription = recordings.map({ recorded in
+    let result = CrossSpyVerification.verifyInOrder(verifiables)
+    if let result {
+        let matchedSequenceDescription = result.matched.map({ recorded in
             let method = "\(recorded.methodLabel)"
             let arguments = recorded.arguments.map({ "\($0)"}).joined(
                 separator: ", "
@@ -82,11 +82,11 @@ public func verifyInOrder(
             return "\(method)(\(arguments))"
         }).joined(separator: "\n")
 
-        if recordings.isEmpty {
+        if result.matched.isEmpty {
             reportIssue("Did not find sequence of interactions", filePath: file, line: line)
         } else {
             reportIssue(
-                "Partially found sequence of interactions. Matched up to:\n\(matchedSequenceDescription)",
+                "Partially found sequence of interactions. Matched \(result.matched.count) of \(result.matched.count + result.expectedRemaining) expected. Matched up to:\n\(matchedSequenceDescription)",
                 filePath: file,
                 line: line
             )
