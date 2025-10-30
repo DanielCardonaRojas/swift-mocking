@@ -30,12 +30,19 @@ public enum MockScope {
     @TaskLocal
     static var fallbackValueRegistry: DefaultProvidableRegistry = .default
 
+    /// Task-local invocation recorder for cross-spy verification.
+    ///
+    /// This recorder maintains a chronological timeline of all method calls for cross-spy
+    /// verification. Each task can have its own isolated recorder for test isolation.
+    @TaskLocal
+    public static var invocationRecorder: InvocationRecorder = .shared
+
     /// Returns the storage provider bound to the current task.
     public static var currentStorage: SpyStorageProvider {
         storageProvider
     }
 
-    /// Executes a synchronous closure with the given provider.
+    /// Executes a synchronous closure with the given provider and a fresh invocation recorder.
     /// - Parameters:
     ///   - provider: Storage provider used within the body.
     ///   - body: Synchronous closure to run with the provider.
@@ -44,10 +51,12 @@ public enum MockScope {
         _ provider: SpyStorageProvider = .init(),
         body: () throws -> R
     ) rethrows -> R {
-        try $storageProvider.withValue(provider, operation: body)
+        try $storageProvider.withValue(provider) {
+            try $invocationRecorder.withValue(InvocationRecorder(), operation: body)
+        }
     }
 
-    /// Executes an asynchronous closure with the given provider.
+    /// Executes an asynchronous closure with the given provider and a fresh invocation recorder.
     /// - Parameters:
     ///   - provider: Storage provider used within the body.
     ///   - body: Asynchronous closure to run with the provider.
@@ -56,7 +65,9 @@ public enum MockScope {
         _ provider: SpyStorageProvider = .init(),
         body: () async throws -> R
     ) async rethrows -> R {
-        try await $storageProvider.withValue(provider, operation: body)
+        try await $storageProvider.withValue(provider) {
+            try await $invocationRecorder.withValue(InvocationRecorder(), operation: body)
+        }
     }
 
     /// Executes an asynchronous closure with a custom default value registry.
@@ -81,35 +92,30 @@ public enum MockScope {
         try await $fallbackValueRegistry.withValue(provider, operation: body)
     }
 
-    /// Clears all spy storage and the global invocation recorder.
+    /// Clears all spy storage and the current task's invocation recorder.
     ///
-    /// This function should be called between tests to ensure clean state
-    /// for both individual spy invocations and cross-spy verification.
+    /// This function clears the spy storage for static mocks and the invocation recorder
+    /// for the current task. Note that with task-local recorders, each test typically
+    /// gets its own isolated recorder automatically via `withStorage` or `MockingTestCase`.
     public static func clearAll() {
         storageProvider.storage.removeAll()
         Task {
-            await InvocationRecorder.shared.clear()
+            await invocationRecorder.clear()
         }
     }
 
     /// Executes a closure with a clean mock environment.
     ///
-    /// This method automatically clears all spy storage and invocation recorder
-    /// before and after the provided closure, ensuring test isolation.
+    /// This method automatically provides fresh spy storage and invocation recorder
+    /// for the provided closure, ensuring test isolation.
     ///
     /// - Parameter body: Closure to execute with clean mock state
     /// - Returns: The value returned by the closure
     public static func withCleanEnvironment<R>(
         body: () async throws -> R
     ) async rethrows -> R {
-        await InvocationRecorder.shared.clear()
-        return try await withStorage(SpyStorageProvider()) {
-            defer {
-                Task {
-                    await InvocationRecorder.shared.clear()
-                }
-            }
-            return try await body()
+        try await withStorage(SpyStorageProvider()) {
+            try await body()
         }
     }
 }

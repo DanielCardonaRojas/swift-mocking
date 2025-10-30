@@ -92,7 +92,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
 
         let semaphore = DispatchSemaphore(value: 0)
         Task {
-            await InvocationRecorder.shared.record(
+            await MockScope.invocationRecorder.record(
                 spyID: spyID,
                 invocationID: invocation.invocationID,
                 methodLabel: methodLabel,

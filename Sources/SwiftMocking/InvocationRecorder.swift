@@ -46,19 +46,23 @@ public struct Recorded: Sendable {
     }
 }
 
-/// A thread-safe global recorder that captures invocations across all spies for cross-spy verification.
+/// A thread-safe recorder that captures invocations across all spies for cross-spy verification.
 ///
 /// The InvocationRecorder maintains a chronological timeline of all method calls across different
 /// mock objects, enabling verification of call order between multiple spies while preserving
 /// type safety within individual spies.
+///
+/// By default, a task-local instance is accessed via `MockScope.invocationRecorder` to provide
+/// automatic test isolation. Tests can override the recorder instance using MockScope scoped methods.
 @globalActor
 public actor InvocationRecorder {
+    /// Shared instance used as the default for the task-local current recorder
     public static let shared = InvocationRecorder()
 
     private var recordings: [Recorded] = []
     private var nextIndex: Int = 0
 
-    private init() {}
+    public init() {}
 
     /// Records a new invocation in the global timeline.
     ///

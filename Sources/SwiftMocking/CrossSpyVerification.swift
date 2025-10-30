@@ -47,7 +47,7 @@ public enum CrossSpyVerification {
         let semaphore = DispatchSemaphore(value: 0)
 
         Task {
-            recordings = await InvocationRecorder.shared.snapshot()
+            recordings = await MockScope.invocationRecorder.snapshot()
             semaphore.signal()
         }
 

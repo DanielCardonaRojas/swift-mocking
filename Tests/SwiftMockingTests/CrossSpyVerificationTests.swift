@@ -8,26 +8,9 @@
 import XCTest
 @testable import SwiftMocking
 
-class CrossSpyVerificationTests: XCTestCase {
-
-    override func setUp() {
-        super.setUp()
-        // Clear all recorded invocations before each test
-        Task {
-            await InvocationRecorder.shared.clear()
-        }
-    }
-
-    override func tearDown() {
-        super.tearDown()
-        // Clear all recorded invocations after each test
-        Task {
-            await InvocationRecorder.shared.clear()
-        }
-    }
+class CrossSpyVerificationTests: MockingTestCase {
 
     func test_invocationRecorder_recordsGlobally() async {
-        await InvocationRecorder.shared.clear()
 
         let spy1 = Spy<String, None, Int>(label: "spy1.method")
         let spy2 = Spy<Int, None, String>(label: "spy2.method")
@@ -37,7 +20,7 @@ class CrossSpyVerificationTests: XCTestCase {
         _ = spy2(42)
 
         // Check that invocations were recorded globally
-        let recordings = await InvocationRecorder.shared.snapshot()
+        let recordings = await MockScope.invocationRecorder.snapshot()
         XCTAssertEqual(recordings.count, 2)
 
         // Check that the order is preserved
@@ -54,12 +37,12 @@ class CrossSpyVerificationTests: XCTestCase {
         _ = spy("test")
 
         // Verify recording exists
-        let recordingsBefore = await InvocationRecorder.shared.snapshot()
+        let recordingsBefore = await MockScope.invocationRecorder.snapshot()
         XCTAssertEqual(recordingsBefore.count, 1)
 
         // Clear and verify empty
-        await InvocationRecorder.shared.clear()
-        let recordingsAfter = await InvocationRecorder.shared.snapshot()
+        await MockScope.invocationRecorder.clear()
+        let recordingsAfter = await MockScope.invocationRecorder.snapshot()
         XCTAssertEqual(recordingsAfter.count, 0)
     }
 
@@ -84,8 +67,6 @@ class CrossSpyVerificationTests: XCTestCase {
     }
 
     func test_crossSpyVerificationEngine_basicFunctionality() async {
-        await InvocationRecorder.shared.clear()
-
         let spy1 = Spy<String, None, Int>(label: "spy1.method")
         let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
@@ -109,8 +90,6 @@ class CrossSpyVerificationTests: XCTestCase {
     }
 
     func test_crossSpyVerificationEngine_failsWhenOrderIsWrong() async {
-        await InvocationRecorder.shared.clear()
-
         let spy1 = Spy<String, None, Int>(label: "spy1.method")
         let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
@@ -128,8 +107,6 @@ class CrossSpyVerificationTests: XCTestCase {
     }
 
     func test_crossSpyVerificationEngine_partialMatch() async {
-        await InvocationRecorder.shared.clear()
-
         let spy1 = Spy<String, None, Int>(label: "spy1.method")
         let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
