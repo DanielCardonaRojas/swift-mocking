@@ -16,7 +16,7 @@ public protocol CrossSpyVerifiable {
     var spyID: UUID { get }
 
     /// The method label for matching recorded invocations
-    var methodLabel: String { get }
+    var methodLabel: String? { get }
 
     /// Checks if a recorded invocation matches this verification criterion
     /// - Parameter recorded: The recorded invocation to match against
@@ -92,8 +92,8 @@ extension Interaction: CrossSpyVerifiable {
         spy.spyID
     }
 
-    public var methodLabel: String {
-        spy.methodLabel ?? ""
+    public var methodLabel: String? {
+        spy.methodLabel
     }
 
     public func matches(_ recorded: Recorded) -> Bool {

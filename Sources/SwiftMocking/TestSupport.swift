@@ -75,7 +75,7 @@ public func verifyInOrder(
     let result = CrossSpyVerification.verifyInOrder(verifiables)
     if let result {
         let matchedSequenceDescription = result.matched.map({ recorded in
-            let method = "\(recorded.methodLabel)"
+            let method = "\(recorded.methodLabel ?? "unknownMethodLabel")"
             let arguments = recorded.arguments.map({ "\($0)"}).joined(
                 separator: ", "
             )

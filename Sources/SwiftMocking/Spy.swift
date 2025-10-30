@@ -95,7 +95,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
             await InvocationRecorder.shared.record(
                 spyID: spyID,
                 invocationID: invocation.invocationID,
-                methodLabel: methodLabel ?? "",
+                methodLabel: methodLabel,
                 arguments: argumentsArray
             )
             semaphore.signal()

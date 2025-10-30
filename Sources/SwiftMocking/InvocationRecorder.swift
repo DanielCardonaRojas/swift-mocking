@@ -22,7 +22,7 @@ public struct Recorded: Sendable {
     public let invocationID: UUID
 
     /// Human-readable method label for debugging and matching
-    public let methodLabel: String
+    public let methodLabel: String?
 
     /// Timestamp when the invocation was recorded
     public let timestamp: Date
@@ -34,7 +34,7 @@ public struct Recorded: Sendable {
         index: Int,
         spyID: UUID,
         invocationID: UUID,
-        methodLabel: String,
+        methodLabel: String?,
         arguments: [Any]
     ) {
         self.index = index
@@ -72,7 +72,7 @@ public actor InvocationRecorder {
     public func record(
         spyID: UUID,
         invocationID: UUID,
-        methodLabel: String,
+        methodLabel: String?,
         arguments: [Any]
     ) -> Recorded {
         let recorded = Recorded(
