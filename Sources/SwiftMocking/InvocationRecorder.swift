@@ -57,7 +57,6 @@ public actor InvocationRecorder {
 
     private var recordings: [Recorded] = []
     private var nextIndex: Int = 0
-    private let lock = NSLock()
 
     private init() {}
 
@@ -76,9 +75,6 @@ public actor InvocationRecorder {
         methodLabel: String,
         arguments: [Any]
     ) -> Recorded {
-        lock.lock()
-        defer { lock.unlock() }
-
         let recorded = Recorded(
             index: nextIndex,
             spyID: spyID,
@@ -97,8 +93,6 @@ public actor InvocationRecorder {
     ///
     /// - Returns: Array of all recorded invocations in chronological order
     public func snapshot() -> [Recorded] {
-        lock.lock()
-        defer { lock.unlock() }
         return Array(recordings)
     }
 
@@ -106,16 +100,12 @@ public actor InvocationRecorder {
     ///
     /// This should be called between tests to ensure clean state.
     public func clear() {
-        lock.lock()
-        defer { lock.unlock() }
         recordings.removeAll()
         nextIndex = 0
     }
 
     /// Returns the total number of recorded invocations.
     public var count: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return recordings.count
+        recordings.count
     }
 }
