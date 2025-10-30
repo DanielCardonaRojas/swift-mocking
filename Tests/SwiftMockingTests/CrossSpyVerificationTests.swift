@@ -29,11 +29,8 @@ class CrossSpyVerificationTests: XCTestCase {
     func test_invocationRecorder_recordsGlobally() async {
         await InvocationRecorder.shared.clear()
 
-        let spy1 = Spy<String, None, Int>()
-        let spy2 = Spy<Int, None, String>()
-
-        spy1.configureLogger(label: "spy1.method")
-        spy2.configureLogger(label: "spy2.method")
+        let spy1 = Spy<String, None, Int>(label: "spy1.method")
+        let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
         // Execute method calls
         _ = spy1("test")
@@ -52,8 +49,7 @@ class CrossSpyVerificationTests: XCTestCase {
     }
 
     func test_invocationRecorder_clearFunctionality() async {
-        let spy = Spy<String, None, Int>()
-        spy.configureLogger(label: "test.method")
+        let spy = Spy<String, None, Int>(label: "test.method")
 
         _ = spy("test")
 
@@ -79,11 +75,8 @@ class CrossSpyVerificationTests: XCTestCase {
     }
 
     func test_methodLabel_setCorrectly() {
-        let spy1 = Spy<String, None, Int>()
-        let spy2 = Spy<Int, None, String>()
-
-        spy1.configureLogger(label: "TestClass.method1")
-        spy2.configureLogger(label: "TestClass.method2")
+        let spy1 = Spy<String, None, Int>(label: "TestClass.method1")
+        let spy2 = Spy<Int, None, String>(label: "TestClass.method2")
 
         // Method labels should be set correctly
         XCTAssertEqual(spy1.methodLabel, "TestClass.method1")
@@ -93,11 +86,8 @@ class CrossSpyVerificationTests: XCTestCase {
     func test_crossSpyVerificationEngine_basicFunctionality() async {
         await InvocationRecorder.shared.clear()
 
-        let spy1 = Spy<String, None, Int>()
-        let spy2 = Spy<Int, None, String>()
-
-        spy1.configureLogger(label: "spy1.method")
-        spy2.configureLogger(label: "spy2.method")
+        let spy1 = Spy<String, None, Int>(label: "spy1.method")
+        let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
         // Execute method calls in specific order
         _ = spy1("first")
@@ -121,11 +111,8 @@ class CrossSpyVerificationTests: XCTestCase {
     func test_crossSpyVerificationEngine_failsWhenOrderIsWrong() async {
         await InvocationRecorder.shared.clear()
 
-        let spy1 = Spy<String, None, Int>()
-        let spy2 = Spy<Int, None, String>()
-
-        spy1.configureLogger(label: "spy1.method")
-        spy2.configureLogger(label: "spy2.method")
+        let spy1 = Spy<String, None, Int>(label: "spy1.method")
+        let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
         // Execute in one order
         _ = spy1("first")
@@ -143,11 +130,8 @@ class CrossSpyVerificationTests: XCTestCase {
     func test_crossSpyVerificationEngine_partialMatch() async {
         await InvocationRecorder.shared.clear()
 
-        let spy1 = Spy<String, None, Int>()
-        let spy2 = Spy<Int, None, String>()
-
-        spy1.configureLogger(label: "spy1.method")
-        spy2.configureLogger(label: "spy2.method")
+        let spy1 = Spy<String, None, Int>(label: "spy1.method")
+        let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
         // Execute only partial sequence
         _ = spy1("first")
@@ -169,8 +153,7 @@ class CrossSpyVerificationTests: XCTestCase {
     }
 
     func test_interaction_conformsToCrossSpyVerifiable() throws {
-        let spy = Spy<String, None, Int>()
-        spy.configureLogger(label: "test.method")
+        let spy = Spy<String, None, Int>(label: "test.method")
 
         let interaction = Interaction(.any, spy: spy)
         spy("hello")
@@ -186,7 +169,7 @@ class CrossSpyVerificationTests: XCTestCase {
             index: 0,
             spyID: spy.spyID,
             invocationID: invocationId,
-            methodLabel: spy.methodLabel,
+            methodLabel: spy.methodLabel ?? "",
             arguments: ["test"]
         )
 

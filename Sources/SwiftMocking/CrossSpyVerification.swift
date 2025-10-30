@@ -36,7 +36,7 @@ public struct CrossSpyInteraction<each Input, Eff: Effect, Output>: CrossSpyVeri
     }
 
     public var methodLabel: String {
-        interaction.spy.methodLabel
+        interaction.spy.methodLabel ?? ""
     }
 
     public init(_ interaction: Interaction<repeat each Input, Eff, Output>) {
@@ -114,7 +114,7 @@ extension Interaction: CrossSpyVerifiable {
     }
 
     public var methodLabel: String {
-        spy.methodLabel
+        spy.methodLabel ?? ""
     }
 
     public func matches(_ recorded: Recorded) -> Bool {

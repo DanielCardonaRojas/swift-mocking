@@ -83,8 +83,9 @@ open class Mock: DefaultProvider {
         if let existingSpy = spies[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> })  {
             return existingSpy
         } else {
-            let spy = Spy<repeat each Input, Eff, Output>()
-            spy.configureLogger(label: "\(Self.self).\(member)")
+            let methodLabel = "\(Self.self).\(member)"
+            let spy = Spy<repeat each Input, Eff, Output>(label: methodLabel)
+            spy.configureLogger(label: methodLabel)
             spy.isLoggingEnabled = isLoggingEnabled
             spy.defaultProviderRegistry = defaultProviderRegistry
             spies[member, default: []].append(spy)
@@ -111,8 +112,9 @@ open class Mock: DefaultProvider {
         if let spyGroup = storage[member], let existingSpy = spyGroup.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> }) {
             return existingSpy
         } else {
-            let spy = Spy<repeat each Input, Eff, Output>()
-            spy.configureLogger(label: "\(Self.self).\(member)")
+            let methodLabel = "\(Self.self).\(member)"
+            let spy = Spy<repeat each Input, Eff, Output>(label: methodLabel)
+            spy.configureLogger(label: methodLabel)
             spy.isLoggingEnabled = isLoggingEnabled
             spy.defaultProviderRegistry = defaultProviderRegistry
             storage[member, default: []].append(spy)

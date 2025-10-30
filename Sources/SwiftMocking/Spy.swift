@@ -28,7 +28,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     public let spyID: UUID = UUID()
 
     /// Human-readable label for this spy, typically "ClassName.methodName"
-    public private(set) var methodLabel: String = ""
+    public var methodLabel: String?
 
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
     private(set) var actions: [Action<repeat each Input, Effects>] = []
@@ -39,14 +39,15 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     }
 
     func configureLogger(label: String) {
-        methodLabel = label
         logger = { invocation in
             print("\(label)\(invocation.debugDescription)")
         }
     }
 
     /// Initializes a new `Spy` instance.
-    public init() {
+    /// - Parameter label: An optional method name
+    public init(label: String? = nil) {
+        self.methodLabel = label
         self.configureLogger(label: "")
     }
 
@@ -94,7 +95,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
             await InvocationRecorder.shared.record(
                 spyID: spyID,
                 invocationID: invocation.invocationID,
-                methodLabel: methodLabel,
+                methodLabel: methodLabel ?? "",
                 arguments: argumentsArray
             )
             semaphore.signal()
