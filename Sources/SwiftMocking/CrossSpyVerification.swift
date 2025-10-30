@@ -24,39 +24,6 @@ public protocol CrossSpyVerifiable {
     func matches(_ recorded: Recorded) -> Bool
 }
 
-/// A cross-spy verification descriptor that wraps an existing Interaction
-///
-/// This allows existing Interaction objects to participate in cross-spy verification
-/// while maintaining backward compatibility.
-public struct CrossSpyInteraction<each Input, Eff: Effect, Output>: CrossSpyVerifiable {
-    private let interaction: Interaction<repeat each Input, Eff, Output>
-
-    public var spyID: UUID {
-        interaction.spy.spyID
-    }
-
-    public var methodLabel: String {
-        interaction.spy.methodLabel ?? ""
-    }
-
-    public init(_ interaction: Interaction<repeat each Input, Eff, Output>) {
-        self.interaction = interaction
-    }
-
-    public func matches(_ recorded: Recorded) -> Bool {
-        // Check spy ID first for efficiency
-        guard recorded.spyID == spyID else { return false }
-
-        // Check method label match
-        guard recorded.methodLabel == methodLabel else { return false }
-
-        // For now, we'll use a simpler approach that just checks spy and method match
-        // A more sophisticated implementation would check argument matchers
-        // but that requires deeper integration with the type system
-        return true
-    }
-}
-
 /// Verification engine that processes cross-spy call order verification
 public enum CrossSpyVerificationEngine {
 
