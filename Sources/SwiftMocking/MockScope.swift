@@ -42,7 +42,7 @@ public enum MockScope {
         storageProvider
     }
 
-    /// Executes a synchronous closure with the given provider and a fresh invocation recorder.
+    /// Executes a synchronous closure with the given provider.
     /// - Parameters:
     ///   - provider: Storage provider used within the body.
     ///   - body: Synchronous closure to run with the provider.
@@ -51,12 +51,10 @@ public enum MockScope {
         _ provider: SpyStorageProvider = .init(),
         body: () throws -> R
     ) rethrows -> R {
-        try $storageProvider.withValue(provider) {
-            try $invocationRecorder.withValue(InvocationRecorder(), operation: body)
-        }
+        try $storageProvider.withValue(provider, operation: body)
     }
 
-    /// Executes an asynchronous closure with the given provider and a fresh invocation recorder.
+    /// Executes an asynchronous closure with the given provider.
     /// - Parameters:
     ///   - provider: Storage provider used within the body.
     ///   - body: Asynchronous closure to run with the provider.
@@ -65,9 +63,31 @@ public enum MockScope {
         _ provider: SpyStorageProvider = .init(),
         body: () async throws -> R
     ) async rethrows -> R {
-        try await $storageProvider.withValue(provider) {
-            try await $invocationRecorder.withValue(InvocationRecorder(), operation: body)
-        }
+        try await $storageProvider.withValue(provider, operation: body)
+    }
+
+    /// Executes a synchronous closure with a fresh invocation recorder.
+    /// - Parameters:
+    ///   - recorder: Invocation recorder to use within the body. Defaults to a fresh instance.
+    ///   - body: Synchronous closure to run with the recorder.
+    /// - Returns: The value returned by the closure.
+    public static func withInvocationRecorder<R>(
+        _ recorder: InvocationRecorder = .init(),
+        body: () throws -> R
+    ) rethrows -> R {
+        try $invocationRecorder.withValue(recorder, operation: body)
+    }
+
+    /// Executes an asynchronous closure with a fresh invocation recorder.
+    /// - Parameters:
+    ///   - recorder: Invocation recorder to use within the body. Defaults to a fresh instance.
+    ///   - body: Asynchronous closure to run with the recorder.
+    /// - Returns: The value returned by the closure.
+    static func withInvocationRecorder<R>(
+        _ recorder: InvocationRecorder = .init(),
+        body: () async throws -> R
+    ) async rethrows -> R {
+        try await $invocationRecorder.withValue(recorder, operation: body)
     }
 
     /// Executes an asynchronous closure with a custom default value registry.
@@ -115,7 +135,9 @@ public enum MockScope {
         body: () async throws -> R
     ) async rethrows -> R {
         try await withStorage(SpyStorageProvider()) {
-            try await body()
+            try await withInvocationRecorder(InvocationRecorder()) {
+                try await body()
+            }
         }
     }
 }
