@@ -63,8 +63,8 @@ public enum CrossSpyVerificationEngine {
     /// Verifies that a sequence of cross-spy interactions occurred in the specified order
     /// - Parameter verifiables: Array of verification descriptors in expected order
     /// - Returns: true if all interactions occurred in the specified order
-    public static func verifyInOrder(_ verifiables: [any CrossSpyVerifiable]) -> Bool {
-        guard !verifiables.isEmpty else { return true }
+    public static func verifyInOrder(_ verifiables: [any CrossSpyVerifiable]) -> [Recorded]? {
+        guard !verifiables.isEmpty else { return nil }
 
         // Get snapshot synchronously using a blocking call
         var recordings: [Recorded] = []
@@ -99,7 +99,11 @@ public enum CrossSpyVerificationEngine {
         }
 
         // Success if we verified all interactions
-        return verificationIndex == verifiables.count
+        if verificationIndex == verifiables.count {
+            return nil
+        }
+
+        return recordings
     }
 }
 

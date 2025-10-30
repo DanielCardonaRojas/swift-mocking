@@ -110,9 +110,12 @@ class CrossSpyVerificationTests: XCTestCase {
         let interaction3 = Interaction(.any, spy: spy1)
 
         // Test cross-spy verification
-        let verifiables: [any CrossSpyVerifiable] = [interaction1, interaction2, interaction3]
-        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables)
-        XCTAssertTrue(success, "Cross-spy verification should succeed for correct order")
+        let verifiables: [any CrossSpyVerifiable] = [
+            interaction1,
+            interaction2,
+            interaction3
+        ]
+        verifyInOrder(verifiables)
     }
 
     func test_crossSpyVerificationEngine_failsWhenOrderIsWrong() async {
@@ -133,7 +136,7 @@ class CrossSpyVerificationTests: XCTestCase {
         let interaction2 = Interaction(.any, spy: spy1)
 
         let verifiables: [any CrossSpyVerifiable] = [interaction1, interaction2]
-        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables)
+        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables) == nil
         XCTAssertFalse(success, "Verification should fail when order is incorrect")
     }
 
@@ -155,13 +158,13 @@ class CrossSpyVerificationTests: XCTestCase {
         let interaction2 = Interaction(.any, spy: spy2)  // This call never happened
 
         let verifiables: [any CrossSpyVerifiable] = [interaction1, interaction2]
-        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables)
+        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables) == nil
         XCTAssertFalse(success, "Verification should fail when expected calls are missing")
     }
 
     func test_crossSpyVerificationEngine_emptySequence() {
         // Empty verification should always succeed
-        let success = CrossSpyVerificationEngine.verifyInOrder([])
+        let success = CrossSpyVerificationEngine.verifyInOrder([]) == nil
         XCTAssertTrue(success, "Empty verification should always succeed")
     }
 

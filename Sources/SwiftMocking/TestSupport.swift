@@ -72,9 +72,25 @@ public func verifyInOrder(
     file: StaticString = #filePath,
     line: UInt = #line
 ) {
-    let success = CrossSpyVerificationEngine.verifyInOrder(verifiables)
-    if !success {
-        reportIssue("Did not find sequence of cross-spy interactions", filePath: file, line: line)
+    let recordings = CrossSpyVerificationEngine.verifyInOrder(verifiables)
+    if let recordings {
+        let matchedSequenceDescription = recordings.map({ recorded in
+            let method = "\(recorded.methodLabel)"
+            let arguments = recorded.arguments.map({ "\($0)"}).joined(
+                separator: ", "
+            )
+            return "\(method)(\(arguments))"
+        }).joined(separator: "\n")
+
+        if recordings.isEmpty {
+            reportIssue("Did not find sequence of interactions", filePath: file, line: line)
+        } else {
+            reportIssue(
+                "Partially found sequence of interactions. Matched up to:\n\(matchedSequenceDescription)",
+                filePath: file,
+                line: line
+            )
+        }
     }
 }
 
