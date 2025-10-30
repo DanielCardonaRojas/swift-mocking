@@ -72,7 +72,7 @@ public func verifyInOrder(
     file: StaticString = #filePath,
     line: UInt = #line
 ) {
-    let recordings = CrossSpyVerificationEngine.verifyInOrder(verifiables)
+    let recordings = CrossSpyVerification.verifyInOrder(verifiables)
     if let recordings {
         let matchedSequenceDescription = recordings.map({ recorded in
             let method = "\(recorded.methodLabel)"

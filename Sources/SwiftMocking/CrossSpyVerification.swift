@@ -25,7 +25,7 @@ public protocol CrossSpyVerifiable {
 }
 
 /// Verification engine that processes cross-spy call order verification
-public enum CrossSpyVerificationEngine {
+public enum CrossSpyVerification {
 
     /// Verifies that a sequence of cross-spy interactions occurred in the specified order
     /// - Parameter verifiables: Array of verification descriptors in expected order

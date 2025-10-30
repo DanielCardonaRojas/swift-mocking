@@ -123,7 +123,7 @@ class CrossSpyVerificationTests: XCTestCase {
         let interaction2 = Interaction(.any, spy: spy1)
 
         let verifiables: [any CrossSpyVerifiable] = [interaction1, interaction2]
-        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables) == nil
+        let success = CrossSpyVerification.verifyInOrder(verifiables) == nil
         XCTAssertFalse(success, "Verification should fail when order is incorrect")
     }
 
@@ -142,13 +142,13 @@ class CrossSpyVerificationTests: XCTestCase {
         let interaction2 = Interaction(.any, spy: spy2)  // This call never happened
 
         let verifiables: [any CrossSpyVerifiable] = [interaction1, interaction2]
-        let success = CrossSpyVerificationEngine.verifyInOrder(verifiables) == nil
+        let success = CrossSpyVerification.verifyInOrder(verifiables) == nil
         XCTAssertFalse(success, "Verification should fail when expected calls are missing")
     }
 
     func test_crossSpyVerificationEngine_emptySequence() {
         // Empty verification should always succeed
-        let success = CrossSpyVerificationEngine.verifyInOrder([]) == nil
+        let success = CrossSpyVerification.verifyInOrder([]) == nil
         XCTAssertTrue(success, "Empty verification should always succeed")
     }
 
