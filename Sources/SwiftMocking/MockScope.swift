@@ -59,7 +59,7 @@ public enum MockScope {
     ///   - provider: Storage provider used within the body.
     ///   - body: Asynchronous closure to run with the provider.
     /// - Returns: The value returned by the closure.
-    static func withStorage<R>(
+    public static func withStorage<R>(
         _ provider: SpyStorageProvider = .init(),
         body: () async throws -> R
     ) async rethrows -> R {
@@ -83,7 +83,7 @@ public enum MockScope {
     ///   - recorder: Invocation recorder to use within the body. Defaults to a fresh instance.
     ///   - body: Asynchronous closure to run with the recorder.
     /// - Returns: The value returned by the closure.
-    static func withInvocationRecorder<R>(
+    public static func withInvocationRecorder<R>(
         _ recorder: InvocationRecorder = .init(),
         body: () async throws -> R
     ) async rethrows -> R {
