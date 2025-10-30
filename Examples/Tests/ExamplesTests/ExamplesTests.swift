@@ -42,7 +42,7 @@ import Foundation
     let requestURL = URL(string: "https://example.com/request")!
     let downloadURL = URL(string: "https://example.com/download")!
     let uploadURL = URL(string: "https://example.com/upload")!
-    let requestBody = Data()
+    let uploadPayload = Data()
     let uploadResponse = HTTPURLResponse(
         url: uploadURL,
         statusCode: 201,
@@ -51,20 +51,20 @@ import Foundation
     )!
 
     when(mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()))
-        .thenReturn("{}".data(using: .utf8)!)
+        .thenReturn(Data("{}".utf8))
     when(mock.download(from: .equal(downloadURL)))
         .thenReturn(downloadURL)
-    when(mock.upload(to: .equal(uploadURL), data: .equal(requestBody)))
-        .thenReturn(("uploaded".data(using: .utf8)!, uploadResponse))
+    when(mock.upload(to: .equal(uploadURL), data: .equal(uploadPayload)))
+        .thenReturn((Data("uploaded".utf8), uploadResponse))
 
     _ = try await mock.request(url: requestURL, method: "GET", headers: nil)
     _ = try await mock.download(from: downloadURL)
-    _ = try await mock.upload(to: uploadURL, data: requestBody)
+    _ = try await mock.upload(to: uploadURL, data: uploadPayload)
 
     let verifiables: [any CrossSpyVerifiable] = [
         mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()),
         mock.download(from: .equal(downloadURL)),
-        mock.upload(to: .equal(uploadURL), data: .equal(requestBody))
+        mock.upload(to: .equal(uploadURL), data: .equal(uploadPayload))
     ]
     verifyInOrder(verifiables)
 }

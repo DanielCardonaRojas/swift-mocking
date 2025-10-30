@@ -29,7 +29,7 @@ public enum CrossSpyVerification {
 
     /// Verifies that a sequence of cross-spy interactions occurred in the specified order
     /// - Parameter verifiables: Array of verification descriptors in expected order
-    /// - Returns: true if all interactions occurred in the specified order
+    /// - Returns: nil if all interactions occurred in the specified order and an array of recordings when fails
     public static func verifyInOrder(_ verifiables: [any CrossSpyVerifiable]) -> [Recorded]? {
         guard !verifiables.isEmpty else { return nil }
 
