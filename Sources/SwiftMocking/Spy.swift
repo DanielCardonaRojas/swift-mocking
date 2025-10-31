@@ -90,9 +90,11 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
             argumentsArray.append(argument)
         }
 
+        // Capture the task-local recorder before detaching to preserve task-local context
+        let recorder = MockScope.invocationRecorder
         let semaphore = DispatchSemaphore(value: 0)
         Task.detached {
-            await MockScope.invocationRecorder.record(
+            await recorder.record(
                 spyID: self.spyID,
                 invocationID: invocation.invocationID,
                 methodLabel: self.methodLabel,
