@@ -112,18 +112,6 @@ public enum MockScope {
         try await $fallbackValueRegistry.withValue(provider, operation: body)
     }
 
-    /// Clears all spy storage and the current task's invocation recorder.
-    ///
-    /// This function clears the spy storage for static mocks and the invocation recorder
-    /// for the current task. Note that with task-local recorders, each test typically
-    /// gets its own isolated recorder automatically via `withStorage` or `MockingTestCase`.
-    public static func clearAll() {
-        storageProvider.storage.removeAll()
-        Task {
-            await invocationRecorder.clear()
-        }
-    }
-
     /// Executes a closure with a clean mock environment.
     ///
     /// This method automatically provides fresh spy storage and invocation recorder
