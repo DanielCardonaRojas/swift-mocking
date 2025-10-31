@@ -91,11 +91,11 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         }
 
         let semaphore = DispatchSemaphore(value: 0)
-        Task {
+        Task.detached {
             await MockScope.invocationRecorder.record(
-                spyID: spyID,
+                spyID: self.spyID,
                 invocationID: invocation.invocationID,
-                methodLabel: methodLabel,
+                methodLabel: self.methodLabel,
                 arguments: argumentsArray
             )
             semaphore.signal()
