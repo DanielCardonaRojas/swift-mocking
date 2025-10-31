@@ -24,9 +24,6 @@ public struct Recorded: Sendable {
     /// Human-readable method label for debugging and matching
     public let methodLabel: String?
 
-    /// Timestamp when the invocation was recorded
-    public let timestamp: Date
-
     /// Type-erased arguments for cross-spy matching
     public let arguments: [Any]
 
@@ -41,7 +38,6 @@ public struct Recorded: Sendable {
         self.spyID = spyID
         self.invocationID = invocationID
         self.methodLabel = methodLabel
-        self.timestamp = Date()
         self.arguments = arguments
     }
 }
