@@ -41,16 +41,16 @@ struct ExampleTests {
 
     @Test func test_crossSpyVerifyInOrder_sameMockDifferentMethods() async throws {
         let mock = MockNetworkService()
-        let requestURL = URL(string: "https://example.com/request")!
-        let downloadURL = URL(string: "https://example.com/download")!
-        let uploadURL = URL(string: "https://example.com/upload")!
+        let requestURL = try #require(URL(string: "https://example.com/request"))
+        let downloadURL = try #require(URL(string: "https://example.com/download"))
+        let uploadURL = try #require(URL(string: "https://example.com/upload"))
         let uploadPayload = Data()
-        let uploadResponse = HTTPURLResponse(
+        let uploadResponse = try #require(HTTPURLResponse(
             url: uploadURL,
             statusCode: 201,
             httpVersion: nil,
             headerFields: nil
-        )!
+        ))
 
         when(mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()))
             .thenReturn(Data("{}".utf8))
@@ -149,7 +149,7 @@ struct ExampleTests {
 
     @Test func test_until_waitsForBackgroundInteraction() async throws {
         let spy = Spy<URL, AsyncThrows, Data>()
-        let url = URL(string: "https://example.com/feed")!
+        let url = try #require(URL(string: "https://example.com/feed"))
         let response = Data("feed".utf8)
 
         when(spy(.equal(url))).thenReturn { _ in

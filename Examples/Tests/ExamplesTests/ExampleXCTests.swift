@@ -48,16 +48,16 @@ final class MockitoTests: XCTestCase {
 
     func test_crossSpyVerifyInOrder_sameMockDifferentMethods() async throws {
         let mock = MockNetworkService()
-        let requestURL = URL(string: "https://example.com/request")!
-        let downloadURL = URL(string: "https://example.com/download")!
-        let uploadURL = URL(string: "https://example.com/upload")!
+        let requestURL = try XCTUnwrap(URL(string: "https://example.com/request"))
+        let downloadURL = try XCTUnwrap(URL(string: "https://example.com/download"))
+        let uploadURL = try XCTUnwrap(URL(string: "https://example.com/upload"))
         let uploadPayload = Data()
-        let uploadResponse = HTTPURLResponse(
+        let uploadResponse = try XCTUnwrap(HTTPURLResponse(
             url: uploadURL,
             statusCode: 201,
             httpVersion: nil,
             headerFields: nil
-        )!
+        ))
 
         when(mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()))
             .thenReturn(Data("{}".utf8))
