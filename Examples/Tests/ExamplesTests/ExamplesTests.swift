@@ -231,7 +231,7 @@ struct ExampleTests {
         let mock = MockPersistenceService()
 
         // Stub save
-        when(mock.save(key: .equal("myKey"), value: .any(String.self)))
+        when(mock.save(key: .equal("myKey"), value: .any(String.self))).thenReturn(())
         try mock.save(key: "myKey", value: "myValue")
         verify(mock.save(key: .equal("myKey"), value: .equal("myValue"))).called(1)
 
