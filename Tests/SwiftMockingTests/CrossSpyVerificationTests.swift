@@ -10,7 +10,7 @@ import XCTest
 
 class CrossSpyVerificationTests: MockingTestCase {
 
-    func test_invocationRecorder_recordsGlobally() async {
+    func test_invocationRecorder_recordsGlobally() {
 
         let spy1 = Spy<String, None, Int>(label: "spy1.method")
         let spy2 = Spy<Int, None, String>(label: "spy2.method")
@@ -20,7 +20,7 @@ class CrossSpyVerificationTests: MockingTestCase {
         _ = spy2(42)
 
         // Check that invocations were recorded globally
-        let recordings = await MockScope.invocationRecorder.snapshot()
+        let recordings = MockScope.invocationRecorder.snapshot()
         XCTAssertEqual(recordings.count, 2)
 
         // Check that the order is preserved
@@ -31,18 +31,18 @@ class CrossSpyVerificationTests: MockingTestCase {
         XCTAssertNotEqual(recordings[0].spyID, recordings[1].spyID)
     }
 
-    func test_invocationRecorder_clearFunctionality() async {
+    func test_invocationRecorder_clearFunctionality() {
         let spy = Spy<String, None, Int>(label: "test.method")
 
         _ = spy("test")
 
         // Verify recording exists
-        let recordingsBefore = await MockScope.invocationRecorder.snapshot()
+        let recordingsBefore = MockScope.invocationRecorder.snapshot()
         XCTAssertEqual(recordingsBefore.count, 1)
 
         // Clear and verify empty
-        await MockScope.invocationRecorder.clear()
-        let recordingsAfter = await MockScope.invocationRecorder.snapshot()
+        MockScope.invocationRecorder.clear()
+        let recordingsAfter = MockScope.invocationRecorder.snapshot()
         XCTAssertEqual(recordingsAfter.count, 0)
     }
 
@@ -66,7 +66,7 @@ class CrossSpyVerificationTests: MockingTestCase {
         XCTAssertEqual(spy2.methodLabel, "TestClass.method2")
     }
 
-    func test_crossSpyVerificationEngine_basicFunctionality() async {
+    func test_crossSpyVerificationEngine_basicFunctionality() {
         let spy1 = Spy<String, None, Int>(label: "spy1.method")
         let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
@@ -89,7 +89,7 @@ class CrossSpyVerificationTests: MockingTestCase {
         verifyInOrder(verifiables)
     }
 
-    func test_crossSpyVerificationEngine_failsWhenOrderIsWrong() async {
+    func test_crossSpyVerificationEngine_failsWhenOrderIsWrong() {
         let spy1 = Spy<String, None, Int>(label: "spy1.method")
         let spy2 = Spy<Int, None, String>(label: "spy2.method")
 
@@ -106,7 +106,7 @@ class CrossSpyVerificationTests: MockingTestCase {
         XCTAssertFalse(success, "Verification should fail when order is incorrect")
     }
 
-    func test_crossSpyVerificationEngine_partialMatch() async {
+    func test_crossSpyVerificationEngine_partialMatch() {
         let spy1 = Spy<String, None, Int>(label: "spy1.method")
         let spy2 = Spy<Int, None, String>(label: "spy2.method")
 

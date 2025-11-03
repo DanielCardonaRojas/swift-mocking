@@ -84,25 +84,18 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         let invocation = Invocation(arguments: repeat each input)
         invocations.append(invocation)
 
-        // Record in global timeline for cross-spy verification synchronously
+        // Record in global timeline for cross-spy verification
         var argumentsArray: [Any] = []
         for argument in repeat each input {
             argumentsArray.append(argument)
         }
 
-        // Capture the task-local recorder before detaching to preserve task-local context
-        let recorder = MockScope.invocationRecorder
-        let semaphore = DispatchSemaphore(value: 0)
-        Task.detached {
-            await recorder.record(
-                spyID: self.spyID,
-                invocationID: invocation.invocationID,
-                methodLabel: self.methodLabel,
-                arguments: argumentsArray
-            )
-            semaphore.signal()
-        }
-        semaphore.wait()
+        MockScope.invocationRecorder.record(
+            spyID: self.spyID,
+            invocationID: invocation.invocationID,
+            methodLabel: self.methodLabel,
+            arguments: argumentsArray
+        )
 
         return invocation
     }

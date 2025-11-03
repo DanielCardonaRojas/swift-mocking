@@ -50,13 +50,13 @@ public struct Recorded: Sendable {
 ///
 /// By default, a task-local instance is accessed via `MockScope.invocationRecorder` to provide
 /// automatic test isolation. Tests can override the recorder instance using MockScope scoped methods.
-@globalActor
-public actor InvocationRecorder {
+public final class InvocationRecorder: Sendable {
     /// Shared instance used as the default for the task-local current recorder
     public static let shared = InvocationRecorder()
 
     private var recordings: [Recorded] = []
     private var nextIndex: Int = 0
+    private let lock = NSLock()
 
     public init() {}
 
@@ -75,6 +75,9 @@ public actor InvocationRecorder {
         methodLabel: String?,
         arguments: [Any]
     ) -> Recorded {
+        lock.lock()
+        defer { lock.unlock() }
+
         let recorded = Recorded(
             index: nextIndex,
             spyID: spyID,
@@ -93,6 +96,8 @@ public actor InvocationRecorder {
     ///
     /// - Returns: Array of all recorded invocations in chronological order
     public func snapshot() -> [Recorded] {
+        lock.lock()
+        defer { lock.unlock() }
         return Array(recordings)
     }
 
@@ -100,12 +105,16 @@ public actor InvocationRecorder {
     ///
     /// This should be called between tests to ensure clean state.
     public func clear() {
+        lock.lock()
+        defer { lock.unlock() }
         recordings.removeAll()
         nextIndex = 0
     }
 
     /// Returns the total number of recorded invocations.
     public var count: Int {
-        recordings.count
+        lock.lock()
+        defer { lock.unlock() }
+        return recordings.count
     }
 }

@@ -42,16 +42,8 @@ public enum CrossSpyVerification {
     public static func verifyInOrder(_ verifiables: [any CrossSpyVerifiable]) -> Result? {
         guard !verifiables.isEmpty else { return nil }
 
-        // Get snapshot synchronously using a blocking call
-        var recordings: [Recorded] = []
-        let semaphore = DispatchSemaphore(value: 0)
-
-        Task {
-            recordings = await MockScope.invocationRecorder.snapshot()
-            semaphore.signal()
-        }
-
-        semaphore.wait()
+        // Get snapshot of all recorded invocations
+        let recordings = MockScope.invocationRecorder.snapshot()
 
         var verificationIndex = 0
         var lastMatchedIndex = -1
