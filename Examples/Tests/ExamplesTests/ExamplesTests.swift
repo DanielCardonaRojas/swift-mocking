@@ -4,7 +4,7 @@ import Foundation
 @testable import Examples
 
 
-@Suite
+@Suite(.serialized)
 struct ExampleTests {
     @Test func testMockitoBuilder() {
         let mock = MockPricingService()
