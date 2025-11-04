@@ -51,36 +51,46 @@ public func verify<each Input, Eff: Effect, Output>(
     Assert(invocationMatcher: interaction.invocationMatcher, spy: interaction.spy)
 }
 
-/// Verifies that a sequence of interactions with a mock object occurred in the specified order.
+/// Verifies that a sequence of interactions across multiple mock objects occurred in the specified order.
 ///
-/// This function takes an array of `Interaction` objects and asserts that they were
-/// called sequentially on the same mock object. If the order of calls does not match
-/// the provided sequence, an issue is reported.
+/// This function enables cross-spy call order verification, allowing you to verify that method calls
+/// across different mock objects occurred in a specific chronological order.
 ///
 /// Example:
 /// ```swift
 /// verifyInOrder([
-///     mock.firstMethod(),
-///     mock.secondMethod(arg: 1),
-///     mock.thirdMethod()
+///     mock1.firstMethod(),
+///     mock2.secondMethod(arg: 1),
+///     mock1.thirdMethod()
 /// ])
 /// ```
 ///
 /// - Parameters:
-///   - interactions: An array of `Interaction` objects representing the expected sequence of calls.
-public func verifyInOrder<each Input, Eff: Effect, Output>(
-    _ interactions: [Interaction<repeat each Input, Eff, Output>],
+///   - verifiables: An array of `CrossSpyVerifiable` objects representing the expected sequence of calls.
+public func verifyInOrder(
+    _ verifiables: [any CrossSpyVerifiable],
     file: StaticString = #filePath,
     line: UInt = #line
 ) {
-    let spy = interactions[0].spy
-    var matchers = [InvocationMatcher<repeat each Input>]()
-    for interaction in interactions {
-        matchers.append(interaction.invocationMatcher)
-    }
+    let result = CrossSpyVerification.verifyInOrder(verifiables)
+    if let result {
+        let matchedSequenceDescription = result.matched.map({ recorded in
+            let method = "\(recorded.methodLabel ?? "unknownMethodLabel")"
+            let arguments = recorded.arguments.map({ "\($0)"}).joined(
+                separator: ", "
+            )
+            return "\(method)(\(arguments))"
+        }).joined(separator: "\n")
 
-    if !spy.verifyInOrder(matchers) {
-        reportIssue("Did not find sequence of interactions", filePath: file, line: line)
+        if result.matched.isEmpty {
+            reportIssue("Did not find sequence of interactions", filePath: file, line: line)
+        } else {
+            reportIssue(
+                "Partially found sequence of interactions. Matched \(result.matched.count) of \(result.matched.count + result.expectedRemaining) expected. Matched up to:\n\(matchedSequenceDescription)",
+                filePath: file,
+                line: line
+            )
+        }
     }
 }
 

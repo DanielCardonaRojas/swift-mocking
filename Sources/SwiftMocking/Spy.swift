@@ -24,6 +24,12 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     private let stubsLock = NSLock()
     private let actionsLock = NSLock()
 
+    /// Unique identifier for this spy instance used for cross-spy verification
+    public let spyID: UUID = UUID()
+
+    /// Human-readable label for this spy, typically "ClassName.methodName"
+    public var methodLabel: String?
+
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
     private(set) var actions: [Action<repeat each Input, Effects>] = []
     public var defaultProviderRegistry: DefaultProvidableRegistry? = MockScope.fallbackValueRegistry
@@ -39,7 +45,9 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     }
 
     /// Initializes a new `Spy` instance.
-    public init() {
+    /// - Parameter label: An optional method name
+    public init(label: String? = nil) {
+        self.methodLabel = label
         self.configureLogger(label: "")
     }
 
@@ -75,6 +83,20 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         defer { invocationsLock.unlock() }
         let invocation = Invocation(arguments: repeat each input)
         invocations.append(invocation)
+
+        // Record in global timeline for cross-spy verification
+        var argumentsArray: [Any] = []
+        for argument in repeat each input {
+            argumentsArray.append(argument)
+        }
+
+        MockScope.invocationRecorder.record(
+            spyID: self.spyID,
+            invocationID: invocation.invocationID,
+            methodLabel: self.methodLabel,
+            arguments: argumentsArray
+        )
+
         return invocation
     }
 

@@ -8,6 +8,18 @@
 import Testing
 
 #if swift(>=6.1)
+/// A swift-testing trait that provides isolated mock scope and invocation recording.
+///
+/// Use this trait to ensure static spies and invocation recordings remain isolated
+/// across concurrently running tests in swift-testing.
+///
+/// Example:
+/// ```swift
+/// @Test(.mocking)
+/// func testExample() async throws {
+///     // Test code with isolated mocks
+/// }
+/// ```
 public struct MockScopeTrait: TestTrait, TestScoping {
   public func provideScope(
     for test: Test,
@@ -15,8 +27,10 @@ public struct MockScopeTrait: TestTrait, TestScoping {
     performing function: @Sendable () async throws -> Void
   ) async throws {
       try await MockScope.withStorage {
-      try await function()
-    }
+          try await MockScope.withInvocationRecorder {
+              try await function()
+          }
+      }
   }
 }
 

@@ -18,7 +18,8 @@
 *   [Documentation](#-documentation)
 *   [Usage](#️-usage)
     *   [Argument Matching](#argument-matching)
-    *   [Dynamic Stubbing](#dynamic-stubbing-with-then-closure)
+    *   [Verifying Call Order](#verifying-call-order-across-mocks)
+    *   [Dynamic Stubbing](#dynamic-stubbing)
     *   [Logging Invocations](#logging-invocations)
     *   [Testing Methods with Callbacks](#testing-methods-with-callbacks)
     *   [Testing Closure-Based Dependencies](#testing-closure-based-dependencies)
@@ -40,6 +41,7 @@
 | **Type-Safe Mocking** | Uses [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) to keep mocks synchronized with protocol definitions, preventing runtime errors. |
 | **Clean, Readable API** | Provides a Mockito-style API that makes tests expressive and easy to maintain. |
 | **Flexible Argument Matching**| Offers powerful argument matchers like `.any` and `.equal`, with `ExpressibleBy...Literal` conformance for cleaner syntax. |
+| **Cross-Mock Call Order Verification** | Verify that method calls occurred in a specific sequence, even across different mock objects with `verifyInOrder()`. |
 | **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. |
 | **Compact Code Generation** | Keeps the generated code as small and compact as possible. |
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
@@ -278,6 +280,28 @@ verify(mock.performAction()).throws(.anyError())
 
 // Verify a method threw an error of type MyError
 verify(mock.processData()).throws(.error(MyError.self))
+```
+
+#### Verifying Call Order Across Mocks
+
+Verify that method calls occurred in a specific order, even across different mock objects:
+
+```swift
+let pricingMock = MockPricingService()
+let analyticsMock = MockAnalyticsService()
+
+when(pricingMock.price("apple")).thenReturn(13)
+
+_ = try pricingMock.price("apple")
+analyticsMock.logEvent("purchase")
+_ = try pricingMock.price("banana")
+
+// Verify the sequence of calls across both mocks
+verifyInOrder([
+    pricingMock.price("apple"),
+    analyticsMock.logEvent("purchase"),
+    pricingMock.price("banana")
+])
 ```
 
 ### Dynamic Stubbing

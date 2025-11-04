@@ -1,15 +1,18 @@
 #if canImport(XCTest)
 import XCTest
 
-/// Convenience base case that installs a fresh ``SpyStorageProvider`` for each test invocation.
+/// Convenience base case that installs a fresh ``SpyStorageProvider`` and ``InvocationRecorder`` for each test invocation.
 ///
-/// Subclass ``MockingTestCase`` instead of `XCTestCase` so static spies remain isolated across
-/// concurrently running tests.
+/// Subclass ``MockingTestCase`` instead of `XCTestCase` so static spies and invocation recordings
+/// remain isolated across concurrently running tests.
 open class MockingTestCase: XCTestCase {
     open override func invokeTest() {
         let provider = SpyStorageProvider()
+        let recorder = InvocationRecorder()
         MockScope.withStorage(provider) {
-            super.invokeTest()
+            MockScope.withInvocationRecorder(recorder) {
+                super.invokeTest()
+            }
         }
     }
 }
