@@ -10,16 +10,15 @@
 ///
 /// This protocol is used internally by the Mockable framework to generate appropriate mock implementations.
 public protocol Effect { }
-public protocol Asynchronous: Effect { }
 
 /// Represents a method that can throw an error.
 public enum Throws: Effect { }
 
 /// Represents an asynchronous method.
-public enum Async: Asynchronous { }
+public enum Async: Effect { }
 
 /// Represents an asynchronous method that can also throw an error.
-public enum AsyncThrows: Asynchronous { }
+public enum AsyncThrows: Effect { }
 
 /// Represents a method that has no special effects (neither throws nor is asynchronous).
 public enum None: Effect { }

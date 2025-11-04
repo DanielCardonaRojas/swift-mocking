@@ -48,7 +48,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// - Parameter label: An optional method name
     public init(label: String? = nil) {
         self.methodLabel = label
-        self.configureLogger(label: "")
+        self.configureLogger(label: label ?? "")
     }
 
     /// Records an invocation and attempts to find a matching stub to return a value or throw an error.
@@ -204,26 +204,6 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
             }
         }
         return count
-    }
-
-    /// Verifies that a sequence of method calls occurred in the specified order.
-    /// - Parameter invocationMatchers: An array of ``InvocationMatcher``s representing the expected sequence of calls.
-    /// - Returns: `true` if the sequence of calls occurred in order, `false` otherwise.
-    public func verifyInOrder(_ invocationMatchers: [InvocationMatcher<repeat each Input>]) -> Bool {
-        var index = 0
-        var count = 0
-        for invocation in invocations {
-            if index >= invocationMatchers.count {
-                return false
-            }
-            let invocationMatcher = invocationMatchers[index]
-            if invocationMatcher.isMatchedBy(invocation) {
-                index += 1
-                count += 1
-            }
-        }
-
-        return count == invocationMatchers.count
     }
 
     /// Clear stubs and invocations,  leaving the spy in a fresh state.

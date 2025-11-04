@@ -101,15 +101,10 @@ final class SpyTests: XCTestCase {
         spy("lemon")
         spy("banana")
 
-        XCTAssert(spy.verifyInOrder([
-            InvocationMatcher(matchers: "apple"),
-            InvocationMatcher(matchers: "banana")
-        ]))
-
-        XCTAssertFalse(spy.verifyInOrder([
-            InvocationMatcher(matchers: "banana"),
-            InvocationMatcher(matchers: "apple")
-        ]))
+        verifyInOrder([
+            spy("apple"),
+            spy("banana")
+        ])
     }
 
     func test_spy_any() {
