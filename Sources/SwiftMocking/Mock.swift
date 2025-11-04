@@ -85,7 +85,6 @@ open class Mock: DefaultProvider {
         } else {
             let methodLabel = "\(Self.self).\(member)"
             let spy = Spy<repeat each Input, Eff, Output>(label: methodLabel)
-            spy.configureLogger(label: methodLabel)
             spy.isLoggingEnabled = isLoggingEnabled
             spy.defaultProviderRegistry = defaultProviderRegistry
             spies[member, default: []].append(spy)
@@ -114,7 +113,6 @@ open class Mock: DefaultProvider {
         } else {
             let methodLabel = "\(Self.self).\(member)"
             let spy = Spy<repeat each Input, Eff, Output>(label: methodLabel)
-            spy.configureLogger(label: methodLabel)
             spy.isLoggingEnabled = isLoggingEnabled
             spy.defaultProviderRegistry = defaultProviderRegistry
             storage[member, default: []].append(spy)

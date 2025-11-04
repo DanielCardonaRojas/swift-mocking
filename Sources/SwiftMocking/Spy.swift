@@ -48,7 +48,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
     /// - Parameter label: An optional method name
     public init(label: String? = nil) {
         self.methodLabel = label
-        self.configureLogger(label: "")
+        self.configureLogger(label: label ?? "")
     }
 
     /// Records an invocation and attempts to find a matching stub to return a value or throw an error.
