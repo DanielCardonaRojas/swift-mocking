@@ -18,6 +18,7 @@
 *   [Documentation](#-documentation)
 *   [Usage](#️-usage)
     *   [Argument Matching](#argument-matching)
+    *   [Grouping Stubs](#grouping-stubs-with-result-builders)
     *   [Verifying Call Order](#verifying-call-order-across-mocks)
     *   [Dynamic Stubbing](#dynamic-stubbing)
     *   [Logging Invocations](#logging-invocations)
@@ -39,9 +40,9 @@
 | Feature | Description |
 | --- | --- |
 | **Type-Safe Mocking** | Uses [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) to keep mocks synchronized with protocol definitions, preventing runtime errors. |
-| **Clean, Readable API** | Provides a Mockito-style API that makes tests expressive and easy to maintain. |
+| **Clean, Readable API** | Provides a Mockito-style API with result builders for grouping stubs and verification, making tests expressive and easy to maintain. |
 | **Flexible Argument Matching**| Offers powerful argument matchers like `.any` and `.equal`, with `ExpressibleBy...Literal` conformance for cleaner syntax. |
-| **Cross-Mock Call Order Verification** | Verify that method calls occurred in a specific sequence, even across different mock objects with `verifyInOrder()`. |
+| **Cross-Mock Call Order Verification** | Verify that method calls occurred in a specific sequence, even across different mock objects with `verifyInOrder { }`. |
 | **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. |
 | **Compact Code Generation** | Keeps the generated code as small and compact as possible. |
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
@@ -149,14 +150,17 @@ final class StoreTests: XCTestCase {
         let mock = MockPricingService()
         let store = Store(pricingService: mock)
 
-        // Stub specific calls
-        when(mock.price(for: "apple")).thenReturn(13)
-        when(mock.price(for: "banana")).thenReturn(17)
+        // Arrange: Group all stub configurations together
+        when {
+            mock.price(for: "apple").thenReturn(13)
+            mock.price(for: "banana").thenReturn(17)
+        }
 
+        // Act
         store.register("apple")
         store.register("banana")
 
-        // Verify that price was called twice with any string
+        // Assert: Verify that price was called twice with any string
         verify(mock.price(for: .any)).called(2) // .called(2) is equivalent to .called(.equal(2))
 
         XCTAssertEqual(store.prices["apple"], 13)
@@ -185,7 +189,7 @@ For detailed examples of how `@Mockable` expands different protocol definitions 
 #### Matching Any Argument
 
 ```swift
-// Stub a method to return a value regardless of the input string
+// Single stub - use simple syntax
 when(mock.someMethod(.any)).thenReturn(10)
 
 // Verify a method was called with any integer argument
@@ -195,7 +199,7 @@ verify(mock.anotherMethod(.any)).called()
 #### Matching Specific Values (using `.equal` or literals)
 
 ```swift
-// Stub a method to return 10 only when called with "specific"
+// Single stub - use simple syntax
 when(mock.someMethod(.equal("specific"))).thenReturn(10)
 
 // Verify a method was called exactly with 42 (using literal conformance)
@@ -205,7 +209,7 @@ verify(mock.anotherMethod(42)).called()
 #### Matching Comparable Values (`.lessThan`, `.greaterThan`)
 
 ```swift
-// Stub a method to return a value if the integer argument is less than 10
+// Single stub - use simple syntax
 when(mock.processValue(.lessThan(10))).thenReturn("small")
 
 // Verify a method was called with an integer argument greater than 100
@@ -256,7 +260,7 @@ verify(mock.calculate(a: .any, b: .any))
 class MyObject {}
 let obj = MyObject()
 
-// Stub a method to return a value only when called with the exact instance 'obj'
+// Single stub - use simple syntax
 when(mock.handleObject(.identical(obj))).thenReturn("same instance")
 ```
 
@@ -266,7 +270,7 @@ when(mock.handleObject(.identical(obj))).thenReturn("same instance")
 // Verify a method was called with a non-nil optional string
 verify(mock.handleOptional(.notNil())).called()
 
-// Stub a method to return a default value when called with a nil optional integer
+// Single stub - use simple syntax
 when(mock.handleOptional(.nil())).thenReturn(0)
 ```
 
@@ -290,22 +294,35 @@ Verify that method calls occurred in a specific order, even across different moc
 let pricingMock = MockPricingService()
 let analyticsMock = MockAnalyticsService()
 
-when(pricingMock.price("apple")).thenReturn(13)
+// Arrange
+when {
+    pricingMock.price("apple").thenReturn(13)
+    pricingMock.price("banana").thenReturn(21)
+}
 
+// Act
 _ = try pricingMock.price("apple")
 analyticsMock.logEvent("purchase")
 _ = try pricingMock.price("banana")
 
-// Verify the sequence of calls across both mocks
-verifyInOrder([
-    pricingMock.price("apple"),
-    analyticsMock.logEvent("purchase"),
+// Assert: Verify the sequence of calls across both mocks
+verifyInOrder {
+    pricingMock.price("apple")
+    analyticsMock.logEvent("purchase")
     pricingMock.price("banana")
+}
+```
+
+The result builder syntax makes the call order verification cleaner and easier to read. You can also use the traditional array syntax for simple cases:
+
+```swift
+verifyInOrder([
+    mock.firstMethod(),
+    mock.secondMethod()
 ])
 ```
 
 ### Dynamic Stubbing
-
 
 A powerful feature of `SwiftMocking` is that you can define the return value of a stub dynamically based on the arguments passed to the mocked function. This is achieved by providing a closure to `thenReturn`.
 
@@ -317,7 +334,9 @@ protocol Calculator {
     func calculate(a: Int, b: Int) -> Int
 }
 
-// Calculate summing
+let mock = MockCalculator()
+
+// Single stub - simple syntax
 when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in
     // Note that no casting is required, a and b are of type Int.
     return a + b
@@ -329,24 +348,66 @@ when(mock.calculate(a: .any, b: .any)).thenReturn(*)
 XCTAssertEqual(mock.calculate(a: 5, b: 10), 50)
 ```
 
+### Grouping Stubs with Result Builders
+
+When you need to configure **multiple stubs**, use the `when { }` block for better organization and to align with the AAA (Arrange-Act-Assert) pattern:
+
+```swift
+let mock = MockNetworkService()
+
+// Arrange: All stub configurations in one place
+when {
+    mock.request(url: .any, method: "GET", headers: .nil())
+        .thenReturn(Data("{}".utf8))
+    mock.download(from: .any)
+        .thenReturn(downloadURL)
+    mock.upload(to: .any, data: .any)
+        .thenThrow(NetworkError.timeout)
+}
+
+// Act
+let data = try await mock.request(url: url, method: "GET", headers: nil)
+
+// Assert
+verify(mock.request(url: .any, method: "GET", headers: .nil())).called()
+```
+
+This approach makes it easy to see all your test setup at a glance and keeps the Arrange phase distinct from Act and Assert phases.
+
+**When to use each syntax:**
+- **Single stub**: `when(mock.method()).thenReturn(value)` - Simple and concise
+- **Multiple stubs**: `when { ... }` - Groups all stubs together for better organization
+
 ### Arranging Side Effects with `do`
 
-Every `when(...)` call returns an arrangement object that can both stub return values and register side effects. Use `.do { … }` when you need to observe or mutate state without altering the stubbed response:
+Every stubbing call returns an arrangement object that can both stub return values and register side effects. Use `.do { … }` when you need to observe or mutate state without altering the stubbed response:
 
 ```swift
 var events: [String] = []
 
-when(mock.refresh(id: .equal("primary"))).do { id in
-    events.append("refresh called with \(id)")
-}
-
-when(mock.refresh(id: .equal("primary"))).then()
+// Single stub with side effect - simple syntax
+when(mock.refresh(id: .equal("primary")))
+    .then()
+    .do { id in
+        events.append("refresh called with \(id)")
+    }
 
 mock.refresh(id: "primary")
 XCTAssertEqual(events, ["refresh called with primary"])
 ```
 
 For `Void`-returning interactions you can use the convenience alias `then { … }` instead of calling `thenReturn(())`. This keeps call sites concise while still allowing the same effect-specific APIs (throwing, async, async-throwing) shown above.
+
+You can also chain both stubbing and side effects together:
+
+```swift
+// Single stub with chaining - simple syntax
+when(mock.process(.any))
+    .thenReturn(result)
+    .do { input in
+        print("Processed: \(input)")
+    }
+```
 
 ### Logging Invocations
 
@@ -381,12 +442,15 @@ func testNetworkServiceCallback() async {
     let mock = MockNetworkService()
     let expectation = XCTestExpectation()
 
-    // Use .any matcher for the callback parameter
-when(mock.fetchUser(id: .equal("123"), completion: .any)).then { id, completion in
-        // Control when and how the callback is executed
-        completion(.success(User(id: id, name: "Test User")))
+    // Arrange: Use .any matcher for the callback parameter
+    when {
+        mock.fetchUser(id: .equal("123"), completion: .any).then { id, completion in
+            // Control when and how the callback is executed
+            completion(.success(User(id: id, name: "Test User")))
+        }
     }
 
+    // Act
     mock.fetchUser(id: "123") { result in
         switch result {
         case .success(let user):
@@ -397,6 +461,7 @@ when(mock.fetchUser(id: .equal("123"), completion: .any)).then { id, completion 
         }
     }
 
+    // Assert
     await fulfillment(of: [expectation], timeout: 1.0)
 }
 ```
@@ -422,6 +487,10 @@ struct Controller {
 
 func testControllerRefreshesInBackground() async throws {
     let spy = Spy<String, AsyncThrows, Void>()
+
+    // Single stub - use simple syntax
+    when(spy(.any)).then { _ in }
+
     let sut = Controller(refresh: adapt(spy))
     sut.start()
     try await until(spy("primary"))
@@ -446,10 +515,12 @@ func testClosureBasedDependencies() async throws {
     let loadNumberSpy = Spy<Void, AsyncThrows, [Int]>()
     let saveNumberSpy = Spy<Int, AsyncThrows, Void>()
 
-    // Stub the behaviors
-    when(loadNumberSpy(.any)).thenReturn([1, 2, 3])
-    when(saveNumberSpy(.any)).then { number in
-        print("Saving number: \(number)")
+    // Arrange: Stub the behaviors
+    when {
+        loadNumberSpy(.any).thenReturn([1, 2, 3])
+        saveNumberSpy(.any).then { number in
+            print("Saving number: \(number)")
+        }
     }
 
     // Create the client with adapted spies
@@ -458,11 +529,11 @@ func testClosureBasedDependencies() async throws {
         saveNumber: adapt(saveNumberSpy)
     )
 
-    // Use the client
+    // Act: Use the client
     let numbers = try await client.loadNumber()
     try await client.saveNumber(42)
 
-    // Verify interactions
+    // Assert: Verify interactions
     XCTAssertEqual(numbers, [1, 2, 3])
     verify(loadNumberSpy(.any)).called(1)
     verify(saveNumberSpy(42)).called(1)
@@ -572,7 +643,10 @@ struct MyCustomType: DefaultProvidable {
 DefaultProvidableRegistry.shared.register(MyCustomType.self)
 
 // Now, if a method returns MyCustomType and is unstubbed, it will return MyCustomType.defaultValue
-let customValue = mock.getCustomType() // customValue will be MyCustomType(name: "Default", value: 0)
+let customValue = mock.getCustomType() // MyCustomType(name: "Default", value: 0)
+
+// Or explicitly stub it
+when(mock.getCustomType()).thenReturn(MyCustomType(name: "Custom", value: 42))
 ```
 
 
