@@ -9,8 +9,11 @@ struct ExampleTests {
     @Test func testMockitoBuilder() {
         let mock = MockPricingService()
         let store = Store(pricingService: mock)
-        when(mock.price("apple")).thenReturn(13)
-        when(mock.price("banana")).thenReturn(17)
+
+        when {
+            mock.price("apple").thenReturn(13)
+            mock.price("banana").thenReturn(17)
+        }
 
         store.register("apple")
         store.register("banana")
@@ -52,12 +55,14 @@ struct ExampleTests {
             headerFields: nil
         ))
 
-        when(mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil()))
-            .thenReturn(Data("{}".utf8))
-        when(mock.download(from: .equal(downloadURL)))
-            .thenReturn(downloadURL)
-        when(mock.upload(to: .equal(uploadURL), data: .equal(uploadPayload)))
-            .thenReturn((Data("uploaded".utf8), uploadResponse))
+        when {
+            mock.request(url: .equal(requestURL), method: .equal("GET"), headers: .nil())
+                .thenReturn(Data("{}".utf8))
+            mock.download(from: .equal(downloadURL))
+                .thenReturn(downloadURL)
+            mock.upload(to: .equal(uploadURL), data: .equal(uploadPayload))
+                .thenReturn((Data("uploaded".utf8), uploadResponse))
+        }
 
         _ = try await mock.request(url: requestURL, method: "GET", headers: nil)
         _ = try await mock.download(from: downloadURL)
@@ -80,8 +85,10 @@ struct ExampleTests {
         let pricing = MockPricingService()
         let analytics = MockAnalyticsProtocol()
 
-        when(pricing.price("apple")).thenReturn(13)
-        when(pricing.price("banana")).thenReturn(21)
+        when {
+            pricing.price("apple").thenReturn(13)
+            pricing.price("banana").thenReturn(21)
+        }
 
         _ = try pricing.price("apple")
         let event = PurchaseEvent(item: "apple")
@@ -99,8 +106,11 @@ struct ExampleTests {
     @Test func test_verifyThrows() {
         let mock = MockPricingService()
         let store = Store(pricingService: mock)
-        when(mock.price(.any)).thenReturn(13)
-        when(mock.price("rotten")).thenThrow(TestError.example)
+
+        when {
+            mock.price(.any).thenReturn(13)
+            mock.price("rotten").thenThrow(TestError.example)
+        }
 
         store.register("apple")
         store.register("banana")
@@ -124,14 +134,18 @@ struct ExampleTests {
     @Test func test_asyncDataFetcher() async throws {
         let mock = MockDataFetcherService()
 
-        // Stub async method
-        when(mock.fetchData(id: .any)).thenReturn("async_data_1")
+        when {
+            mock.fetchData(id: .any).thenReturn("async_data_1")
+            mock.fetchDataThrows(id: "error_id").thenThrow(TestError.example)
+            mock.fetchDataThrows(id: "success_id").thenReturn("async_data_2")
+        }
+
+        // Test async method
         let data1 = await mock.fetchData(id: "id1")
         #expect(data1 == "async_data_1")
         verify(mock.fetchData(id: "id1")).called(1)
 
-        // Stub async throws method
-        when(mock.fetchDataThrows(id: "error_id")).thenThrow(TestError.example)
+        // Test async throws with error
         do {
             _ = try await mock.fetchDataThrows(id: "error_id")
             Issue.record("Should have thrown an error")
@@ -140,8 +154,7 @@ struct ExampleTests {
         }
         await verify(mock.fetchDataThrows(id: "error_id")).throws()
 
-        // Stub async throws method with success
-        when(mock.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
+        // Test async throws with success
         let data2 = try await mock.fetchDataThrows(id: "success_id")
         #expect(data2 == "async_data_2")
         verify(mock.fetchDataThrows(id: "success_id")).called(1)
@@ -168,9 +181,12 @@ struct ExampleTests {
         let mockCalculator = MockCalculator()
         let even = ArgMatcher<Int>.any(that: { $0 % 2 == 0 })
         let odd = ArgMatcher<Int>.any(that: { $0 % 2 == 1 })
-        when(mockCalculator.calculate(odd, odd)).thenReturn(*)
-        when(mockCalculator.calculate(even, even)).thenReturn(-)
-        when(mockCalculator.calculate(.any, .any)).thenReturn(+)
+
+        when {
+            mockCalculator.calculate(odd, odd).thenReturn(*)
+            mockCalculator.calculate(even, even).thenReturn(-)
+            mockCalculator.calculate(.any, .any).thenReturn(+)
+        }
 
         #expect(mockCalculator.calculate(3, 3) == 9, "Multiplies because both are odd")
         #expect(mockCalculator.calculate(3, 4) == 7, "Sums because one is odd the other even")
@@ -203,24 +219,27 @@ struct ExampleTests {
         let url = URL(string: "https://example.com/data")!
         let downloadURL = URL(string: "https://example.com/download")!
         let uploadURL = URL(string: "https://example.com/upload")!
+        let uploadResponseData = "Upload Success".data(using: .utf8)!
+        let uploadResponse = HTTPURLResponse(url: uploadURL, statusCode: 200, httpVersion: nil, headerFields: nil)!
 
-        // Stub request
-        when(mock.request(url: .any, method: .any, headers: .any))
-            .thenReturn("{}".data(using: .utf8)!)
+        when {
+            mock.request(url: .any, method: .any, headers: .any)
+                .thenReturn("{}".data(using: .utf8)!)
+            mock.download(from: .any).thenReturn(downloadURL)
+            mock.upload(to: .any, data: .any).thenReturn((uploadResponseData, uploadResponse))
+        }
+
+        // Test request
         let data = try await mock.request(url: url, method: "GET", headers: nil)
         #expect(data == "{}".data(using: .utf8)!)
         verify(mock.request(url: .equal(url), method: .equal("GET"), headers: .nil())).called(1)
 
-        // Stub download
-        when(mock.download(from: .any)).thenReturn(downloadURL)
+        // Test download
         let downloadedUrl = try await mock.download(from: downloadURL)
         #expect(downloadedUrl == downloadURL)
         verify(mock.download(from: .equal(downloadURL))).called(1)
 
-        // Stub upload
-        let uploadResponseData = "Upload Success".data(using: .utf8)!
-        let uploadResponse = HTTPURLResponse(url: uploadURL, statusCode: 200, httpVersion: nil, headerFields: nil)!
-        when(mock.upload(to: .any, data: .any)).thenReturn((uploadResponseData, uploadResponse))
+        // Test upload
         let (responseData, response) = try await mock.upload(to: uploadURL, data: Data())
         #expect(responseData == uploadResponseData)
         #expect((response as? HTTPURLResponse)?.statusCode == 200)
@@ -325,11 +344,12 @@ struct ExampleTests {
     @Test func testNewMatchers() throws {
         let mock = MockPricingService()
 
-        // Test string matchers
-        when(mock.price(.contains("apple"))).thenReturn(100)
-        when(mock.price(.startsWith("banana"))).thenReturn(50)
-        when(mock.price(.endsWith("_premium"))).thenReturn(200)
-        when(mock.price(.matches(#"^\d+$"#))).thenReturn(999)
+        when {
+            mock.price(.contains("apple")).thenReturn(100)
+            mock.price(.startsWith("banana")).thenReturn(50)
+            mock.price(.endsWith("_premium")).thenReturn(200)
+            mock.price(.matches(#"^\d+$"#)).thenReturn(999)
+        }
 
         #expect(try mock.price("green_apple") == 100)
         #expect(try mock.price("banana_split") == 50)
@@ -349,10 +369,11 @@ struct ExampleTests {
         let calculator = MockCalculator()
         let returnlessService = MockReturnlessService()
 
-        // Test range-based numeric matchers with Calculator
-        when(calculator.calculate(.in(10...20), .any)).thenReturn(100)  // ClosedRange
-        when(calculator.calculate(.in(50...), .any)).thenReturn(200)    // PartialRangeFrom
-        when(calculator.calculate(.in(...5), .any)).thenReturn(50)      // PartialRangeThrough
+        when {
+            calculator.calculate(.in(10...20), .any).thenReturn(100)  // ClosedRange
+            calculator.calculate(.in(50...), .any).thenReturn(200)    // PartialRangeFrom
+            calculator.calculate(.in(...5), .any).thenReturn(50)      // PartialRangeThrough
+        }
 
         #expect(calculator.calculate(15, 0) == 100)  // 15 is in 10...20
         #expect(calculator.calculate(75, 0) == 200)  // 75 is in 50...
