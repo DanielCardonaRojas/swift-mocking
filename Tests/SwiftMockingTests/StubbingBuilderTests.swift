@@ -101,27 +101,6 @@ class StubbingBuilderTests: MockingTestCase {
         XCTAssertEqual(result, "Value: 42")
     }
 
-    func test_whenAll_withActions() {
-        let spy = Spy<String, None, Int>(label: "actionSpy.method")
-        var actionCalled = false
-        var capturedInput: String?
-
-        when {
-            spy(.any)
-                .thenReturn(100)
-                .do { input in
-                    actionCalled = true
-                    capturedInput = input
-                }
-        }
-
-        let result = spy("test input")
-
-        XCTAssertEqual(result, 100)
-        XCTAssertTrue(actionCalled)
-        XCTAssertEqual(capturedInput, "test input")
-    }
-
     func test_whenAll_withOptionalConfiguration() {
         let spy = Spy<String, None, Int>(label: "optionalSpy.method")
         let shouldStub = true
@@ -196,23 +175,5 @@ class StubbingBuilderTests: MockingTestCase {
         when(spy(.any)).thenReturn(42)
 
         XCTAssertEqual(spy("test"), 42)
-    }
-
-    func test_chainingStubConfiguration() {
-        let spy = Spy<String, None, Int>(label: "chainSpy.method")
-        var sideEffectRan = false
-
-        // Test chaining within whenAll
-        when {
-            spy(.equal("chain"))
-                .thenReturn(100)
-                .do { _ in
-                    sideEffectRan = true
-                }
-        }
-
-        let result = spy("chain")
-        XCTAssertEqual(result, 100)
-        XCTAssertTrue(sideEffectRan)
     }
 }

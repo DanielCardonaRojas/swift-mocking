@@ -69,14 +69,6 @@ public extension Interaction where Eff == None {
         stub.thenReturn(handler)
         return ConfiguredInteraction(interaction: self, stub: stub)
     }
-
-    @discardableResult
-    func `do`(_ handler: @escaping (repeat each Input) -> Void) -> Interaction<repeat each Input, Eff, Output> {
-        let action = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
-        action.do(handler)
-        spy.registerAction(action)
-        return self
-    }
 }
 
 // MARK: - Throws
@@ -101,14 +93,6 @@ public extension Interaction where Eff == Throws {
         stub.thenReturn(handler)
         return ConfiguredInteraction(interaction: self, stub: stub)
     }
-
-    @discardableResult
-    func `do`(_ handler: @escaping (repeat each Input) throws -> Void) -> Interaction<repeat each Input, Eff, Output> {
-        let action = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
-        action.do(handler)
-        spy.registerAction(action)
-        return self
-    }
 }
 
 // MARK: - Async
@@ -125,14 +109,6 @@ public extension Interaction where Eff == Async {
         let stub = spy.makeStub(for: invocationMatcher)
         stub.thenReturn(handler)
         return ConfiguredInteraction(interaction: self, stub: stub)
-    }
-
-    @discardableResult
-    func `do`(_ handler: @escaping (repeat each Input) async -> Void) -> Interaction<repeat each Input, Eff, Output> {
-        let action = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
-        action.do(handler)
-        spy.registerAction(action)
-        return self
     }
 }
 
@@ -157,42 +133,5 @@ public extension Interaction where Eff == AsyncThrows {
         let stub = spy.makeStub(for: invocationMatcher)
         stub.thenReturn(handler)
         return ConfiguredInteraction(interaction: self, stub: stub)
-    }
-
-    @discardableResult
-    func `do`(_ handler: @escaping (repeat each Input) async throws -> Void) -> Interaction<repeat each Input, Eff, Output> {
-        let action = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
-        action.do(handler)
-        spy.registerAction(action)
-        return self
-    }
-}
-
-// MARK: - Void convenience aliases
-public extension Interaction where Output == Void, Eff == None {
-    @discardableResult
-    func then(_ handler: @escaping (repeat each Input) -> Void) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
-        thenReturn(handler)
-    }
-}
-
-public extension Interaction where Output == Void, Eff == Throws {
-    @discardableResult
-    func then(_ handler: @escaping (repeat each Input) throws -> Void) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
-        thenReturn(handler)
-    }
-}
-
-public extension Interaction where Output == Void, Eff == Async {
-    @discardableResult
-    func then(_ handler: @escaping (repeat each Input) async -> Void) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
-        thenReturn(handler)
-    }
-}
-
-public extension Interaction where Output == Void, Eff == AsyncThrows {
-    @discardableResult
-    func then(_ handler: @escaping (repeat each Input) async throws -> Void) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
-        thenReturn(handler)
     }
 }
