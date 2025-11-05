@@ -95,16 +95,28 @@ final class SpyTests: XCTestCase {
 
     func test_spy_verifyInOrder() {
         let spy = Spy<String, None, Int>()
+        let spy2 = Spy<String, None, Bool>()
 
-        spy.when(calledWith:.any).thenReturn(1)
-        spy("apple")
-        spy("lemon")
-        spy("banana")
+        when {
+            spy("apple").thenReturn(1)
+            spy("lemon").thenReturn(2)
+            spy("banana").thenReturn(3)
+            spy2("zero").thenReturn(true)
+        }
 
-        verifyInOrder([
-            spy("apple"),
+        // Act
+        let result1 = spy("apple")
+        let result2 = spy("lemon")
+        let result3 = spy("banana")
+
+        XCTAssertEqual(result1, 1)
+        XCTAssertEqual(result2, 2)
+        XCTAssertEqual(result3, 3)
+
+        verifyInOrder {
+            spy("apple")
             spy("banana")
-        ])
+        }
     }
 
     func test_spy_any() {

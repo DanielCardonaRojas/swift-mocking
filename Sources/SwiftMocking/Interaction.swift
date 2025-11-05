@@ -50,3 +50,117 @@ public struct Interaction<each Input, Eff: Effect, Output> {
         return arguments
     }
 }
+
+// MARK: - Stubbing Convenience Methods
+// These extensions provide convenience methods on Interaction for use within whenAll blocks
+
+// MARK: - None
+public extension Interaction where Eff == None {
+    @discardableResult
+    func thenReturn(_ output: Output) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenReturn(output)
+    }
+
+    @discardableResult
+    func thenReturn(_ handler: @escaping (repeat each Input) -> Output) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenReturn(handler)
+    }
+
+    @discardableResult
+    func `do`(_ handler: @escaping (repeat each Input) -> Void) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).do(handler)
+    }
+}
+
+// MARK: - Throws
+public extension Interaction where Eff == Throws {
+    @discardableResult
+    func thenReturn(_ output: Output) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenReturn(output)
+    }
+
+    @discardableResult
+    func thenThrow<E: Error>(_ error: E) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenThrow(error)
+    }
+
+    @discardableResult
+    func thenReturn(_ handler: @escaping (repeat each Input) throws -> Output) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenReturn(handler)
+    }
+
+    @discardableResult
+    func `do`(_ handler: @escaping (repeat each Input) throws -> Void) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).do(handler)
+    }
+}
+
+// MARK: - Async
+public extension Interaction where Eff == Async {
+    @discardableResult
+    func thenReturn(_ output: Output) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenReturn(output)
+    }
+
+    @discardableResult
+    func thenReturn(_ handler: @escaping (repeat each Input) async -> Output) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenReturn(handler)
+    }
+
+    @discardableResult
+    func `do`(_ handler: @escaping (repeat each Input) async -> Void) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).do(handler)
+    }
+}
+
+// MARK: - AsyncThrows
+public extension Interaction where Eff == AsyncThrows {
+    @discardableResult
+    func thenReturn(_ output: Output) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenReturn(output)
+    }
+
+    @discardableResult
+    func thenThrow<E: Error>(_ error: E) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenThrow(error)
+    }
+
+    @discardableResult
+    func thenReturn(_ handler: @escaping (repeat each Input) async throws -> Output) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).thenReturn(handler)
+    }
+
+    @discardableResult
+    func `do`(_ handler: @escaping (repeat each Input) async throws -> Void) -> Arrange<repeat each Input, Eff, Output> {
+        when(self).do(handler)
+    }
+}
+
+// MARK: - Void convenience aliases
+public extension Interaction where Output == Void, Eff == None {
+    @discardableResult
+    func then(_ handler: @escaping (repeat each Input) -> Void) -> Arrange<repeat each Input, Eff, Output> {
+        thenReturn(handler)
+    }
+}
+
+public extension Interaction where Output == Void, Eff == Throws {
+    @discardableResult
+    func then(_ handler: @escaping (repeat each Input) throws -> Void) -> Arrange<repeat each Input, Eff, Output> {
+        thenReturn(handler)
+    }
+}
+
+public extension Interaction where Output == Void, Eff == Async {
+    @discardableResult
+    func then(_ handler: @escaping (repeat each Input) async -> Void) -> Arrange<repeat each Input, Eff, Output> {
+        thenReturn(handler)
+    }
+}
+
+public extension Interaction where Output == Void, Eff == AsyncThrows {
+    @discardableResult
+    func then(_ handler: @escaping (repeat each Input) async throws -> Void) -> Arrange<repeat each Input, Eff, Output> {
+        thenReturn(handler)
+    }
+}

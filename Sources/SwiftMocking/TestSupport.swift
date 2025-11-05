@@ -29,6 +29,36 @@ public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<rep
     interaction.spy.when(calledWith: interaction.invocationMatcher)
 }
 
+/// Configures multiple stubs for mock objects in a declarative block.
+///
+/// This function enables grouping multiple stub configurations together using a result builder,
+/// which aligns well with the AAA (Arrange-Act-Assert) test pattern. All stub configurations
+/// within the closure are executed and registered with their respective mocks.
+///
+/// Example:
+/// ```swift
+/// // Traditional approach
+/// when(mock.fetchUser(id: .any)).thenReturn(user)
+/// when(mock.saveData(.any)).thenReturn(true)
+/// when(mock.delete(.equal(5))).thenThrow(DeleteError())
+///
+/// // Using whenAll for better organization (no nested when() calls!)
+/// whenAll {
+///     mock.fetchUser(id: .any).thenReturn(user)
+///     mock.saveData(.any).thenReturn(true)
+///     mock.delete(.equal(5)).thenThrow(DeleteError())
+/// }
+/// ```
+///
+/// The `whenAll` approach groups all stub setup together, making it easier to see
+/// all mocking configuration at a glance and keeping the Arrange phase of your test distinct.
+/// The result builder automatically wraps interactions so you don't need nested `when()` calls.
+///
+/// - Parameter builder: A closure that returns an array of stub configurations using the `@StubbingBuilder` result builder.
+public func when(@StubbingBuilder _ builder: () -> [any StubbingConfiguration]) {
+    _ = builder()  // Execute the builder to register all stubs
+}
+
 /// Verifies that a specific interaction with a mock object has occurred.
 ///
 /// This function is used to assert that a mocked method was called with arguments
