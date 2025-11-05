@@ -146,6 +146,20 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy {
         return stub
     }
 
+    /// Creates a stub without registering it.
+    /// This is used by the stubbing builder to create stubs that will be registered later.
+    func makeStub(for invocationMatcher: InvocationMatcher<repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
+        return Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
+    }
+
+    /// Registers an already-created stub with this spy.
+    /// This is used by the stubbing builder to register stubs after configuration.
+    func registerStub(_ stub: Stub<repeat each Input, Effects, Output>) {
+        stubsLock.lock()
+        defer { stubsLock.unlock() }
+        stubs.append(stub)
+    }
+
     func registerAction(
         _ action: Action<repeat each Input, Effects>
     ) {

@@ -38,6 +38,11 @@ public struct StubbingBuilder {
         [when(interaction)]
     }
 
+    /// Activates a ConfiguredInteraction by registering its stub with the spy
+    public static func buildExpression<each Input, Eff: Effect, Output>(_ configured: ConfiguredInteraction<repeat each Input, Eff, Output>) -> [any StubbingConfiguration] {
+        [configured.activate()]
+    }
+
     public static func buildEither(first component: [any StubbingConfiguration]) -> [any StubbingConfiguration] {
         component
     }

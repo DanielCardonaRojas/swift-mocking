@@ -52,115 +52,147 @@ public struct Interaction<each Input, Eff: Effect, Output> {
 }
 
 // MARK: - Stubbing Convenience Methods
-// These extensions provide convenience methods on Interaction for use within whenAll blocks
+// These extensions provide convenience methods on Interaction for use within when { } blocks
 
 // MARK: - None
 public extension Interaction where Eff == None {
     @discardableResult
-    func thenReturn(_ output: Output) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenReturn(output)
+    func thenReturn(_ output: Output) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenReturn(output)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func thenReturn(_ handler: @escaping (repeat each Input) -> Output) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenReturn(handler)
+    func thenReturn(_ handler: @escaping (repeat each Input) -> Output) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenReturn(handler)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func `do`(_ handler: @escaping (repeat each Input) -> Void) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).do(handler)
+    func `do`(_ handler: @escaping (repeat each Input) -> Void) -> Interaction<repeat each Input, Eff, Output> {
+        let action = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
+        action.do(handler)
+        spy.registerAction(action)
+        return self
     }
 }
 
 // MARK: - Throws
 public extension Interaction where Eff == Throws {
     @discardableResult
-    func thenReturn(_ output: Output) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenReturn(output)
+    func thenReturn(_ output: Output) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenReturn(output)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func thenThrow<E: Error>(_ error: E) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenThrow(error)
+    func thenThrow<E: Error>(_ error: E) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenThrow(error)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func thenReturn(_ handler: @escaping (repeat each Input) throws -> Output) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenReturn(handler)
+    func thenReturn(_ handler: @escaping (repeat each Input) throws -> Output) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenReturn(handler)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func `do`(_ handler: @escaping (repeat each Input) throws -> Void) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).do(handler)
+    func `do`(_ handler: @escaping (repeat each Input) throws -> Void) -> Interaction<repeat each Input, Eff, Output> {
+        let action = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
+        action.do(handler)
+        spy.registerAction(action)
+        return self
     }
 }
 
 // MARK: - Async
 public extension Interaction where Eff == Async {
     @discardableResult
-    func thenReturn(_ output: Output) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenReturn(output)
+    func thenReturn(_ output: Output) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenReturn(output)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func thenReturn(_ handler: @escaping (repeat each Input) async -> Output) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenReturn(handler)
+    func thenReturn(_ handler: @escaping (repeat each Input) async -> Output) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenReturn(handler)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func `do`(_ handler: @escaping (repeat each Input) async -> Void) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).do(handler)
+    func `do`(_ handler: @escaping (repeat each Input) async -> Void) -> Interaction<repeat each Input, Eff, Output> {
+        let action = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
+        action.do(handler)
+        spy.registerAction(action)
+        return self
     }
 }
 
 // MARK: - AsyncThrows
 public extension Interaction where Eff == AsyncThrows {
     @discardableResult
-    func thenReturn(_ output: Output) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenReturn(output)
+    func thenReturn(_ output: Output) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenReturn(output)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func thenThrow<E: Error>(_ error: E) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenThrow(error)
+    func thenThrow<E: Error>(_ error: E) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenThrow(error)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func thenReturn(_ handler: @escaping (repeat each Input) async throws -> Output) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).thenReturn(handler)
+    func thenReturn(_ handler: @escaping (repeat each Input) async throws -> Output) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
+        let stub = spy.makeStub(for: invocationMatcher)
+        stub.thenReturn(handler)
+        return ConfiguredInteraction(interaction: self, stub: stub)
     }
 
     @discardableResult
-    func `do`(_ handler: @escaping (repeat each Input) async throws -> Void) -> Arrange<repeat each Input, Eff, Output> {
-        when(self).do(handler)
+    func `do`(_ handler: @escaping (repeat each Input) async throws -> Void) -> Interaction<repeat each Input, Eff, Output> {
+        let action = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
+        action.do(handler)
+        spy.registerAction(action)
+        return self
     }
 }
 
 // MARK: - Void convenience aliases
 public extension Interaction where Output == Void, Eff == None {
     @discardableResult
-    func then(_ handler: @escaping (repeat each Input) -> Void) -> Arrange<repeat each Input, Eff, Output> {
+    func then(_ handler: @escaping (repeat each Input) -> Void) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
         thenReturn(handler)
     }
 }
 
 public extension Interaction where Output == Void, Eff == Throws {
     @discardableResult
-    func then(_ handler: @escaping (repeat each Input) throws -> Void) -> Arrange<repeat each Input, Eff, Output> {
+    func then(_ handler: @escaping (repeat each Input) throws -> Void) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
         thenReturn(handler)
     }
 }
 
 public extension Interaction where Output == Void, Eff == Async {
     @discardableResult
-    func then(_ handler: @escaping (repeat each Input) async -> Void) -> Arrange<repeat each Input, Eff, Output> {
+    func then(_ handler: @escaping (repeat each Input) async -> Void) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
         thenReturn(handler)
     }
 }
 
 public extension Interaction where Output == Void, Eff == AsyncThrows {
     @discardableResult
-    func then(_ handler: @escaping (repeat each Input) async throws -> Void) -> Arrange<repeat each Input, Eff, Output> {
+    func then(_ handler: @escaping (repeat each Input) async throws -> Void) -> ConfiguredInteraction<repeat each Input, Eff, Output> {
         thenReturn(handler)
     }
 }
