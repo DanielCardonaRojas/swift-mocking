@@ -78,6 +78,7 @@ public enum CrossSpyVerification {
     }
 }
 
+
 // Extension to make Interaction conform to CrossSpyVerifiable
 extension Interaction: CrossSpyVerifiable {
     public var spyID: UUID {
