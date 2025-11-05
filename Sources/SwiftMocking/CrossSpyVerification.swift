@@ -78,6 +78,34 @@ public enum CrossSpyVerification {
     }
 }
 
+@resultBuilder
+public struct CrossSpyVerificationBuilder {
+    public static func buildBlock(_ components: [any CrossSpyVerifiable]...) -> [any CrossSpyVerifiable] {
+        var result = [[any CrossSpyVerifiable]]()
+        for component in components {
+            result.append(component)
+        }
+        return result.flatMap({ $0 })
+    }
+
+    public static func buildExpression(_ expression: any CrossSpyVerifiable) -> [any CrossSpyVerifiable] {
+        [expression]
+    }
+
+    public static func buildEither(first component: [any CrossSpyVerifiable]) -> [any CrossSpyVerifiable] {
+        component
+    }
+
+    public static func buildEither(second component: [any CrossSpyVerifiable]) -> [any CrossSpyVerifiable] {
+        component
+    }
+
+    public static func buildOptional(_ component: [any CrossSpyVerifiable]?) -> [any CrossSpyVerifiable] {
+        component ?? []
+    }
+
+}
+
 // Extension to make Interaction conform to CrossSpyVerifiable
 extension Interaction: CrossSpyVerifiable {
     public var spyID: UUID {

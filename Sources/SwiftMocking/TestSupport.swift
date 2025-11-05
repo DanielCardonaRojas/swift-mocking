@@ -94,6 +94,14 @@ public func verifyInOrder(
     }
 }
 
+public func verifyInOrder(
+    @CrossSpyVerificationBuilder _ builder: () -> [any CrossSpyVerifiable],
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    verifyInOrder(builder(), file: file, line: line)
+}
+
 /// Verifies that a specific interaction with a mock object never occurred.
 ///
 /// This function is a convenience wrapper that asserts a mocked method was never called

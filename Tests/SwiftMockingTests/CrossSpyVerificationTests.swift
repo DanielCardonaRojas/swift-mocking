@@ -75,18 +75,11 @@ class CrossSpyVerificationTests: MockingTestCase {
         _ = spy2(42)
         _ = spy1("second")
 
-        // Create verification objects manually
-        let interaction1 = Interaction(.any, spy: spy1)
-        let interaction2 = Interaction(.any, spy: spy2)
-        let interaction3 = Interaction(.any, spy: spy1)
-
-        // Test cross-spy verification
-        let verifiables: [any CrossSpyVerifiable] = [
-            interaction1,
-            interaction2,
-            interaction3
-        ]
-        verifyInOrder(verifiables)
+        verifyInOrder {
+            spy1("first")
+            spy2(.any)
+            spy1(.any)
+        }
     }
 
     func test_crossSpyVerificationEngine_failsWhenOrderIsWrong() {
