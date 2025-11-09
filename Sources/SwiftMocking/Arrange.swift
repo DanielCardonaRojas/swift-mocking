@@ -94,27 +94,3 @@ public extension Arrange where Eff == AsyncThrows {
     }
 }
 
-// MARK: - Void convenience aliases
-public extension Arrange where Output == Void, Eff == None {
-    func then(_ handler: @escaping (repeat each I) -> Void) {
-        thenReturn(handler)
-    }
-}
-
-public extension Arrange where Output == Void, Eff == Throws {
-    func then(_ handler: @escaping (repeat each I) throws -> Void) {
-        thenReturn(handler)
-    }
-}
-
-public extension Arrange where Output == Void, Eff == Async {
-    func then(_ handler: @escaping (repeat each I) async -> Void) {
-        thenReturn(handler)
-    }
-}
-
-public extension Arrange where Output == Void, Eff == AsyncThrows {
-    func then(_ handler: @escaping (repeat each I) async throws -> Void) {
-        thenReturn(handler)
-    }
-}
