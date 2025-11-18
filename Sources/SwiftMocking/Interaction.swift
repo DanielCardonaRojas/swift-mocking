@@ -50,3 +50,5 @@ public struct Interaction<each Input, Eff: Effect, Output> {
         return arguments
     }
 }
+
+extension Interaction: Sendable where repeat each Input: Sendable, Output: Sendable { }
