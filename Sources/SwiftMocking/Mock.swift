@@ -34,7 +34,9 @@ open class Mock: DefaultProvider {
     }
 
     public var defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
-    public static var defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
+    nonisolated(
+        unsafe
+    ) public static var defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
 
     /// Stores spies per protocol  requirement. Keys are function or variable names.
     private(set) var spies: [String: [AnySpy]] = [:]
@@ -50,7 +52,7 @@ open class Mock: DefaultProvider {
         }
     }
 
-    public static var isLoggingEnabled: Bool = false {
+    nonisolated(unsafe) public static var isLoggingEnabled: Bool = false {
         didSet {
             let provider = MockScope.storageProvider
             for dict in provider.storage.values {
