@@ -23,7 +23,7 @@ public protocol DefaultProvider {
 /// This registry holds a collection of `DefaultProviding` instances, each capable of generating
 /// a default value for a specific type. It is used by the mocking framework to supply
 /// sensible default return values when a mock's behavior is not explicitly defined.
-public struct DefaultProvidableRegistry: @unchecked Sendable {
+public struct DefaultProvidableRegistry: Sendable {
     /// The shared, default instance of `DefaultProvidableRegistry`.
     ///
     /// This instance is pre-populated with common default providers for types like `Void`,
