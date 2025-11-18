@@ -27,7 +27,7 @@ import Foundation
 /// // Verifying a method was called with any string argument
 /// verify(spy.anotherMethod(.any)).called()
 /// ```
-public struct ArgMatcher<Argument> {
+public struct ArgMatcher<Argument>: @unchecked Sendable {
     var precedence: MatcherPrecedence
     let matcher: (Argument) -> Bool
 
@@ -617,7 +617,7 @@ public extension ArgMatcher where Argument: Collection, Argument.Element: Equata
 }
 
 // MARK: - MatcherPrecendence
-public struct MatcherPrecedence: Comparable, Hashable {
+public struct MatcherPrecedence: Comparable, Hashable, Sendable {
     public static let any: Self                = .init(value: 0)
     public static let typeMatch: Self          = .init(value: 100)
     public static let predicate: Self          = .init(value: 200)

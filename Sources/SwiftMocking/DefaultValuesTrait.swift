@@ -76,7 +76,7 @@ public extension Trait where Self == DefaultValuesTrait {
     ///     }
     /// }
     /// ```
-    static func withDefaults<each Value>(_ values: repeat each Value) -> DefaultValuesTrait {
+    static func withDefaults<each Value: Sendable>(_ values: repeat each Value) -> DefaultValuesTrait {
         var providers = [DefaultProviding]()
 
         for value in repeat each values {

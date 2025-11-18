@@ -11,11 +11,11 @@ import Foundation
 /// A type that can provide a default value.
 ///
 /// Conforming to this protocol allows a type to be used in mocks where a default value is needed for unstubbed methods.
-public struct DefaultProviding {
-    var createDefault: () -> Any
+public struct DefaultProviding: Sendable {
+    var createDefault: @Sendable () -> Any
     var defaultType: ParsedType
 
-    public init<T>(_ type: T.Type, create: @escaping () -> T) {
+    public init<T>(_ type: T.Type, create: @escaping @Sendable () -> T) {
         createDefault = create
         defaultType = MetatypeParser.parse(T.self)
     }
@@ -72,7 +72,7 @@ public extension DefaultProviding {
     ///   determines which type requests this provider will satisfy.
     ///
     /// - Returns: A `DefaultProviding` instance that returns the specified value for its type.
-    static func valueProvider<T>(_ value: T) -> DefaultProviding {
+    static func valueProvider<T: Sendable>(_ value: T) -> DefaultProviding {
         .init(T.self, create: { value })
     }
 

@@ -41,3 +41,5 @@ public struct Invocation<each Input>: CustomDebugStringConvertible {
     }
 }
 
+extension Invocation: Sendable where repeat each Input: Sendable { }
+

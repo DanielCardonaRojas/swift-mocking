@@ -56,3 +56,4 @@ public struct InvocationMatcher<each I> {
     }
 }
 
+extension InvocationMatcher: Sendable where repeat each I: Sendable { }

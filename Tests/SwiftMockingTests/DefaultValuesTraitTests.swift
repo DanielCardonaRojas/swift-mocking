@@ -14,7 +14,7 @@ struct DefaultValuesTraitTests {
     @Test
     func testInheritsDefaultsFromSuite() async throws {
         let stringSpy = Spy<Void, None, String>()
-        let result = stringSpy.call(())
+        let result = stringSpy(())
 
         // Should get the global default (empty string), not custom values from other tests
         #expect(result == "Hello")
@@ -23,7 +23,7 @@ struct DefaultValuesTraitTests {
     @Test(.withDefaults("Different"))
     func testOverridesInheritedDefault() async throws {
         let stringSpy = Spy<Void, None, String>()
-        let result = stringSpy.call(())
+        let result = stringSpy(())
 
         // Should get the global default (empty string), not custom values from other tests
         #expect(result == "Different")
@@ -38,10 +38,10 @@ func testCustomDefaultValues() async throws {
     let intSpy = Spy<Void, None, Int>()
     let boolSpy = Spy<Void, None, Bool>()
     let arraySpy = Spy<Void, None, [Int]>()
-    let stringResult = stringSpy.call(())
-    let intResult = intSpy.call(())
-    let boolResult = boolSpy.call(())
-    let arrayResult = arraySpy.call(())
+    let stringResult = stringSpy(())
+    let intResult = intSpy(())
+    let boolResult = boolSpy(())
+    let arrayResult = arraySpy(())
     #expect(stringResult == "Custom String")
     #expect(intResult == 999)
     #expect(boolResult == true)
@@ -51,7 +51,7 @@ func testCustomDefaultValues() async throws {
 @Test
 func testIsolationFromDefaultValues() async throws {
     let stringSpy = Spy<Void, None, String>()
-    let result = stringSpy.call(())
+    let result = stringSpy(())
 
     // Should get the global default (empty string), not custom values from other tests
     #expect(result == "")

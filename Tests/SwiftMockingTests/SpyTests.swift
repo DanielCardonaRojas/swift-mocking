@@ -382,7 +382,7 @@ final class SpyTests: XCTestCase {
 }
 
 private struct FireAndForgetController {
-    let service: (String) async throws -> Void
+    let service: @Sendable (String) async throws -> Void
 
     func load(_ value: String) {
         Task {
