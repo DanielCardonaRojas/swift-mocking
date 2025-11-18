@@ -16,7 +16,7 @@ import Foundation
 /// - ``Stub`` - Defines behavior for method calls
 /// - ``Interaction`` - Represents a method call for verification
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
-public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
+public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     public private(set) var invocations: [Invocation<repeat each Input>] = []
     public var isLoggingEnabled: Bool = false
