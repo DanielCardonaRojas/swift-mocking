@@ -23,13 +23,17 @@ import Foundation
 /// ```
 public struct MockableOptions: OptionSet {
     public let rawValue: Int
-    public static var `default`: MockableOptions = [.prefixMock]
+    nonisolated(unsafe) public static var `default`: MockableOptions = [.prefixMock]
 
     /// Suffixes the generated mock type name with "Mock" (e.g., `MyServiceMock`).
-    public static let suffixMock = MockableOptions(rawValue: 1 << 0)
+    nonisolated(unsafe) public static let suffixMock = MockableOptions(
+        rawValue: 1 << 0
+    )
 
     /// Prefixes the generated mock type name with "Mock" (e.g., `MockMyService`).
-    public static let prefixMock = MockableOptions(rawValue: 1 << 1)
+    nonisolated(unsafe) public static let prefixMock = MockableOptions(
+        rawValue: 1 << 1
+    )
 
     /// Initializes a `MockableOptions` instance with the given raw value.
     /// - Parameter rawValue: The raw integer value representing the option set.
