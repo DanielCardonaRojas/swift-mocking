@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents a parsed type with optional generic arguments
-public struct ParsedType: Hashable {
+public struct ParsedType: Hashable, Sendable {
     public let name: String
     public let genericArguments: [ParsedType]
 }
