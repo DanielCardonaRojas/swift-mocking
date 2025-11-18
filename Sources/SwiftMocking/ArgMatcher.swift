@@ -27,7 +27,7 @@ import Foundation
 /// // Verifying a method was called with any string argument
 /// verify(spy.anotherMethod(.any)).called()
 /// ```
-public struct ArgMatcher<Argument> {
+public struct ArgMatcher<Argument>: @unchecked Sendable {
     var precedence: MatcherPrecedence
     let matcher: (Argument) -> Bool
 
