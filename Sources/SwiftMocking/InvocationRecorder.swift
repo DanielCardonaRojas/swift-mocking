@@ -11,7 +11,7 @@ import Foundation
 ///
 /// This lightweight struct captures essential information about method calls across all spies,
 /// enabling cross-spy call order verification while maintaining performance.
-public struct Recorded: Sendable {
+public struct Recorded: @unchecked Sendable {
     /// Sequential index in the global timeline
     public let index: Int
 
@@ -50,7 +50,7 @@ public struct Recorded: Sendable {
 ///
 /// By default, a task-local instance is accessed via `MockScope.invocationRecorder` to provide
 /// automatic test isolation. Tests can override the recorder instance using MockScope scoped methods.
-public final class InvocationRecorder: Sendable {
+public final class InvocationRecorder: @unchecked Sendable {
     /// Shared instance used as the default for the task-local current recorder
     public static let shared = InvocationRecorder()
 
