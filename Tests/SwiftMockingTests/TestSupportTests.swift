@@ -16,7 +16,7 @@ struct StaticTests {
     func staticScope2() async throws {
         let spy: Spy<String, None, Void> = Mock.someMethod
         for _ in 1...callCount {
-            spy.call("")
+            spy("")
         }
         #expect(spy.invocations.count == callCount)
     }
@@ -25,7 +25,7 @@ struct StaticTests {
     func staticScope() async throws {
         let spy: Spy<String, None, Void> = Mock.someMethod
         for _ in 1...1000 {
-            spy.call("")
+            spy("")
         }
         #expect(spy.invocations.count == callCount)
     }
