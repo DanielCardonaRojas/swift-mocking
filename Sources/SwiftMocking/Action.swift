@@ -9,7 +9,7 @@
 ///
 /// Actions are executed whenever an invocation matches their matcher, allowing
 /// callers to run custom closures without influencing the stubbed return value.
-public final class Action<each I, Eff: Effect> {
+public final class Action<each I, Eff: Effect>: @unchecked Sendable {
     public let invocationMatcher: InvocationMatcher<repeat each I>
 
     fileprivate var syncPerformer: ((Invocation<repeat each I>) -> Void)?
