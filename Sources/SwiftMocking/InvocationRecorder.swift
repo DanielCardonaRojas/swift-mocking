@@ -11,7 +11,7 @@ import Foundation
 ///
 /// This lightweight struct captures essential information about method calls across all spies,
 /// enabling cross-spy call order verification while maintaining performance.
-public struct Recorded: @unchecked Sendable {
+public struct Recorded {
     /// Sequential index in the global timeline
     public let index: Int
 
