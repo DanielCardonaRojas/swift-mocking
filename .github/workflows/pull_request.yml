@@ -14,14 +14,12 @@ jobs:
   build:
     strategy:
       matrix:
-        swift-version: ['Xcode_16.0', 'Xcode_16.4', 'Xcode_26.1.0']
+        swift-version: ['5.9', '6.0']
         include:
-          - swift-version: 'Xcode_16.0'
+          - swift-version: '5.9'
             xcode-version: 'Xcode_16.0.app'
-          - swift-version: 'Xcode_16.4'
+          - swift-version: '6.0'
             xcode-version: 'Xcode_16.4.app'
-          - swift-version: 'Xcode_26.1.0'
-            xcode-version: 'Xcode_26.1.0.app'
 
     runs-on: macos-15
     steps:
