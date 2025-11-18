@@ -156,7 +156,7 @@ public func verifyZeroInteractions(
 
 // MARK: - Await utilities
 
-private final class FulfillmentTracker {
+private final class FulfillmentTracker: @unchecked Sendable {
     private var fulfilled = false
     private let lock = NSLock()
 
@@ -173,7 +173,8 @@ private final class FulfillmentTracker {
 public func until<each Input, Output>(
     _ interaction: Interaction<repeat each Input, None, Output>,
     timeout: Duration = .seconds(1)
-) async throws {
+) async throws where repeat each Input: Sendable
+{
     try await withUntilTimeout(interaction: interaction, timeout: timeout) { action, tracker, cleanup in
         action.do { (_: repeat each Input) in
             if tracker.tryFulfill() {
@@ -187,7 +188,8 @@ public func until<each Input, Output>(
 public func until<each Input, Output>(
     _ interaction: Interaction<repeat each Input, Async, Output>,
     timeout: Duration = .seconds(1)
-) async throws {
+) async throws where repeat each Input: Sendable
+{
     try await withUntilTimeout(interaction: interaction, timeout: timeout) { action, tracker, cleanup in
         action.do { (_: repeat each Input) async in
             if tracker.tryFulfill() {
@@ -201,7 +203,8 @@ public func until<each Input, Output>(
 public func until<each Input, Output>(
     _ interaction: Interaction<repeat each Input, AsyncThrows, Output>,
     timeout: Duration = .seconds(1)
-) async throws {
+) async throws where repeat each Input: Sendable
+{
     try await withUntilTimeout(interaction: interaction, timeout: timeout) { action, tracker, cleanup in
         action.do { (_: repeat each Input) async throws in
             if tracker.tryFulfill() {
@@ -295,33 +298,28 @@ private func withUntilTimeout<each Input, Eff: Effect>(
     interaction: Interaction<repeat each Input, Eff, some Any>,
     timeout: Duration,
     actionHandler: @escaping (Action<repeat each Input, Eff>, FulfillmentTracker, @escaping () -> Void) -> Void
-) async throws {
+) async throws
+where repeat each Input: Sendable
+{
     let tracker = FulfillmentTracker()
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-        var actionReference: Action<repeat each Input, Eff>?
+        let actionReference = Action<repeat each Input, Eff>(invocationMatcher: interaction.invocationMatcher)
         let timer = Task {
             try await Task.sleep(for: timeout)
             if tracker.tryFulfill() {
-                if let actionReference {
-                    interaction.spy.removeAction(actionReference)
-                }
+                interaction.spy.removeAction(actionReference)
                 continuation.resume(throwing: UntilError.timeout)
             }
         }
 
         let cleanup = {
             timer.cancel()
-            if let actionReference {
-                interaction.spy.removeAction(actionReference)
-            }
+            interaction.spy.removeAction(actionReference)
             continuation.resume()
         }
 
-        let action = Action<repeat each Input, Eff>(invocationMatcher: interaction.invocationMatcher)
-        actionHandler(action, tracker, cleanup)
-
-        actionReference = action
-        interaction.spy.registerAction(action)
+        actionHandler(actionReference, tracker, cleanup)
+        interaction.spy.registerAction(actionReference)
     }
 }
 
