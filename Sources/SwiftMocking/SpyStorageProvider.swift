@@ -9,7 +9,7 @@
 ///
 /// The provider owns the raw dictionary that mirrors the storage layout used by `Mock`.
 /// It can be shared across different execution contexts to coordinate spy access.
-public final class SpyStorageProvider {
+public final class SpyStorageProvider: @unchecked Sendable {
     public typealias Storage = [String: [String: [AnySpy]]]
 
     public var storage: Storage
