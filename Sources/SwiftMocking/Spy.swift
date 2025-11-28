@@ -278,19 +278,25 @@ extension Spy where Effects == None {
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) -> Output {
         do {
-            let invocation = Invocation(arguments: repeat each input)
-            let action = matchingAction(invocation: invocation)
-            let returnValue = try invoke(repeat each input)
-            if let action {
-                action.perform(invocation)
-            }
-            return returnValue.get()
+            return try process(repeat each input)
         } catch let error as MockingError {
             fatalError("MockingError: \(error.message)")
         } catch {
             fatalError("\(error.localizedDescription)")
         }
     }
+
+    @usableFromInline
+    func process(_ input: repeat each Input) throws -> Output {
+        let invocation = Invocation(arguments: repeat each input)
+        let action = matchingAction(invocation: invocation)
+        let returnValue = try invoke(repeat each input)
+        if let action {
+            action.perform(invocation)
+        }
+        return returnValue.get()
+    }
+
 
     public func asFunction() -> @Sendable (repeat each Input) -> Output {
         return { (args:  repeat each Input) in
@@ -310,18 +316,23 @@ extension Spy where Effects == Async {
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) async -> Output {
         do {
-            let invocation = Invocation(arguments: repeat each input)
-            let action = matchingAction(invocation: invocation)
-            let returnValue = try invoke(repeat each input)
-            if let action {
-                await action.perform(invocation)
-            }
-            return await returnValue.get()
+            return try await process(repeat each input)
         } catch let error as MockingError {
             fatalError("MockingError: \(error.message)")
         } catch {
             fatalError("\(error.localizedDescription)")
         }
+    }
+
+    @usableFromInline
+    func process(_ input: repeat each Input) async throws -> Output {
+        let invocation = Invocation(arguments: repeat each input)
+        let action = matchingAction(invocation: invocation)
+        let returnValue = try invoke(repeat each input)
+        if let action {
+            await action.perform(invocation)
+        }
+        return await returnValue.get()
     }
 
     public func asFunction() -> @Sendable (repeat each Input) async -> Output {
