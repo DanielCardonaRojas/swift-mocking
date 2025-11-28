@@ -55,6 +55,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     /// - Parameter input: The arguments of the invocation.
     /// - Returns: The ``Return`` value from the matching stub.
     /// - Throws: ``MockingError/unStubbed`` if no matching stub is found.
+    @usableFromInline
     func invoke(_ input: repeat each Input) throws -> Return<Effects, Output> {
         let invocation = intake(repeat each input)
 
@@ -111,7 +112,8 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         return matchingStub
     }
 
-    private func matchingAction(invocation: Invocation<repeat each Input>) -> Action<repeat each Input, Effects>? {
+    @usableFromInline
+    func matchingAction(invocation: Invocation<repeat each Input>) -> Action<repeat each Input, Effects>? {
         actionsLock.lock()
         defer { actionsLock.unlock() }
         for action in actions.reversed().sorted(by: { $0.precedence > $1.precedence }) {
@@ -271,6 +273,8 @@ extension Spy where Effects == None {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error.
+    @inlinable
+    @inline(__always)
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) -> Output {
         do {
@@ -301,6 +305,8 @@ extension Spy where Effects == Async {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error, as `Async` effects are not expected to throw.
+    @inlinable
+    @inline(__always)
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) async -> Output {
         do {
@@ -331,6 +337,8 @@ extension Spy where Effects == AsyncThrows {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
+    @inlinable
+    @inline(__always)
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) async throws -> Output {
         let invocation = Invocation(arguments: repeat each input)

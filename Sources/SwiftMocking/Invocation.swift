@@ -36,6 +36,7 @@ public struct Invocation<each Input>: CustomDebugStringConvertible {
 
     /// Initializes an `Invocation` instance with the given arguments.
     /// - Parameter arguments: The arguments captured during a function call.
+    @usableFromInline
     init(arguments: repeat each Input) {
         self.arguments = (repeat each arguments)
     }
