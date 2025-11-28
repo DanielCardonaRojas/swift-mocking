@@ -55,7 +55,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     /// - Parameter input: The arguments of the invocation.
     /// - Returns: The ``Return`` value from the matching stub.
     /// - Throws: ``MockingError/unStubbed`` if no matching stub is found.
-    func invoke(_ input: repeat each Input) throws -> Return<Effects, Output> {
+    func invoke(_ input: repeat each Input, filePath: StaticString = #filePath, line: UInt = #line) throws -> Return<Effects, Output> {
         let invocation = intake(repeat each input)
 
         // Log invocations
@@ -221,10 +221,10 @@ extension Spy where Effects == Throws {
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) throws -> Output {
+    public func callAsFunction(_ input: repeat each Input, filePath: StaticString = #filePath, line: UInt = #line) throws -> Output {
         let invocation = Invocation(arguments: repeat each input)
         let action = matchingAction(invocation: invocation)
-        let result = try invoke(repeat each input)
+        let result = try invoke(repeat each input, filePath: filePath, line: line)
         if let action {
             try action.perform(invocation)
         }
@@ -272,11 +272,11 @@ extension Spy where Effects == None {
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error.
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) -> Output {
+    public func callAsFunction(_ input: repeat each Input, filePath: StaticString = #filePath, line: UInt = #line) -> Output {
         do {
             let invocation = Invocation(arguments: repeat each input)
             let action = matchingAction(invocation: invocation)
-            let returnValue = try invoke(repeat each input)
+            let returnValue = try invoke(repeat each input, filePath: filePath, line: line)
             if let action {
                 action.perform(invocation)
             }
@@ -302,11 +302,11 @@ extension Spy where Effects == Async {
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error, as `Async` effects are not expected to throw.
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) async -> Output {
+    public func callAsFunction(_ input: repeat each Input, filePath: StaticString = #filePath, line: UInt = #line) async -> Output {
         do {
             let invocation = Invocation(arguments: repeat each input)
             let action = matchingAction(invocation: invocation)
-            let returnValue = try invoke(repeat each input)
+            let returnValue = try invoke(repeat each input, filePath: filePath, line: line)
             if let action {
                 await action.perform(invocation)
             }
@@ -332,19 +332,19 @@ extension Spy where Effects == AsyncThrows {
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) async throws -> Output {
+    public func callAsFunction(_ input: repeat each Input, filePath: StaticString = #filePath, line: UInt = #line) async throws -> Output {
         let invocation = Invocation(arguments: repeat each input)
         let action = matchingAction(invocation: invocation)
-        let returnValue = try invoke(repeat each input)
+        let returnValue = try invoke(repeat each input, filePath: filePath)
         if let action {
             try await action.perform(invocation)
         }
         return try await returnValue.get()
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) async throws -> Output {
+    public func asFunction(filePath: StaticString = #filePath, line: UInt = #line) -> @Sendable (repeat each Input) async throws -> Output {
         return { (args:  repeat each Input) in
-            try await self(repeat each args)
+            try await self(repeat each args, filePath: filePath, line: line)
         }
     }
 

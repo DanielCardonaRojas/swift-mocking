@@ -21,9 +21,14 @@ public extension Mock {
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
-    static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
+    static func adapt<each I, O>(
+        _ spy: Spy<repeat each I, None, O>,
+        _ input: repeat each I,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = spy(repeat each input)
+        let result = spy(repeat each input, filePath: filePath, line: line)
         return result
     }
 
@@ -36,9 +41,14 @@ public extension Mock {
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
-    func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
+    func adapt<each I, O>(
+        _ spy: Spy<repeat each I, None, O>,
+        _ input: repeat each I,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = spy(repeat each input)
+        let result = spy(repeat each input, filePath: filePath, line: line)
         return result
     }
 
@@ -51,9 +61,14 @@ public extension Mock {
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
-    static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
+    static func adapt<each I, O>(
+        _ spy: Spy<repeat each I, Async, O>,
+        _ input: repeat each I,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) async -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = await spy(repeat each input)
+        let result = await spy(repeat each input, filePath: filePath, line: line)
         return result
     }
 
@@ -66,9 +81,14 @@ public extension Mock {
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
-    func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
+    func adapt<each I, O>(
+        _ spy: Spy<repeat each I, Async, O>,
+        _ input: repeat each I,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) async -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = await spy(repeat each input)
+        let result = await spy(repeat each input, filePath: filePath, line: line)
         return result
     }
 
@@ -82,9 +102,14 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
-    static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O {
+    static func adaptThrowing<each I, O>(
+        _ spy: Spy<repeat each I, Throws, O>,
+        _ input: repeat each I,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = try spy(repeat each input)
+        let result = try spy(repeat each input, filePath: filePath, line: line)
         return result
     }
 
@@ -98,9 +123,14 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
-    func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O {
+    func adaptThrowing<each I, O>(
+        _ spy: Spy<repeat each I, Throws, O>,
+        _ input: repeat each I,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = try spy(repeat each input)
+        let result = try spy(repeat each input, filePath: filePath, line: line)
         return result
     }
 
@@ -115,9 +145,14 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
-    static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O {
+    static func adaptThrowing<each I, O>(
+        _ spy: Spy<repeat each I, AsyncThrows, O>,
+        _ input: repeat each I,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = try await spy(repeat each input)
+        let result = try await spy(repeat each input, filePath: filePath, line: line)
         return result
     }
 
@@ -132,9 +167,14 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
-    func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O {
+    func adaptThrowing<each I, O>(
+        _ spy: Spy<repeat each I, AsyncThrows, O>,
+        _ input: repeat each I,
+        filePath: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = try await spy(repeat each input)
+        let result = try await spy(repeat each input, filePath: filePath, line: line)
         return result
     }
 

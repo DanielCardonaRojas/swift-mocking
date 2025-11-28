@@ -31,8 +31,12 @@ public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Async, Outpu
 public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> @Sendable (repeat each Input) throws ->  Output {
     spy.asFunction()
 }
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> @Sendable (repeat each Input) async throws ->  Output {
-    spy.asFunction()
+public func adapt<each Input, Output>(
+    _ spy: Spy<repeat each Input, AsyncThrows, Output>,
+    filePath: StaticString = #filePath,
+    line: UInt = #line
+) -> @Sendable (repeat each Input) async throws ->  Output {
+    spy.asFunction(filePath: filePath, line: line)
 }
 
 public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, None, Output>) -> @Sendable (repeat each Input) ->  Output {
