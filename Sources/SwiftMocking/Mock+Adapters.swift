@@ -21,6 +21,8 @@ public extension Mock {
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
+    @inlinable
+    @inline(__always)
     static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
         do {
@@ -41,6 +43,8 @@ public extension Mock {
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
+    @inlinable
+    @inline(__always)
     func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
         do {
@@ -61,6 +65,8 @@ public extension Mock {
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
+    @inlinable
+    @inline(__always)
     static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
         do {
@@ -81,6 +87,8 @@ public extension Mock {
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
+    @inlinable
+    @inline(__always)
     func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
         do {
