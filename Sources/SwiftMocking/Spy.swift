@@ -72,7 +72,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
                 return .value(fallback)
             }
 
-            throw MockingError.unStubbed
+            throw MockingError.unStubbed(methodLabel, inputs: invocation.debugDescription)
         }
 
         return returnValue
