@@ -379,6 +379,14 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(spy2(.success("3")), 7)
         XCTAssertEqual(spy2(.success("hello")), -1)
     }
+
+    func test_example() {
+        enum CustomType {
+            case first, second
+        }
+        let spy = Spy<String, None, CustomType>()
+        let result = spy("test")
+    }
 }
 
 private struct FireAndForgetController {
