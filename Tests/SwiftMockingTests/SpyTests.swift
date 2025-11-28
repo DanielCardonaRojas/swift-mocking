@@ -381,11 +381,12 @@ final class SpyTests: XCTestCase {
     }
 
     func test_example() {
-        enum CustomType {
+        enum CustomType: String {
             case first, second
         }
         let spy = Spy<String, None, CustomType>()
         let result = spy("test")
+        XCTAssert(result == .first)
     }
 }
 
