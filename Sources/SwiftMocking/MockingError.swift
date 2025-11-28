@@ -17,9 +17,9 @@ public struct MockingError: Error, Equatable {
     /// Indicates that a method was called on a spy but no corresponding stub was found.
     public static func unStubbed(_ name: String? = nil, inputs: String? = nil) -> MockingError {
         let message = [
-            "Un stubbed method",
-            name.map { "\"\($0)\""},
-            inputs.map { ". No configured return value for inputs: \($0) " }
+            "Unstubbed method",
+            name.map { "\"\($0).\""},
+            inputs.map { "No configured return value for inputs: \($0)" }
         ].compactMap { $0 }.joined(separator: " ")
         return MockingError(message: message)
     }
