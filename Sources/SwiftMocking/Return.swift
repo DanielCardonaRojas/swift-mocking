@@ -155,7 +155,6 @@ extension Return where Effects == Throws {
     /// Retrieves the encapsulated value or throws the encapsulated error.
     /// - Returns: The success value.
     /// - Throws: The encapsulated error if the `Return` instance represents an error.
-    @usableFromInline
     @discardableResult
     func get() throws -> R {
         try resolve().get()
@@ -219,7 +218,6 @@ extension Return where Effects == AsyncThrows {
     /// Retrieves the encapsulated value asynchronously or throws the encapsulated error.
     /// - Returns: The success value.
     /// - Throws: The encapsulated error if the `Return` instance represents an error.
-    @usableFromInline
     @discardableResult
     func get() async throws -> R {
         try await resolveAsync().get()

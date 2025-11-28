@@ -337,8 +337,6 @@ extension Spy where Effects == AsyncThrows {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
-    @inlinable
-    @inline(__always)
     @discardableResult
     public func callAsFunction(_ input: repeat each Input) async throws -> Output {
         let invocation = Invocation(arguments: repeat each input)

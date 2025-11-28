@@ -48,7 +48,6 @@ extension Action where Eff == Throws {
         }
     }
 
-    @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) throws {
         try throwingPerformer?(invocation)
     }
@@ -76,7 +75,6 @@ extension Action where Eff == AsyncThrows {
         }
     }
 
-    @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) async throws {
         try await asyncThrowingPerformer?(invocation)
     }
