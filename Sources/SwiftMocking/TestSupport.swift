@@ -323,3 +323,11 @@ where repeat each Input: Sendable
     }
 }
 
+@inline(__always)
+func fail(
+    _ message: @autoclosure () -> String,
+    file: StaticString = #fileID,
+    line: UInt = #line
+) -> Never {
+    fatalError(message(), file: file, line: line)
+}
