@@ -282,9 +282,9 @@ extension Spy where Effects == None {
             }
             return returnValue.get()
         } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
+            fail("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            fail("\(error.localizedDescription)")
         }
     }
 
@@ -312,9 +312,9 @@ extension Spy where Effects == Async {
             }
             return await returnValue.get()
         } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
+            fail("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            fail("\(error.localizedDescription)")
         }
     }
 
