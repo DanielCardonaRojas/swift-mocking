@@ -35,6 +35,9 @@ let package = Package(
                 "SwiftMockingOptions",
                 "MockableGenerator",
                 .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-O"])
             ]
         ),
         .target(name: "SwiftMockingOptions"),
