@@ -64,7 +64,8 @@ let package = Package(
         .testTarget(name: "SwiftMockingMacrosTests", dependencies: [
             "SwiftMocking",
             "SwiftMockingMacros",
-            .product(name: "MacroTesting", package: "swift-macro-testing")
+            .product(name: "MacroTesting", package: "swift-macro-testing"),
+            .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
         ])
     ]
 )
