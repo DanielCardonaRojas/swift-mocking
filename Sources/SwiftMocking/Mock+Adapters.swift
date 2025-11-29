@@ -5,6 +5,8 @@
 //  Created by Daniel Cardona on 20/07/25.
 //
 
+import Foundation
+
 /// Adapter methods that bridge between generated mock methods and spy infrastructure.
 ///
 /// These adapters are automatically called by generated mock implementations to

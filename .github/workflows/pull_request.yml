@@ -37,7 +37,7 @@ jobs:
     - name: Run main project tests
       run: |
         xcrun xcodebuild \
-          -scheme "swift-mocking" \
+          -scheme "swift-mocking-Package" \
           -destination 'platform=macOS' \
           -derivedDataPath .derivedData \
           -enableCodeCoverage NO \

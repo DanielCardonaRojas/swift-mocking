@@ -1,5 +1,6 @@
 #if canImport(XCTest)
 import XCTest
+import SwiftMocking
 
 /// Convenience base case that installs a fresh ``SpyStorageProvider`` and ``InvocationRecorder`` for each test invocation.
 ///

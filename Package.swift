@@ -19,6 +19,10 @@ let package = Package(
             name: "SwiftMocking",
             targets: ["SwiftMocking"]
         ),
+        .library(
+            name: "SwiftMockingTestSupport",
+            targets: ["SwiftMockingTestSupport"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "509.0.0"..<"602.0.0"),
@@ -37,6 +41,12 @@ let package = Package(
                 .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
             ],
             swiftSettings: [ .unsafeFlags(["-O"]) ]
+        ),
+        .target(
+            name: "SwiftMockingTestSupport",
+            dependencies: [
+                "SwiftMocking"
+            ]
         ),
         .target(name: "SwiftMockingOptions"),
         .target(
@@ -59,12 +69,14 @@ let package = Package(
             name: "SwiftMockingTests",
             dependencies: [
                 "SwiftMocking",
+                "SwiftMockingTestSupport",
             ]
         ),
         .testTarget(name: "SwiftMockingMacrosTests", dependencies: [
             "SwiftMocking",
             "SwiftMockingMacros",
-            .product(name: "MacroTesting", package: "swift-macro-testing")
+            .product(name: "MacroTesting", package: "swift-macro-testing"),
+            .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
         ])
     ]
 )
