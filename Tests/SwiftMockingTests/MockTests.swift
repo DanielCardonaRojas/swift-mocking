@@ -1,6 +1,7 @@
 
 import XCTest
 @testable import SwiftMocking
+import SwiftMockingXCTest
 
 final class MockTests: MockingTestCase {
     func testSubscript_WhenSpyDoesNotExist_CreatesNewSpy() {
