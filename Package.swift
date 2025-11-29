@@ -4,6 +4,18 @@
 import PackageDescription
 import CompilerPluginSupport
 
+// Conditional compilation settings based on Swift version
+// The -O flag enables optimizations which allows @inline(__always) to work correctly.
+// We use @inline(__always) to ensure fatalError() calls for unstubbed values are surfaced
+// in the client code stack traces, not in SwiftMocking's internal code.
+// This improves debugging by showing errors at the call site in user tests.
+// Applies to unstubbed non-throwing spies (Async and None effects).
+// Only enabled for Swift 6.2+ to avoid compiler issues in earlier versions.
+var swiftSettings: [SwiftSetting] = []
+#if swift(>=6.2)
+swiftSettings.append(.unsafeFlags(["-O"]))
+#endif
+
 let package = Package(
     name: "swift-mocking",
     platforms: [
@@ -40,7 +52,7 @@ let package = Package(
                 "MockableGenerator",
                 .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
             ],
-            swiftSettings: [ .unsafeFlags(["-O"]) ]
+            swiftSettings: swiftSettings
         ),
         .target(
             name: "SwiftMockingTestSupport",
