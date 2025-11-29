@@ -15,7 +15,14 @@ public struct MockingError: Error, Equatable {
     public let message: String
 
     /// Indicates that a method was called on a spy but no corresponding stub was found.
-    public static let unStubbed = MockingError(message: "Unstubbed method")
+    public static func unStubbed(_ name: String? = nil, inputs: String? = nil) -> MockingError {
+        let message = [
+            "Unstubbed method",
+            name.map { "\"\($0).\""},
+            inputs.map { "No configured return value for inputs: \($0)" }
+        ].compactMap { $0 }.joined(separator: " ")
+        return MockingError(message: message)
+    }
 
     /// Indicates that a method was expected to throw an error, but it did not.
     public static let didNotThrow = MockingError(message: "Did not find any invocation that throws")

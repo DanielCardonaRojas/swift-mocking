@@ -21,10 +21,17 @@ public extension Mock {
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
+    @inlinable
+    @inline(__always)
     static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = spy(repeat each input)
-        return result
+        do {
+            return try spy.process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
     }
 
     /// Adapts a synchronous spy call for instance method mocking.
@@ -36,10 +43,17 @@ public extension Mock {
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
+    @inlinable
+    @inline(__always)
     func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = spy(repeat each input)
-        return result
+        do {
+            return try spy.process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
     }
 
     /// Adapts an asynchronous spy call for static method mocking.
@@ -51,10 +65,17 @@ public extension Mock {
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
+    @inlinable
+    @inline(__always)
     static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = await spy(repeat each input)
-        return result
+        do {
+            return try await spy.process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
     }
 
     /// Adapts an asynchronous spy call for instance method mocking.
@@ -66,10 +87,17 @@ public extension Mock {
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
+    @inlinable
+    @inline(__always)
     func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
         spy.defaultProviderRegistry = defaultProviderRegistry
-        let result = await spy(repeat each input)
-        return result
+        do {
+            return try await spy.process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
     }
 
     /// Adapts a throwing spy call for static method mocking.

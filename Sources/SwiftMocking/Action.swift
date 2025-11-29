@@ -34,6 +34,7 @@ extension Action where Eff == None {
         }
     }
 
+    @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) {
         syncPerformer?(invocation)
     }
@@ -60,6 +61,7 @@ extension Action where Eff == Async {
         }
     }
 
+    @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) async {
         await asyncPerformer?(invocation)
     }

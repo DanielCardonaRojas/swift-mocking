@@ -28,6 +28,7 @@
 ///     // Should not be reached
 /// }
 /// ```
+@usableFromInline
 struct Return<Effects: Effect, R> {
     private let syncResolver: (() -> R)?
     private let throwingResolver: (() throws -> R)?
@@ -98,6 +99,7 @@ extension Return where Effects == None {
 
     /// Retrieves the encapsulated value, crashing if an error was stored.
     /// - Returns: The success value.
+    @usableFromInline
     func get() -> R {
         guard let syncResolver else {
             fatalError("Return has no resolver.")
@@ -171,6 +173,7 @@ extension Return where Effects == Async {
 
     /// Retrieves the encapsulated value asynchronously, crashing if an error was stored.
     /// - Returns: The success value.
+    @usableFromInline
     func get() async -> R {
         guard let asyncResolver else {
             fatalError("Return has no resolver.")
