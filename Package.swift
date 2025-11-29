@@ -20,8 +20,8 @@ let package = Package(
             targets: ["SwiftMocking"]
         ),
         .library(
-            name: "SwiftMockingXCTest",
-            targets: ["SwiftMockingXCTest"]
+            name: "SwiftMockingTestSupport",
+            targets: ["SwiftMockingTestSupport"]
         ),
     ],
     dependencies: [
@@ -43,7 +43,7 @@ let package = Package(
             swiftSettings: [ .unsafeFlags(["-O"]) ]
         ),
         .target(
-            name: "SwiftMockingXCTest",
+            name: "SwiftMockingTestSupport",
             dependencies: [
                 "SwiftMocking"
             ]
@@ -69,7 +69,7 @@ let package = Package(
             name: "SwiftMockingTests",
             dependencies: [
                 "SwiftMocking",
-                "SwiftMockingXCTest",
+                "SwiftMockingTestSupport",
             ]
         ),
         .testTarget(name: "SwiftMockingMacrosTests", dependencies: [

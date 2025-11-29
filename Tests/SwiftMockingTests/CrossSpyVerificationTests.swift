@@ -7,7 +7,7 @@
 
 import XCTest
 @testable import SwiftMocking
-import SwiftMockingXCTest
+import SwiftMockingTestSupport
 
 class CrossSpyVerificationTests: MockingTestCase {
 
