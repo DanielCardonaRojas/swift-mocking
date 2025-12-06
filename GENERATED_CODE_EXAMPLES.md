@@ -206,25 +206,6 @@ class MyServiceMock: Mock, MyService {
 ```
 </details>
 
-### Protocol with Initializer
-
-```swift
-@Mockable
-protocol MyService {
-    init(value: Int)
-}
-```
-<details>
-<summary>Generated Code</summary>
-
-```swift
-class MyServiceMock: Mock, MyService {
-    required init(value: Int) {
-    }
-}
-```
-</details>
-
 ### Protocol with Subscript
 
 ```swift
