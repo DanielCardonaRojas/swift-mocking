@@ -52,12 +52,33 @@ open class Mock: DefaultProvider {
         }
     }
 
-    nonisolated(unsafe) public static var isLoggingEnabled: Bool = false {
-        didSet {
+    // NOTE: Using nonisolated(unsafe) here because Swift 6 strict concurrency
+    // does not allow static mutable properties without proper isolation.
+    // The actual thread safety is provided by the NSLock-based synchronization
+    // in the computed property below. This is a known limitation and a
+    // future improvement would be to use an actor for this state.
+    private static let loggingLock = NSLock()
+    private nonisolated(unsafe) static var _isLoggingEnabled: Bool = false
+
+    /// Thread-safe access to static logging enabled state.
+    ///
+    /// Uses NSLock-based synchronization to prevent data races when
+    /// multiple threads access or modify the logging state concurrently.
+    public static var isLoggingEnabled: Bool {
+        get {
+            loggingLock.lock()
+            defer { loggingLock.unlock() }
+            return _isLoggingEnabled
+        }
+        set {
+            loggingLock.lock()
+            defer { loggingLock.unlock() }
+            _isLoggingEnabled = newValue
+            // Propagate to existing spies
             let provider = MockScope.storageProvider
             for dict in provider.storage.values {
                 for spyGroup in dict.values {
-                    spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
+                    spyGroup.forEach({ $0.isLoggingEnabled = newValue })
                 }
             }
         }

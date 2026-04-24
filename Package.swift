@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -11,7 +11,10 @@ import CompilerPluginSupport
 // This improves debugging by showing errors at the call site in user tests.
 // Applies to unstubbed non-throwing spies (Async and None effects).
 // Only enabled for Swift 6.2+ to avoid compiler issues in earlier versions.
-var swiftSettings: [SwiftSetting] = []
+var swiftSettings: [SwiftSetting] = [
+    .enableUpcomingFeature("StrictConcurrency"),
+    .enableUpcomingFeature("StrictConcurrencyComplete")
+]
 #if swift(>=6.2)
 swiftSettings.append(.unsafeFlags(["-O"]))
 #endif
