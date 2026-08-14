@@ -9,10 +9,10 @@ import Foundation
 
 /// Adapter methods that bridge between generated mock methods and spy infrastructure.
 ///
-/// These adapters are automatically called by generated mock implementations to
-/// ensure proper spy configuration and invocation recording. They handle the
-/// different effect types (async, throws, async throws) and ensure that the
-/// mock's default provider registry is properly propagated to the spy.
+/// These adapters are automatically called by generated mock implementations to route
+/// calls through the spy infrastructure. They handle the different effect types
+/// (async, throws, async throws). The mock's default provider registry is captured by
+/// each spy once, at creation time (in `Mock`'s subscript), not re-applied per call.
 public extension Mock {
     /// Adapts a synchronous spy call for static method mocking.
     ///
@@ -26,7 +26,6 @@ public extension Mock {
     @inlinable
     @inline(__always)
     static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
-        spy.defaultProviderRegistry = defaultProviderRegistry
         do {
             return try spy.process(repeat each input)
         } catch let error as MockingError {
@@ -48,7 +47,6 @@ public extension Mock {
     @inlinable
     @inline(__always)
     func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
-        spy.defaultProviderRegistry = defaultProviderRegistry
         do {
             return try spy.process(repeat each input)
         } catch let error as MockingError {
@@ -70,7 +68,6 @@ public extension Mock {
     @inlinable
     @inline(__always)
     static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
-        spy.defaultProviderRegistry = defaultProviderRegistry
         do {
             return try await spy.process(repeat each input)
         } catch let error as MockingError {
@@ -92,7 +89,6 @@ public extension Mock {
     @inlinable
     @inline(__always)
     func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
-        spy.defaultProviderRegistry = defaultProviderRegistry
         do {
             return try await spy.process(repeat each input)
         } catch let error as MockingError {
@@ -113,7 +109,6 @@ public extension Mock {
     /// - Returns: The result of the spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
     static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O {
-        spy.defaultProviderRegistry = defaultProviderRegistry
         let result = try spy(repeat each input)
         return result
     }
@@ -129,7 +124,6 @@ public extension Mock {
     /// - Returns: The result of the spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
     func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O {
-        spy.defaultProviderRegistry = defaultProviderRegistry
         let result = try spy(repeat each input)
         return result
     }
@@ -146,7 +140,6 @@ public extension Mock {
     /// - Returns: The result of the async spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
     static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O {
-        spy.defaultProviderRegistry = defaultProviderRegistry
         let result = try await spy(repeat each input)
         return result
     }
@@ -163,7 +156,6 @@ public extension Mock {
     /// - Returns: The result of the async spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
     func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O {
-        spy.defaultProviderRegistry = defaultProviderRegistry
         let result = try await spy(repeat each input)
         return result
     }

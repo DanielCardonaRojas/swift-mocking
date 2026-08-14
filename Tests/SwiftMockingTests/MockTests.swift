@@ -183,4 +183,28 @@ final class MockTests: MockingTestCase {
 
         group.wait()
     }
+
+    func test_mock_adapter_concurrent_invoke_race_condition() {
+        // Regression guard for P0-5: adapt() must not rewrite spy.defaultProviderRegistry
+        // on every call. It raced concurrent invokes and the invoke-time read of the same
+        // property; the registry is now captured once at spy creation.
+        final class AdapterMock: Mock {
+            @discardableResult
+            func echo(_ x: Int) -> Int { adapt(super.echo, x) }
+        }
+        let mock = AdapterMock()
+        let queue = DispatchQueue(label: "com.swiftmocking.adapter_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                _ = mock.echo(i)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
 }
