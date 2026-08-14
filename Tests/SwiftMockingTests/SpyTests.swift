@@ -380,6 +380,32 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(spy.invocations.count, iterationCount)
     }
 
+    func test_stub_output_reassign_invoke_race_condition() {
+        // Regression guard for P0-4: Stub.output is reassigned during arrangement
+        // (thenReturn) and read during invoke (returnValue). A stub becomes visible in
+        // spy.stubs before its output is set, so concurrent stub + invoke raced the slot.
+        let spy = Spy<Int, None, String>()
+        spy.when(calledWith: .any).thenReturn("seed")
+        let queue = DispatchQueue(label: "com.swiftmocking.stub_output_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy.when(calledWith: .any).thenReturn("v\(i)")
+                group.leave()
+            }
+            group.enter()
+            queue.async {
+                _ = spy(i)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
+
     func test_spy_with_results_param() {
         let spy = Spy<Result<String, any Error>, None, Int>()
         

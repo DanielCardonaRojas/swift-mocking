@@ -5,6 +5,8 @@
 //  Created by Daniel Cardona on 4/07/25.
 //
 
+import Foundation
+
 /// A ``Stub`` is a type that provides a pre-canned answer for a single method.
 ///
 /// You use stubs to control the behavior of a dependency during a test. For example, you can stub a method to return a specific value, or to throw an error.
@@ -13,7 +15,27 @@
 public class Stub<each I, Effects: Effect, O> {
     /// The ``InvocationMatcher`` that defines when this stub should be applied.
     public let invocationMatcher: InvocationMatcher<repeat each I>
-    var output: ((Invocation<repeat each I>) -> Return<Effects, O>)?
+    private let outputLock = NSLock()
+    private var _output: ((Invocation<repeat each I>) -> Return<Effects, O>)?
+
+    /// The closure that produces this stub's return value.
+    ///
+    /// Access is synchronized through `outputLock`. A stub is appended to `Spy.stubs`
+    /// *before* `output` is set (in `thenReturn`), so a concurrent `invoke` can read it;
+    /// the lock makes that read and the `thenReturn` write mutually exclusive. The closure
+    /// is read under the lock and invoked outside it so user code never runs under the lock.
+    var output: ((Invocation<repeat each I>) -> Return<Effects, O>)? {
+        get {
+            outputLock.lock()
+            defer { outputLock.unlock() }
+            return _output
+        }
+        set {
+            outputLock.lock()
+            defer { outputLock.unlock() }
+            _output = newValue
+        }
+    }
 
     /// Initializes a `Stub` instance.
     /// - Parameter invocationMatcher: The ``InvocationMatcher`` that determines when this stub is active.
