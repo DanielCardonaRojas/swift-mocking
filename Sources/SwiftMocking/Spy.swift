@@ -103,25 +103,28 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         return invocation
     }
 
-    /// Returns a point-in-time copy of the recorded invocations.
+    /// Returns a deep, point-in-time copy of the recorded invocations.
     ///
-    /// The copy is taken under `invocationsLock` so that callers can iterate or match
-    /// against it without holding the lock (and without racing concurrent appends in
-    /// `intake`).
+    /// The copy is taken under `invocationsLock` and uses `Array(...)` to disconnect its
+    /// storage from `invocations`. Callers iterate it outside the lock without racing the
+    /// appends in `intake` — a shallow `return invocations` would share CoW storage and
+    /// race the array resize that `intake` triggers (the same hazard proven for `Mock`'s
+    /// dictionary snapshot under Thread Sanitizer).
     private func snapshotInvocations() -> [Invocation<repeat each Input>] {
         invocationsLock.lock()
         defer { invocationsLock.unlock() }
-        return invocations
+        return Array(invocations)
     }
 
-    /// Returns a point-in-time copy of the registered stubs.
+    /// Returns a deep, point-in-time copy of the registered stubs.
     ///
-    /// The copy is taken under `stubsLock` so that callers can match against it without
-    /// holding the lock (and without racing concurrent appends in `createStub`).
+    /// The copy is taken under `stubsLock` and uses `Array(...)` to disconnect its storage
+    /// from `stubs`. Callers match against it outside the lock without racing the appends
+    /// in `createStub` (a shallow copy would share CoW storage with the same resize hazard).
     private func snapshotStubs() -> [Stub<repeat each Input, Effects, Output>] {
         stubsLock.lock()
         defer { stubsLock.unlock() }
-        return stubs
+        return Array(stubs)
     }
 
     private func matchingStub(invocation: Invocation<repeat each Input>) -> Stub<repeat each Input, Effects, Output>? {
