@@ -27,13 +27,13 @@ import Foundation
 /// // Verifying a method was called with any string argument
 /// verify(spy.anotherMethod(.any)).called()
 /// ```
-public struct ArgMatcher<Argument>: @unchecked Sendable {
+public struct ArgMatcher<Argument>: Sendable {
     var precedence: MatcherPrecedence
-    let matcher: (Argument) -> Bool
+    let matcher: @Sendable (Argument) -> Bool
 
     public init(
         precedence: MatcherPrecedence = .typeMatch,
-        matcher: @escaping (Argument) -> Bool
+        matcher: @escaping @Sendable (Argument) -> Bool
     ) {
         self.precedence = precedence
         self.matcher = matcher
@@ -81,7 +81,7 @@ public struct ArgMatcher<Argument>: @unchecked Sendable {
     /// // Stubbing a method to return a value if the integer argument is even
     /// spy.when(calledWith: .any(that: { $0 % 2 == 0 })).thenReturn("even")
     /// ```
-    public static func any(that predicate: @escaping (Argument) -> Bool) -> Self {
+    public static func any(that predicate: @escaping @Sendable (Argument) -> Bool) -> Self {
         return .init(precedence: .predicate, matcher: predicate)
     }
 
@@ -142,7 +142,7 @@ public struct ArgMatcher<Argument>: @unchecked Sendable {
     }
 }
 
-public extension ArgMatcher where Argument: Equatable {
+public extension ArgMatcher where Argument: Equatable & Sendable {
     /// A matcher that matches an argument equal to the given value.
     /// - Parameter value: The value to compare against.
     ///
@@ -160,7 +160,7 @@ public extension ArgMatcher where Argument: Equatable {
 
 // MARK: - Comparable
 
-public extension ArgMatcher where Argument: Comparable {
+public extension ArgMatcher where Argument: Comparable & Sendable {
     /// A matcher that matches an argument less than the given value.
     /// - Parameter value: The value to compare against.
     ///
@@ -244,7 +244,7 @@ public extension ArgMatcher where Argument: Comparable {
     }
 }
 
-public extension ArgMatcher where Argument: FloatingPoint {
+public extension ArgMatcher where Argument: FloatingPoint & Sendable {
     /// A matcher that matches a floating-point argument approximately equal to the given value.
     /// - Parameters:
     ///   - value: The target value to compare against.
@@ -264,7 +264,7 @@ public extension ArgMatcher where Argument: FloatingPoint {
     }
 }
 
-public extension ArgMatcher where Argument: AnyObject {
+public extension ArgMatcher where Argument: AnyObject & Sendable {
     /// A matcher that matches an argument that is identical (same instance) to the given object.
     /// - Parameter value: The object instance to compare against.
     ///
@@ -354,9 +354,17 @@ public extension ArgMatcher {
     ///   - keyPath: A `KeyPath` to the property of the `Argument` type that should be compared.
     ///   - value: The `Equatable` value to compare the property against.
     /// - Returns: An `ArgMatcher` that matches arguments where the specified property equals the given value.
-    static func any<Property: Equatable>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> Self {
-        .init(precedence: .predicate) { $0[keyPath: keyPath] == value }
+    static func any<Property: Equatable & Sendable>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> Self where Argument: Sendable {
+        let sendableKeyPath = SendableKeyPath(keyPath: keyPath)
+        return .init(precedence: .predicate) { $0[keyPath: sendableKeyPath.keyPath] == value }
     }
+}
+
+/// `KeyPath` values are deeply immutable and safe to share across threads, but the
+/// standard library does not (yet) declare them `Sendable`. This narrowly-targeted box
+/// adds that guarantee for read-only matcher use.
+private struct SendableKeyPath<Root, Value>: @unchecked Sendable {
+    let keyPath: KeyPath<Root, Value>
 }
 
 // MARK: - Expressible by literal
@@ -600,7 +608,7 @@ public extension ArgMatcher where Argument: Collection {
     }
 }
 
-public extension ArgMatcher where Argument: Collection, Argument.Element: Equatable {
+public extension ArgMatcher where Argument: Collection, Argument.Element: Equatable & Sendable {
     /// A matcher that matches a collection containing the given element.
     /// - Parameter element: The element to search for.
     ///

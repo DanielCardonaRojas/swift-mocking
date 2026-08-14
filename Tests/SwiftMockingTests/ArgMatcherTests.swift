@@ -47,7 +47,7 @@ final class ArgMatcherTests: XCTestCase {
     }
 
     func testIdenticalToMatcher() {
-        class TestObject {}
+        final class TestObject: Sendable {}
         let object = TestObject()
         let matcher: ArgMatcher<TestObject> = .identical(object)
         XCTAssertTrue(matcher(object))
