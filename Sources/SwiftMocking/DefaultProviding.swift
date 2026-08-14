@@ -23,7 +23,7 @@ public struct DefaultProviding: Sendable {
 }
 
 public extension DefaultProviding {
-    static func numeric<T: Numeric>(_ type: T.Type) -> DefaultProviding {
+    static func numeric<T: Numeric & Sendable>(_ type: T.Type) -> DefaultProviding {
         .init(T.self, create: { 0 })
     }
 

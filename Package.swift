@@ -12,8 +12,7 @@ import CompilerPluginSupport
 // Applies to unstubbed non-throwing spies (Async and None effects).
 // Only enabled for Swift 6.2+ to avoid compiler issues in earlier versions.
 var swiftSettings: [SwiftSetting] = [
-    .enableUpcomingFeature("StrictConcurrency"),
-    .enableUpcomingFeature("StrictConcurrencyComplete")
+    .swiftLanguageMode(.v6)
 ]
 #if swift(>=6.2)
 swiftSettings.append(.unsafeFlags(["-O"]))
