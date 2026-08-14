@@ -60,7 +60,8 @@ let package = Package(
             name: "SwiftMockingTestSupport",
             dependencies: [
                 "SwiftMocking"
-            ]
+            ],
+            swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .target(name: "SwiftMockingOptions"),
         .target(
@@ -84,13 +85,14 @@ let package = Package(
             dependencies: [
                 "SwiftMocking",
                 "SwiftMockingTestSupport",
-            ]
+            ],
+            swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(name: "SwiftMockingMacrosTests", dependencies: [
             "SwiftMocking",
             "SwiftMockingMacros",
             .product(name: "MacroTesting", package: "swift-macro-testing"),
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
-        ])
+        ], swiftSettings: [.swiftLanguageMode(.v6)])
     ]
 )
