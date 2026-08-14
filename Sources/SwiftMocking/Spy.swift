@@ -19,7 +19,22 @@ import Foundation
 public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     public private(set) var invocations: [Invocation<repeat each Input>] = []
-    public var isLoggingEnabled: Bool = false
+    /// Guards post-init configuration (`isLoggingEnabled`, `defaultProviderRegistry`,
+    /// `logger`) so the `@unchecked Sendable` conformance is honest: every read on the
+    /// invoke path and every external write is serialized.
+    private let configLock = NSLock()
+
+    private func locked<T>(_ body: () throws -> T) rethrows -> T {
+        configLock.lock()
+        defer { configLock.unlock() }
+        return try body()
+    }
+
+    private var _isLoggingEnabled = false
+    public var isLoggingEnabled: Bool {
+        get { locked { _isLoggingEnabled } }
+        set { locked { _isLoggingEnabled = newValue } }
+    }
     private let invocationsLock = NSLock()
     private let stubsLock = NSLock()
     private let actionsLock = NSLock()
@@ -28,12 +43,21 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     public let spyID: UUID = UUID()
 
     /// Human-readable label for this spy, typically "ClassName.methodName"
-    public var methodLabel: String?
+    public private(set) var methodLabel: String?
 
     private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
     private(set) var actions: [Action<repeat each Input, Effects>] = []
-    public var defaultProviderRegistry: DefaultProvidableRegistry? = MockScope.fallbackValueRegistry
-    var logger: ((Invocation<repeat each Input>) -> Void)?
+    private var _defaultProviderRegistry: DefaultProvidableRegistry? = MockScope.fallbackValueRegistry
+    public var defaultProviderRegistry: DefaultProvidableRegistry? {
+        get { locked { _defaultProviderRegistry } }
+        set { locked { _defaultProviderRegistry = newValue } }
+    }
+
+    private var _logger: ((Invocation<repeat each Input>) -> Void)?
+    var logger: ((Invocation<repeat each Input>) -> Void)? {
+        get { locked { _logger } }
+        set { locked { _logger = newValue } }
+    }
     public var invocationCount: Int {
         invocationsLock.lock()
         defer { invocationsLock.unlock() }

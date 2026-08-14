@@ -406,6 +406,32 @@ final class SpyTests: XCTestCase {
         group.wait()
     }
 
+    func test_spy_config_concurrent_set_invoke_race_condition() {
+        // Regression guard for P1: isLoggingEnabled and defaultProviderRegistry are public
+        // settable and read on the invoke path; both must be synchronized.
+        let spy = Spy<Int, None, String>()
+        let registry = DefaultProvidableRegistry.default
+        let queue = DispatchQueue(label: "com.swiftmocking.spy_config_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy.isLoggingEnabled = (i % 2 == 0)
+                spy.defaultProviderRegistry = registry
+                group.leave()
+            }
+            group.enter()
+            queue.async {
+                _ = spy(i)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
+
     func test_spy_with_results_param() {
         let spy = Spy<Result<String, any Error>, None, Int>()
         
