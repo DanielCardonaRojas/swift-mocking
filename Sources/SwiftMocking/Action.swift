@@ -12,10 +12,10 @@
 public final class Action<each I, Eff: Effect>: @unchecked Sendable {
     public let invocationMatcher: InvocationMatcher<repeat each I>
 
-    fileprivate var syncPerformer: ((Invocation<repeat each I>) -> Void)?
-    fileprivate var throwingPerformer: ((Invocation<repeat each I>) throws -> Void)?
-    fileprivate var asyncPerformer: ((Invocation<repeat each I>) async -> Void)?
-    fileprivate var asyncThrowingPerformer: ((Invocation<repeat each I>) async throws -> Void)?
+    fileprivate var syncPerformer: (@Sendable (Invocation<repeat each I>) -> Void)?
+    fileprivate var throwingPerformer: (@Sendable (Invocation<repeat each I>) throws -> Void)?
+    fileprivate var asyncPerformer: (@Sendable (Invocation<repeat each I>) async -> Void)?
+    fileprivate var asyncThrowingPerformer: (@Sendable (Invocation<repeat each I>) async throws -> Void)?
 
     init(invocationMatcher: InvocationMatcher<repeat each I>) {
         self.invocationMatcher = invocationMatcher
@@ -28,7 +28,7 @@ public final class Action<each I, Eff: Effect>: @unchecked Sendable {
 
 extension Action where Eff == None {
     /// Registers a synchronous action.
-    public func `do`(_ handler: @escaping (repeat each I) -> Void) {
+    public func `do`(_ handler: @escaping @Sendable (repeat each I) -> Void) {
         syncPerformer = { invocation in
             handler(repeat each invocation.arguments)
         }
@@ -42,7 +42,7 @@ extension Action where Eff == None {
 
 extension Action where Eff == Throws {
     /// Registers a throwing synchronous action.
-    public func `do`(_ handler: @escaping (repeat each I) throws -> Void) {
+    public func `do`(_ handler: @escaping @Sendable (repeat each I) throws -> Void) {
         throwingPerformer = { invocation in
             try handler(repeat each invocation.arguments)
         }
@@ -55,7 +55,7 @@ extension Action where Eff == Throws {
 
 extension Action where Eff == Async {
     /// Registers an asynchronous action.
-    public func `do`(_ handler: @escaping (repeat each I) async -> Void) {
+    public func `do`(_ handler: @escaping @Sendable (repeat each I) async -> Void) {
         asyncPerformer = { invocation in
             await handler(repeat each invocation.arguments)
         }
@@ -69,7 +69,7 @@ extension Action where Eff == Async {
 
 extension Action where Eff == AsyncThrows {
     /// Registers an asynchronous throwing action.
-    public func `do`(_ handler: @escaping (repeat each I) async throws -> Void) {
+    public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws -> Void) {
         asyncThrowingPerformer = { invocation in
             try await handler(repeat each invocation.arguments)
         }

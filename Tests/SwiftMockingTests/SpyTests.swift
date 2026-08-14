@@ -195,8 +195,22 @@ final class SpyTests: XCTestCase {
     }
 
     func test_whenHelperFiltersSpecificInteraction() {
+        final class CaptureBox: @unchecked Sendable {
+            private let lock = NSLock()
+            private var items: [String] = []
+            func append(_ item: String) {
+                lock.lock()
+                items.append(item)
+                lock.unlock()
+            }
+            var values: [String] {
+                lock.lock()
+                defer { lock.unlock() }
+                return items
+            }
+        }
         let spy = Spy<String, None, Void>()
-        var captured: [String] = []
+        let captured = CaptureBox()
 
         when(spy(.equal("track"))).do({ value in
             captured.append(value)
@@ -205,7 +219,7 @@ final class SpyTests: XCTestCase {
         spy("track")
         spy("skip")
 
-        XCTAssertEqual(captured, ["track"])
+        XCTAssertEqual(captured.values, ["track"])
     }
 
     func test_await_until() async throws {

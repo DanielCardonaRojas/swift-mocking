@@ -62,8 +62,8 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         set { locked { _defaultProviderRegistry = newValue } }
     }
 
-    private var _logger: ((Invocation<repeat each Input>) -> Void)?
-    var logger: ((Invocation<repeat each Input>) -> Void)? {
+    private var _logger: (@Sendable (Invocation<repeat each Input>) -> Void)?
+    var logger: (@Sendable (Invocation<repeat each Input>) -> Void)? {
         get { locked { _logger } }
         set { locked { _logger = newValue } }
     }

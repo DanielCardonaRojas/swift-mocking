@@ -20,15 +20,15 @@ public final class Arrange<each I, Eff: Effect, Output> {
 
 // MARK: - None
 public extension Arrange where Eff == None {
-    func thenReturn(_ output: Output) {
+    func thenReturn(_ output: Output) where Output: Sendable {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
     }
 
-    func thenReturn(_ handler: @escaping (repeat each I) -> Output) {
+    func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> Output) {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(handler)
     }
 
-    func `do`(_ handler: @escaping (repeat each I) -> Void) {
+    func `do`(_ handler: @escaping @Sendable (repeat each I) -> Void) {
         let action = Action<repeat each I, Eff>(invocationMatcher: interaction.invocationMatcher)
         action.do(handler)
         interaction.spy.registerAction(action)
@@ -37,19 +37,19 @@ public extension Arrange where Eff == None {
 
 // MARK: - Throws
 public extension Arrange where Eff == Throws {
-    func thenReturn(_ output: Output) {
+    func thenReturn(_ output: Output) where Output: Sendable {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
     }
 
-    func thenThrow<E: Error>(_ error: E) {
+    func thenThrow<E: Error & Sendable>(_ error: E) {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenThrow(error)
     }
 
-    func thenReturn(_ handler: @escaping (repeat each I) throws -> Output) {
+    func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws -> Output) where repeat each I: Sendable {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(handler)
     }
 
-    func `do`(_ handler: @escaping (repeat each I) throws -> Void) {
+    func `do`(_ handler: @escaping @Sendable (repeat each I) throws -> Void) {
         let action = Action<repeat each I, Eff>(invocationMatcher: interaction.invocationMatcher)
         action.do(handler)
         interaction.spy.registerAction(action)
@@ -58,15 +58,15 @@ public extension Arrange where Eff == Throws {
 
 // MARK: - Async
 public extension Arrange where Eff == Async {
-    func thenReturn(_ output: Output) {
+    func thenReturn(_ output: Output) where Output: Sendable {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
     }
 
-    func thenReturn(_ handler: @escaping (repeat each I) async -> Output) {
+    func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> Output) {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(handler)
     }
 
-    func `do`(_ handler: @escaping (repeat each I) async -> Void) {
+    func `do`(_ handler: @escaping @Sendable (repeat each I) async -> Void) {
         let action = Action<repeat each I, Eff>(invocationMatcher: interaction.invocationMatcher)
         action.do(handler)
         interaction.spy.registerAction(action)
@@ -75,22 +75,23 @@ public extension Arrange where Eff == Async {
 
 // MARK: - AsyncThrows
 public extension Arrange where Eff == AsyncThrows {
-    func thenReturn(_ output: Output) {
+    func thenReturn(_ output: Output) where Output: Sendable {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
     }
 
-    func thenThrow<E: Error>(_ error: E) {
+    func thenThrow<E: Error & Sendable>(_ error: E) {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenThrow(error)
     }
 
-    func thenReturn(_ handler: @escaping (repeat each I) async throws -> Output) {
+    func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws -> Output) where repeat each I: Sendable {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(handler)
     }
 
-    func `do`(_ handler: @escaping (repeat each I) async throws -> Void) {
+    func `do`(_ handler: @escaping @Sendable (repeat each I) async throws -> Void) {
         let action = Action<repeat each I, Eff>(invocationMatcher: interaction.invocationMatcher)
         action.do(handler)
         interaction.spy.registerAction(action)
     }
 }
+
 
