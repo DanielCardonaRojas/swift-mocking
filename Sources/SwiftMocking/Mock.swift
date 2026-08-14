@@ -46,9 +46,9 @@ open class Mock: DefaultProvider {
 
     public var isLoggingEnabled: Bool = false {
         didSet {
-            for spyGroup in spies.values {
-                spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled})
-            }
+        for spyGroup in snapshotSpies().values {
+            spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
+        }
         }
     }
 
@@ -85,6 +85,19 @@ open class Mock: DefaultProvider {
     }
 
     public init() { }
+
+    /// Returns a deep, point-in-time copy of the instance spy storage.
+    ///
+    /// The copy is taken under `lock` and fully disconnects its storage from `spies`
+    /// (a fresh dictionary of fresh arrays) so callers can iterate it outside the lock
+    /// without racing the locked writes in `subscript(dynamicMember:)` — including the
+    /// dictionary resize those writes trigger, which operates on shared CoW storage if a
+    /// shallow copy escapes the lock.
+    private func snapshotSpies() -> [String: [AnySpy]] {
+        lock.lock()
+        defer { lock.unlock() }
+        return spies.mapValues { Array($0) }
+    }
 
     static var spies: [String: [AnySpy]] {
         let provider = MockScope.storageProvider
@@ -149,7 +162,7 @@ open class Mock: DefaultProvider {
     /// Call this method in your test's `tearDown` to ensure that each test starts with a
     /// clean mock object, free from any interactions or stubs from previous tests.
     public func clear() {
-        for spyGroup in spies.values {
+        for spyGroup in snapshotSpies().values {
             spyGroup.forEach { $0.clear() }
         }
     }

@@ -161,4 +161,26 @@ final class MockTests: MockingTestCase {
 
         XCTAssertEqual(mock.spies.count, 1)
     }
+
+    func test_mock_concurrent_clear_race_condition() {
+        // Regression guard for P0-3: instance `clear()` reads `spies` and must be
+        // synchronized with the locked writer in `subscript(dynamicMember:)`.
+        let mock = Mock()
+        let queue = DispatchQueue(label: "com.swiftmocking.mock_clear_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                let _: Spy<Int, None, Void> = mock[dynamicMember: "fn\(i)"]
+                if i % 10 == 0 {
+                    mock.clear()
+                }
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
 }
