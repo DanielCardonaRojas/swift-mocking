@@ -245,4 +245,21 @@ final class MockTests: MockingTestCase {
 
         _ = (sendable, closure)
     }
+
+    func test_registryUpdatePropagatesToExistingSpies() {
+        // Regression guard (PR review): spies created before the mock's registry changes
+        // must observe the update — the adapters no longer refresh the registry per call.
+        final class RegistryMock: Mock {
+            @discardableResult
+            func echo() -> String { adapt(super.echo) }
+        }
+        let mock = RegistryMock()
+        _ = mock.echo() // creates the spy with the default registry ("" default for String)
+
+        var registry = DefaultProvidableRegistry()
+        registry.register(DefaultProviding(String.self, create: { "custom" }))
+        mock.defaultProviderRegistry = registry
+
+        XCTAssertEqual(mock.echo(), "custom")
+    }
 }

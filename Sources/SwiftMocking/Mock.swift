@@ -46,7 +46,12 @@ open class Mock: DefaultProvider, @unchecked Sendable {
     private var _defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
     public var defaultProviderRegistry: DefaultProvidableRegistry {
         get { locked { _defaultProviderRegistry } }
-        set { locked { _defaultProviderRegistry = newValue } }
+        set {
+            locked { _defaultProviderRegistry = newValue }
+            for spyGroup in snapshotSpies().values {
+                spyGroup.forEach { $0.defaultProviderRegistry = newValue }
+            }
+        }
     }
     public static var defaultProviderRegistry: DefaultProvidableRegistry {
         MockScope.fallbackValueRegistry

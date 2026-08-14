@@ -12,10 +12,11 @@ import Foundation
 /// This lightweight struct captures essential information about method calls across all spies,
 /// enabling cross-spy call order verification while maintaining performance.
 ///
-/// - Note: The `arguments` array contains type-erased `Any` values. The struct uses
-///   `@unchecked Sendable` because while `Any` is not technically Sendable, the usage
-///   pattern is safe: arguments are only read after recording and never mutated.
-public struct Recorded: @unchecked Sendable {
+/// - Note: The `arguments` array contains type-erased `Any` values and is therefore
+///   deliberately NOT Sendable: recorded payloads may carry shared references across
+///   isolation domains, and the recorder's lock protects the recording list, not the
+///   referenced values.
+public struct Recorded {
     /// Sequential index in the global timeline
     public let index: Int
 

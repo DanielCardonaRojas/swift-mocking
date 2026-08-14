@@ -66,6 +66,10 @@ public extension Arrange where Eff == Async {
         interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(handler)
     }
 
+    func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> Output) where repeat each I: Sendable {
+        interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(handler)
+    }
+
     func `do`(_ handler: @escaping @Sendable (repeat each I) async -> Void) {
         let action = Action<repeat each I, Eff>(invocationMatcher: interaction.invocationMatcher)
         action.do(handler)

@@ -29,7 +29,7 @@
 | **P2** — generated mocks | ✅ Generated mocks are `Sendable` via inheritance from `Mock`; verified by a compile-time test |
 | **P3** — Swift 6 language mode | ✅ Library + test-support + both test targets build in Swift 6 mode (0 errors) |
 
-**Verification standing:** 156 XCTest + 6 swift-testing tests green; 10 `race_condition` regression guards, all clean under Thread Sanitizer. The test targets flipped to Swift 6 with **zero source changes** — the concurrency-heavy test code satisfied strict checking as-is, which is the `Sendable` work paying off.
+**Verification standing:** 163 XCTest + 6 swift-testing tests green; 10 `race_condition` regression guards, all clean under Thread Sanitizer. The test targets flipped to Swift 6 with **zero source changes** — the concurrency-heavy test code satisfied strict checking as-is, which is the `Sendable` work paying off.
 
 Every remaining `@unchecked Sendable` annotation (`Spy`, `Mock`, `InvocationRecorder`, `SpyStorageProvider`, `Action`, one `KeyPath` box) is backed by real locking or immutability — no annotation theater survives.
 
@@ -83,7 +83,7 @@ Both gaps are now closed: Gap A by complete locking (P0 + property synchronizati
 | P1-4 | `Mock` non-`Sendable` | ✅ | `1b7db30` — `@unchecked Sendable` with `spies` getter, `defaultProviderRegistry`, `isLoggingEnabled` synchronized |
 | P1-5 | `AnySpy` no `Sendable` bound | ✅ | `17c5d88` — `AnyObject, Sendable` (sound once `Spy` is honest) |
 | P1-6 | `Spy.logger` mutable non-`@Sendable` closure | ✅ | `b94a9f1` (locked), `0c7472e` (`@Sendable`-typed) |
-| P1-7 | `Recorded.arguments: [Any]` type-erases user values | ⬜ open | `InvocationRecorder` untouched; memory-safe (locked) but the erasure remains `@unchecked` |
+| P1-7 | `Recorded.arguments: [Any]` type-erases user values | ✅ | Unsound `@unchecked Sendable` removed from `Recorded` (PR review follow-up); the recorder class itself remains soundly locked |
 
 ### P2 — Generated mocks (resolved, no generator change needed)
 
@@ -153,6 +153,7 @@ These constraints are the deliberate consequence of the **Mandatory `@Sendable`*
 3. **Matcher predicates are `@Sendable`**, and value-capturing matchers (`.equal`, `.identical`, `.contains`, `.in`, `.approximately`, key-path `any(where:)`) require `Sendable` arguments. Use `.any(that:)` with Sendable captures (e.g. `ObjectIdentifier`) for non-Sendable arguments.
 4. **DX note:** `.any(that: { … })` may require an explicit `@Sendable` in some positions — `@Sendable` inference does not always propagate through the `.any(that:)` member chain.
 5. **`Mock` is now `@unchecked Sendable`** — generated mocks inherit the conformance and satisfy `: Sendable` protocol requirements.
+6. **`Recorded` is no longer `Sendable`.** Its type-erased `arguments: [Any]` payload cannot soundly claim transfer across concurrency domains; consume `InvocationRecorder.snapshot()` within a single isolation domain.
 
 ---
 
@@ -167,7 +168,6 @@ These constraints are the deliberate consequence of the **Mandatory `@Sendable`*
 
 ## 8. What remains
 
-- **P1-7**: `Recorded.arguments: [Any]` erasure in `InvocationRecorder` (memory-safe; logical cross-test isolation via the `.mocking` trait / `MockingTestCase`).
 - **P3 (tail)**: flip the macro host targets (`MockableGenerator`, `SwiftMockingMacros`, `SwiftMockingOptions`) to Swift 6 mode — compile-time tooling, low value. Explicit `Sendable` on the swift-testing trait structs. The `approximately` warning.
 - **P4**: the cleanup list above.
 - **§7 hardening**: TSan CI step, Swift 5 consumer lane, non-Sendable fixtures.
@@ -178,7 +178,7 @@ These constraints are the deliberate consequence of the **Mandatory `@Sendable`*
 ## 9. Evidence basis
 
 - Every fix in P0/P1 was demonstrated with Thread Sanitizer (`swift test --sanitize=thread --filter race_condition`): the new regression test races and aborts on the unfixed code, and is clean after. Ten `race_condition` guards now ship in the suite.
-- Full-suite verification after every increment: 156 XCTest + 6 swift-testing tests, 0 failures.
+- Full-suite verification after every increment: 163 XCTest + 6 swift-testing tests, 0 failures.
 - The generated-mock `Sendable` claim is verified by `test_generated_mock_of_sendable_protocol_is_sendable` (compile-time proof).
 - Swift 6 language-mode claims verified by clean `swift build` / `swift build --build-tests` under `.swiftLanguageMode(.v6)` for the library, test-support, and both test targets.
 - Compatibility statements in §4 follow from Swift semantics (per-module language modes; `Sendable` constraints are mode-independent, closure-capture checking happens in the caller's module) — the Swift 5 consumer lane in §7 exists to verify them continuously.
