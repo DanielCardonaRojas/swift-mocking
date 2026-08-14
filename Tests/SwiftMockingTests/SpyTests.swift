@@ -432,6 +432,29 @@ final class SpyTests: XCTestCase {
         group.wait()
     }
 
+    func test_spy_invocations_getter_concurrent_read_write_race_condition() {
+        // Regression guard: the public `invocations` getter must snapshot under the lock so
+        // external readers (e.g. cross-spy verification) do not race intake's appends.
+        let spy = Spy<Int, None, Void>()
+        spy.when(calledWith: .any).thenReturn(Void())
+        let queue = DispatchQueue(label: "com.swiftmocking.invocations_getter_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy(i)
+                _ = spy.invocations
+                group.leave()
+            }
+        }
+
+        group.wait()
+
+        XCTAssertEqual(spy.invocations.count, iterationCount)
+    }
+
     func test_spy_with_results_param() {
         let spy = Spy<Result<String, any Error>, None, Int>()
         

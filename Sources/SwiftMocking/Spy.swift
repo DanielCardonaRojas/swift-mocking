@@ -18,7 +18,9 @@ import Foundation
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
 public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
-    public private(set) var invocations: [Invocation<repeat each Input>] = []
+    private var _invocations: [Invocation<repeat each Input>] = []
+    /// A point-in-time snapshot of all ``Invocation``s captured by this spy.
+    public var invocations: [Invocation<repeat each Input>] { snapshotInvocations() }
     /// Guards post-init configuration (`isLoggingEnabled`, `defaultProviderRegistry`,
     /// `logger`) so the `@unchecked Sendable` conformance is honest: every read on the
     /// invoke path and every external write is serialized.
@@ -45,8 +47,15 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     /// Human-readable label for this spy, typically "ClassName.methodName"
     public private(set) var methodLabel: String?
 
-    private(set) var stubs: [Stub<repeat each Input, Effects, Output>] = []
-    private(set) var actions: [Action<repeat each Input, Effects>] = []
+    private var _stubs: [Stub<repeat each Input, Effects, Output>] = []
+    var stubs: [Stub<repeat each Input, Effects, Output>] { snapshotStubs() }
+
+    private var _actions: [Action<repeat each Input, Effects>] = []
+    var actions: [Action<repeat each Input, Effects>] {
+        actionsLock.lock()
+        defer { actionsLock.unlock() }
+        return Array(_actions)
+    }
     private var _defaultProviderRegistry: DefaultProvidableRegistry? = MockScope.fallbackValueRegistry
     public var defaultProviderRegistry: DefaultProvidableRegistry? {
         get { locked { _defaultProviderRegistry } }
@@ -61,7 +70,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     public var invocationCount: Int {
         invocationsLock.lock()
         defer { invocationsLock.unlock() }
-        return invocations.count
+        return _invocations.count
     }
 
     func configureLogger(label: String) {
@@ -109,7 +118,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         invocationsLock.lock()
         defer { invocationsLock.unlock() }
         let invocation = Invocation(arguments: repeat each input)
-        invocations.append(invocation)
+        _invocations.append(invocation)
 
         // Record in global timeline for cross-spy verification
         var argumentsArray: [Any] = []
@@ -137,7 +146,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     private func snapshotInvocations() -> [Invocation<repeat each Input>] {
         invocationsLock.lock()
         defer { invocationsLock.unlock() }
-        return Array(invocations)
+        return Array(_invocations)
     }
 
     /// Returns a deep, point-in-time copy of the registered stubs.
@@ -148,7 +157,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     private func snapshotStubs() -> [Stub<repeat each Input, Effects, Output>] {
         stubsLock.lock()
         defer { stubsLock.unlock() }
-        return Array(stubs)
+        return Array(_stubs)
     }
 
     private func matchingStub(invocation: Invocation<repeat each Input>) -> Stub<repeat each Input, Effects, Output>? {
@@ -166,7 +175,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     func matchingAction(invocation: Invocation<repeat each Input>) -> Action<repeat each Input, Effects>? {
         actionsLock.lock()
         defer { actionsLock.unlock() }
-        for action in actions.reversed().sorted(by: { $0.precedence > $1.precedence }) {
+        for action in _actions.reversed().sorted(by: { $0.precedence > $1.precedence }) {
             if action.invocationMatcher.isMatchedBy(invocation) {
                 return action
             }
@@ -194,7 +203,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         stubsLock.lock()
         defer { stubsLock.unlock() }
         let stub = Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
-        stubs.append(stub)
+        _stubs.append(stub)
         return stub
     }
 
@@ -202,13 +211,13 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         _ action: Action<repeat each Input, Effects>
     ) {
         actionsLock.lock()
-        actions.append(action)
+        _actions.append(action)
         actionsLock.unlock()
     }
 
     func removeAction(_ action: Action<repeat each Input, Effects>) {
         actionsLock.lock()
-        actions.removeAll { $0 === action }
+        _actions.removeAll { $0 === action }
         actionsLock.unlock()
     }
 
@@ -264,15 +273,15 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     /// locked appends in `intake`/`createStub`/`registerAction`. No locks are nested.
     public func clear() {
         stubsLock.lock()
-        stubs = []
+        _stubs = []
         stubsLock.unlock()
 
         actionsLock.lock()
-        actions = []
+        _actions = []
         actionsLock.unlock()
 
         invocationsLock.lock()
-        invocations = []
+        _invocations = []
         invocationsLock.unlock()
     }
 }
