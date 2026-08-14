@@ -3,6 +3,11 @@ import XCTest
 @testable import SwiftMocking
 import SwiftMockingTestSupport
 
+@Mockable
+protocol SendableService: Sendable {
+    func fetch(_ id: Int) async throws -> String
+}
+
 final class MockTests: MockingTestCase {
     func testSubscript_WhenSpyDoesNotExist_CreatesNewSpy() {
         let mock = Mock()
@@ -227,5 +232,17 @@ final class MockTests: MockingTestCase {
         }
 
         group.wait()
+    }
+
+    func test_generated_mock_of_sendable_protocol_is_sendable() {
+        // P2 verification: generated mocks inherit @unchecked Sendable from Mock, so a
+        // mock of a :Sendable protocol satisfies the Sendable requirement. The proof is
+        // compile-time: both statements below fail to compile if the mock is not Sendable.
+        let mock = MockSendableService()
+
+        let sendable: any Sendable = mock
+        let closure: @Sendable () -> Void = { _ = mock }
+
+        _ = (sendable, closure)
     }
 }

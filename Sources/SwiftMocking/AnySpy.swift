@@ -16,7 +16,7 @@
 /// - Managing logging configuration
 /// - Providing default value registries
 /// - Clearing recorded state
-public protocol AnySpy: AnyObject {
+public protocol AnySpy: AnyObject, Sendable {
     /// The registry used to provide default values for unstubbed method calls.
     var defaultProviderRegistry: DefaultProvidableRegistry? { get set }
 
