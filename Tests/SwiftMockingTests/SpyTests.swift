@@ -355,6 +355,31 @@ final class SpyTests: XCTestCase {
         XCTAssertEqual(spy.stubs.count, iterationCount)
     }
 
+    func test_spy_concurrent_read_write_race_condition() {
+        // Regression guard for the P0-1 fix: the inspection paths (`invocationCount`,
+        // `verify` -> `invocationCount(matching:)`) must be synchronized with the locked
+        // append in `intake`. Before the fix these reads were unlocked and raced the writer.
+        let spy = Spy<Int, None, Void>()
+        spy.when(calledWith: .any).thenReturn(Void())
+        let queue = DispatchQueue(label: "com.swiftmocking.verify_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy(i)
+                _ = spy.invocationCount
+                _ = spy.verify(calledWith: .equal(i), count: .any)
+                group.leave()
+            }
+        }
+
+        group.wait()
+
+        XCTAssertEqual(spy.invocations.count, iterationCount)
+    }
+
     func test_spy_with_results_param() {
         let spy = Spy<Result<String, any Error>, None, Int>()
         

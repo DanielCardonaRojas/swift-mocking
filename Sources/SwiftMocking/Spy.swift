@@ -35,7 +35,9 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     public var defaultProviderRegistry: DefaultProvidableRegistry? = MockScope.fallbackValueRegistry
     var logger: ((Invocation<repeat each Input>) -> Void)?
     public var invocationCount: Int {
-        invocations.count
+        invocationsLock.lock()
+        defer { invocationsLock.unlock() }
+        return invocations.count
     }
 
     func configureLogger(label: String) {
@@ -101,9 +103,30 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         return invocation
     }
 
+    /// Returns a point-in-time copy of the recorded invocations.
+    ///
+    /// The copy is taken under `invocationsLock` so that callers can iterate or match
+    /// against it without holding the lock (and without racing concurrent appends in
+    /// `intake`).
+    private func snapshotInvocations() -> [Invocation<repeat each Input>] {
+        invocationsLock.lock()
+        defer { invocationsLock.unlock() }
+        return invocations
+    }
+
+    /// Returns a point-in-time copy of the registered stubs.
+    ///
+    /// The copy is taken under `stubsLock` so that callers can match against it without
+    /// holding the lock (and without racing concurrent appends in `createStub`).
+    private func snapshotStubs() -> [Stub<repeat each Input, Effects, Output>] {
+        stubsLock.lock()
+        defer { stubsLock.unlock() }
+        return stubs
+    }
+
     private func matchingStub(invocation: Invocation<repeat each Input>) -> Stub<repeat each Input, Effects, Output>? {
         var matchingStub: Stub<repeat each Input, Effects, Output>?
-        for stub in stubs.reversed().sorted(by: { $0.precedence > $1.precedence }) {
+        for stub in snapshotStubs().reversed().sorted(by: { $0.precedence > $1.precedence }) {
             if stub.invocationMatcher.isMatchedBy(invocation) {
                 matchingStub = stub
                 break
@@ -172,7 +195,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     /// - Returns: `true` if the call count matches the criteria, `false` otherwise.
     public func verifyCalled(_ countMatcher: ArgMatcher<Int>? = nil) -> Bool {
         let matcher = countMatcher ?? .greaterThan(.zero)
-        return matcher(invocations.count)
+        return matcher(invocationCount)
     }
 
     /// Verifies that the spy's method was called with specific arguments and a specific call count.
@@ -200,7 +223,7 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
     /// - Returns: The number of matching invocations.
     func invocationCount(matching invocationMatcher: InvocationMatcher<repeat each Input>) -> Int {
         var count = 0
-        for invocation in invocations {
+        for invocation in snapshotInvocations() {
             if invocationMatcher.isMatchedBy(invocation) {
                 count += 1
             }
@@ -208,11 +231,22 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         return count
     }
 
-    /// Clear stubs and invocations,  leaving the spy in a fresh state.
+    /// Clear stubs and invocations, leaving the spy in a fresh state.
+    ///
+    /// Each collection is reset under its own lock so the reassignment cannot race the
+    /// locked appends in `intake`/`createStub`/`registerAction`. No locks are nested.
     public func clear() {
+        stubsLock.lock()
         stubs = []
+        stubsLock.unlock()
+
+        actionsLock.lock()
         actions = []
+        actionsLock.unlock()
+
+        invocationsLock.lock()
         invocations = []
+        invocationsLock.unlock()
     }
 }
 
@@ -244,8 +278,8 @@ extension Spy where Effects == Throws {
     /// - Returns: `true` if a matching error was thrown, `false` otherwise.
     public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool {
         var doesThrow = false
-        for invocation in invocations {
-            for stub in stubs where stub.invocationMatcher.isMatchedBy(invocation) {
+        for invocation in snapshotInvocations() {
+            for stub in snapshotStubs() where stub.invocationMatcher.isMatchedBy(invocation) {
                 guard let stubbedReturn = stub.returnValue(for: invocation) else {
                     continue
                 }
@@ -370,8 +404,8 @@ extension Spy where Effects == AsyncThrows {
     /// - Returns: `true` if a matching error was thrown, `false` otherwise.
     public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool {
         var doesThrow = false
-        for invocation in invocations {
-            for stub in stubs where stub.invocationMatcher.isMatchedBy(invocation) {
+        for invocation in snapshotInvocations() {
+            for stub in snapshotStubs() where stub.invocationMatcher.isMatchedBy(invocation) {
                 guard let stubbedReturn = stub.returnValue(for: invocation) else {
                     continue
                 }
