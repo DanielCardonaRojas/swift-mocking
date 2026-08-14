@@ -207,4 +207,25 @@ final class MockTests: MockingTestCase {
 
         group.wait()
     }
+
+    func test_mock_spies_getter_concurrent_read_write_race_condition() {
+        // Regression guard: the public `spies` getter and instance config properties
+        // (isLoggingEnabled, defaultProviderRegistry) must be synchronized with the subscript.
+        let mock = Mock()
+        let queue = DispatchQueue(label: "com.swiftmocking.mock_spies_getter_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                let _: Spy<Int, None, Void> = mock[dynamicMember: "fn\(i)"]
+                _ = mock.spies
+                mock.isLoggingEnabled = (i % 2 == 0)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
 }

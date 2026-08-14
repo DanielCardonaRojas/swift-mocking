@@ -24,7 +24,7 @@ import Foundation
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
 ///
 @dynamicMemberLookup
-open class Mock: DefaultProvider {
+open class Mock: DefaultProvider, @unchecked Sendable {
     /// This provides a way to access super as if it where in a static context.
     ///
     ///  `super.myProtocolFunc` will use the instance subscript to create/read a spy when it is used in a non static context.
@@ -33,22 +33,41 @@ open class Mock: DefaultProvider {
         Self.self as Mock.Type
     }
 
-    public var defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
+    /// Guards post-init instance configuration (`defaultProviderRegistry`,
+    /// `isLoggingEnabled`) so the @unchecked Sendable conformance is honest.
+    private let configLock = NSLock()
+
+    private func locked<T>(_ body: () throws -> T) rethrows -> T {
+        configLock.lock()
+        defer { configLock.unlock() }
+        return try body()
+    }
+
+    private var _defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
+    public var defaultProviderRegistry: DefaultProvidableRegistry {
+        get { locked { _defaultProviderRegistry } }
+        set { locked { _defaultProviderRegistry = newValue } }
+    }
     public static var defaultProviderRegistry: DefaultProvidableRegistry {
         MockScope.fallbackValueRegistry
     }
 
     /// Stores spies per protocol  requirement. Keys are function or variable names.
-    private(set) var spies: [String: [AnySpy]] = [:]
+    private var _spies: [String: [AnySpy]] = [:]
+    /// A point-in-time snapshot of the spies managed by this mock.
+    var spies: [String: [AnySpy]] { snapshotSpies() }
 
     private static let lock = NSLock()
     private let lock = NSLock()
 
-    public var isLoggingEnabled: Bool = false {
-        didSet {
-        for spyGroup in snapshotSpies().values {
-            spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
-        }
+    private var _isLoggingEnabled = false
+    public var isLoggingEnabled: Bool {
+        get { locked { _isLoggingEnabled } }
+        set {
+            locked { _isLoggingEnabled = newValue }
+            for spyGroup in snapshotSpies().values {
+                spyGroup.forEach { $0.isLoggingEnabled = newValue }
+            }
         }
     }
 
@@ -96,7 +115,7 @@ open class Mock: DefaultProvider {
     private func snapshotSpies() -> [String: [AnySpy]] {
         lock.lock()
         defer { lock.unlock() }
-        return spies.mapValues { Array($0) }
+        return _spies.mapValues { Array($0) }
     }
 
     static var spies: [String: [AnySpy]] {
@@ -116,14 +135,14 @@ open class Mock: DefaultProvider {
     public subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
         lock.lock()
         defer { lock.unlock() }
-        if let existingSpy = spies[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> })  {
+        if let existingSpy = _spies[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> })  {
             return existingSpy
         } else {
             let methodLabel = "\(Self.self).\(member)"
             let spy = Spy<repeat each Input, Eff, Output>(label: methodLabel)
             spy.isLoggingEnabled = isLoggingEnabled
             spy.defaultProviderRegistry = defaultProviderRegistry
-            spies[member, default: []].append(spy)
+            _spies[member, default: []].append(spy)
             return spy
         }
     }
