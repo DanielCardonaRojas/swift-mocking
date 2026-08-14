@@ -94,5 +94,11 @@ let package = Package(
             .product(name: "MacroTesting", package: "swift-macro-testing"),
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
         ], swiftSettings: [.swiftLanguageMode(.v6)])
+        ,
+        .testTarget(
+            name: "Swift5CompatTests",
+            dependencies: ["SwiftMocking"],
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        )
     ]
 )
