@@ -42,6 +42,8 @@ jobs:
           -derivedDataPath .derivedData \
           -enableCodeCoverage NO \
           clean test
+    - name: Run race-condition guards under Thread Sanitizer
+      run: swift test --sanitize=thread --filter race_condition
     - name: Run Examples project tests
       run: |
         cd Examples/
