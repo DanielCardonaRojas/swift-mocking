@@ -168,9 +168,9 @@ struct ExampleTests {
         let mockCalculator = MockCalculator()
         let even = ArgMatcher<Int>.any(that: { $0 % 2 == 0 })
         let odd = ArgMatcher<Int>.any(that: { $0 % 2 == 1 })
-        when(mockCalculator.calculate(odd, odd)).thenReturn(*)
-        when(mockCalculator.calculate(even, even)).thenReturn(-)
-        when(mockCalculator.calculate(.any, .any)).thenReturn(+)
+        when(mockCalculator.calculate(odd, odd)).thenReturn { lhs, rhs in lhs * rhs }
+        when(mockCalculator.calculate(even, even)).thenReturn { lhs, rhs in lhs - rhs }
+        when(mockCalculator.calculate(.any, .any)).thenReturn { lhs, rhs in lhs + rhs }
 
         #expect(mockCalculator.calculate(3, 3) == 9, "Multiplies because both are odd")
         #expect(mockCalculator.calculate(3, 4) == 7, "Sums because one is odd the other even")
