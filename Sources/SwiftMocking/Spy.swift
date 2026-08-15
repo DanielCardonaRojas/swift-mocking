@@ -120,11 +120,10 @@ public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendab
         let invocation = Invocation(arguments: repeat each input)
         _invocations.append(invocation)
 
-        // Record in global timeline for cross-spy verification
-        var argumentsArray: [Any] = []
-        for argument in repeat each input {
-            argumentsArray.append(argument)
-        }
+        // Record in global timeline for cross-spy verification.
+        // Pack iteration via for-in is Swift 6+; expanding the pack into a variadic
+        // helper's argument list is the Swift 5.9-compatible bridge.
+        let argumentsArray = anyList(repeat each input)
 
         MockScope.invocationRecorder.record(
             spyID: self.spyID,
@@ -462,4 +461,20 @@ extension Spy where Effects == AsyncThrows {
     public func verifyThrows() async -> Bool {
         await verifyThrows(.anyError())
     }
+}
+
+/// Swift 5.9-compatible pack bridge. The tuple-literal expansion `(repeat each values)`
+/// is legal on old compilers; Mirror then flattens it. The leading `0` keeps the tuple
+/// a real tuple even at pack arity 1 (Swift collapses 1-tuples to the bare element).
+/// On Swift 6+ the fast for-in pack iteration is used instead.
+func anyList<each T>(_ values: repeat each T) -> [Any] {
+    #if swift(>=6.0)
+    var result: [Any] = []
+    for value in repeat each values {
+        result.append(value)
+    }
+    return result
+    #else
+    return Mirror(reflecting: (0, repeat each values)).children.dropFirst().map(\.value)
+    #endif
 }

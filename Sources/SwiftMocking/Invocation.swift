@@ -22,13 +22,9 @@ public struct Invocation<each Input>: CustomDebugStringConvertible {
     /// Unique identifier for this specific invocation
     public let invocationID: UUID = UUID()
     public var debugDescription: String {
-        var argStrings = [String]()
-        for argument in repeat each arguments {
-            argStrings.append("\(argument)")
-        }
-        let formattedDescription = "(" + argStrings.joined(separator: ", ") + ")"
-        return formattedDescription
-
+        // Swift 5.9-compatible pack bridge (for-in over packs requires Swift 6).
+        let argStrings = anyList(repeat each arguments).map { "\($0)" }
+        return "(" + argStrings.joined(separator: ", ") + ")"
     }
 
     /// The arguments passed to the function.
