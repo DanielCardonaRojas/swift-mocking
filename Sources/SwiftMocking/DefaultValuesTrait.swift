@@ -5,9 +5,8 @@
 //  Created by Daniel Cardona on 18/10/25.
 //
 
+#if swift(>=6.1) && canImport(Testing)
 import Testing
-
-#if swift(>=6.1)
 /// A test trait that provides test-scoped default values for unstubbed mock methods.
 ///
 /// This trait allows you to inject specific default values that will be returned by unstubbed mocks
