@@ -3,6 +3,11 @@ import XCTest
 @testable import SwiftMocking
 import SwiftMockingTestSupport
 
+@Mockable
+protocol SendableService: Sendable {
+    func fetch(_ id: Int) async throws -> String
+}
+
 final class MockTests: MockingTestCase {
     func testSubscript_WhenSpyDoesNotExist_CreatesNewSpy() {
         let mock = Mock()
@@ -160,5 +165,101 @@ final class MockTests: MockingTestCase {
         group.wait()
 
         XCTAssertEqual(mock.spies.count, 1)
+    }
+
+    func test_mock_concurrent_clear_race_condition() {
+        // Regression guard for P0-3: instance `clear()` reads `spies` and must be
+        // synchronized with the locked writer in `subscript(dynamicMember:)`.
+        let mock = Mock()
+        let queue = DispatchQueue(label: "com.swiftmocking.mock_clear_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                let _: Spy<Int, None, Void> = mock[dynamicMember: "fn\(i)"]
+                if i % 10 == 0 {
+                    mock.clear()
+                }
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
+
+    func test_mock_adapter_concurrent_invoke_race_condition() {
+        // Regression guard for P0-5: adapt() must not rewrite spy.defaultProviderRegistry
+        // on every call. It raced concurrent invokes and the invoke-time read of the same
+        // property; the registry is now captured once at spy creation.
+        final class AdapterMock: Mock {
+            @discardableResult
+            func echo(_ x: Int) -> Int { adapt(super.echo, x) }
+        }
+        let mock = AdapterMock()
+        let queue = DispatchQueue(label: "com.swiftmocking.adapter_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                _ = mock.echo(i)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
+
+    func test_mock_spies_getter_concurrent_read_write_race_condition() {
+        // Regression guard: the public `spies` getter and instance config properties
+        // (isLoggingEnabled, defaultProviderRegistry) must be synchronized with the subscript.
+        let mock = Mock()
+        let queue = DispatchQueue(label: "com.swiftmocking.mock_spies_getter_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                let _: Spy<Int, None, Void> = mock[dynamicMember: "fn\(i)"]
+                _ = mock.spies
+                mock.isLoggingEnabled = (i % 2 == 0)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
+
+    func test_generated_mock_of_sendable_protocol_is_sendable() {
+        // P2 verification: generated mocks inherit @unchecked Sendable from Mock, so a
+        // mock of a :Sendable protocol satisfies the Sendable requirement. The proof is
+        // compile-time: both statements below fail to compile if the mock is not Sendable.
+        let mock = MockSendableService()
+
+        let sendable: any Sendable = mock
+        let closure: @Sendable () -> Void = { _ = mock }
+
+        _ = (sendable, closure)
+    }
+
+    func test_registryUpdatePropagatesToExistingSpies() {
+        // Regression guard (PR review): spies created before the mock's registry changes
+        // must observe the update — the adapters no longer refresh the registry per call.
+        final class RegistryMock: Mock {
+            @discardableResult
+            func echo() -> String { adapt(super.echo) }
+        }
+        let mock = RegistryMock()
+        _ = mock.echo() // creates the spy with the default registry ("" default for String)
+
+        var registry = DefaultProvidableRegistry()
+        registry.register(DefaultProviding(String.self, create: { "custom" }))
+        mock.defaultProviderRegistry = registry
+
+        XCTAssertEqual(mock.echo(), "custom")
     }
 }

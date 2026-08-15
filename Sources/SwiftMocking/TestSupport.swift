@@ -297,7 +297,7 @@ public extension Assert where Eff == AsyncThrows {
 private func withUntilTimeout<each Input, Eff: Effect>(
     interaction: Interaction<repeat each Input, Eff, some Any>,
     timeout: Duration,
-    actionHandler: @escaping (Action<repeat each Input, Eff>, FulfillmentTracker, @escaping () -> Void) -> Void
+    actionHandler: @escaping @Sendable (Action<repeat each Input, Eff>, FulfillmentTracker, @escaping @Sendable () -> Void) -> Void
 ) async throws
 where repeat each Input: Sendable
 {
@@ -312,7 +312,7 @@ where repeat each Input: Sendable
             }
         }
 
-        let cleanup = {
+        let cleanup: @Sendable () -> Void = {
             timer.cancel()
             interaction.spy.removeAction(actionReference)
             continuation.resume()

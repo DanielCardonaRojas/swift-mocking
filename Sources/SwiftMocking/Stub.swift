@@ -5,6 +5,8 @@
 //  Created by Daniel Cardona on 4/07/25.
 //
 
+import Foundation
+
 /// A ``Stub`` is a type that provides a pre-canned answer for a single method.
 ///
 /// You use stubs to control the behavior of a dependency during a test. For example, you can stub a method to return a specific value, or to throw an error.
@@ -13,7 +15,27 @@
 public class Stub<each I, Effects: Effect, O> {
     /// The ``InvocationMatcher`` that defines when this stub should be applied.
     public let invocationMatcher: InvocationMatcher<repeat each I>
-    var output: ((Invocation<repeat each I>) -> Return<Effects, O>)?
+    private let outputLock = NSLock()
+    private var _output: (@Sendable (Invocation<repeat each I>) -> Return<Effects, O>)?
+
+    /// The closure that produces this stub's return value.
+    ///
+    /// Access is synchronized through `outputLock`. A stub is appended to `Spy.stubs`
+    /// *before* `output` is set (in `thenReturn`), so a concurrent `invoke` can read it;
+    /// the lock makes that read and the `thenReturn` write mutually exclusive. The closure
+    /// is read under the lock and invoked outside it so user code never runs under the lock.
+    var output: (@Sendable (Invocation<repeat each I>) -> Return<Effects, O>)? {
+        get {
+            outputLock.lock()
+            defer { outputLock.unlock() }
+            return _output
+        }
+        set {
+            outputLock.lock()
+            defer { outputLock.unlock() }
+            _output = newValue
+        }
+    }
 
     /// Initializes a `Stub` instance.
     /// - Parameter invocationMatcher: The ``InvocationMatcher`` that determines when this stub is active.
@@ -42,7 +64,7 @@ public class Stub<each I, Effects: Effect, O> {
 extension Stub where Effects == None {
     /// Defines the return value for this stub.
     /// - Parameter output: The value to return when this stub is matched.
-    public func thenReturn(_ output: O) {
+    public func thenReturn(_ output: O) where O: Sendable {
         self.output = { _ in  Return.value(output) }
     }
 
@@ -53,7 +75,7 @@ extension Stub where Effects == None {
     /// as the original method and can compute a return value based on them.
     ///
     /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
-    public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O) {
         self.output = { invocation in
             let returnValue = handler(repeat each invocation.arguments)
             return Return.value(returnValue)
@@ -65,7 +87,7 @@ extension Stub where Effects == None {
 extension Stub where Effects == Throws {
     /// Defines the return value for this stub.
     /// - Parameter output: The value to return when this stub is matched.
-    public func thenReturn(_ output: O) {
+    public func thenReturn(_ output: O) where O: Sendable {
         self.output = { _ in  Return.value(output) }
     }
 
@@ -76,7 +98,7 @@ extension Stub where Effects == Throws {
     /// as the original method and can compute a return value based on them.
     ///
     /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
-    public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O) {
         self.output = { invocation in
             let returnValue = handler(repeat each invocation.arguments)
             return Return.value(returnValue)
@@ -85,13 +107,13 @@ extension Stub where Effects == Throws {
 
     /// Defines an error to be thrown when this stub is matched.
     /// - Parameter error: The error to throw.
-    public func thenThrow<E: Error>(_ error: E) {
+    public func thenThrow<E: Error & Sendable>(_ error: E) {
         self.output = { _ in  Return.error(error) }
     }
 
     /// Defines a dynamic return value that can throw before producing the result.
     /// - Parameter handler: A closure that can throw and returns the desired output.
-    public func thenReturn(_ handler: @escaping (repeat each I) throws -> O) {
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws -> O) where repeat each I: Sendable {
         self.output = { invocation in
             Return(throwingValue: {
                 try handler(repeat each invocation.arguments)
@@ -103,7 +125,7 @@ extension Stub where Effects == Throws {
 extension Stub where Effects == Async {
     /// Defines the return value for this stub.
     /// - Parameter output: The value to return when this stub is matched.
-    public func thenReturn(_ output: O) {
+    public func thenReturn(_ output: O) where O: Sendable {
         self.output = { _ in  Return.value(output) }
     }
 
@@ -114,7 +136,7 @@ extension Stub where Effects == Async {
     /// as the original method and can compute a return value based on them.
     ///
     /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
-    public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O) {
         self.output = { invocation in
             let returnValue = handler(repeat each invocation.arguments)
             return Return.value(returnValue)
@@ -122,7 +144,7 @@ extension Stub where Effects == Async {
     }
     /// Defines a dynamic return value using an asynchronous closure.
     /// - Parameter handler: An async closure that returns the desired output.
-    public func thenReturn(_ handler: @escaping (repeat each I) async -> O) {
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I: Sendable {
         self.output = { invocation in
             Return(asyncValue: {
                 await handler(repeat each invocation.arguments)
@@ -134,7 +156,7 @@ extension Stub where Effects == Async {
 extension Stub where Effects == AsyncThrows {
     /// Defines the return value for this stub.
     /// - Parameter output: The value to return when this stub is matched.
-    public func thenReturn(_ output: O) {
+    public func thenReturn(_ output: O) where O: Sendable {
         self.output = { _ in  Return.value(output) }
     }
 
@@ -145,7 +167,7 @@ extension Stub where Effects == AsyncThrows {
     /// as the original method and can compute a return value based on them.
     ///
     /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
-    public func thenReturn(_ handler: @escaping (repeat each I) -> O) {
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O) {
         self.output = { invocation in
             let returnValue = handler(repeat each invocation.arguments)
             return Return.value(returnValue)
@@ -153,13 +175,13 @@ extension Stub where Effects == AsyncThrows {
     }
     /// Defines an error to be thrown when this stub is matched.
     /// - Parameter error: The error to throw.
-    public func thenThrow<E: Error>(_ error: E) {
+    public func thenThrow<E: Error & Sendable>(_ error: E) {
         self.output = { _ in Return.error(error) }
     }
 
     /// Defines a dynamic return value using an asynchronous closure.
     /// - Parameter handler: An async closure that returns the desired output.
-    public func thenReturn(_ handler: @escaping (repeat each I) async -> O) {
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I: Sendable {
         self.output = { invocation in
             Return(asyncValue: {
                 await handler(repeat each invocation.arguments)
@@ -169,7 +191,7 @@ extension Stub where Effects == AsyncThrows {
 
     /// Defines a dynamic return value using an asynchronous closure that can throw.
     /// - Parameter handler: An async closure that returns the desired output or throws.
-    public func thenReturn(_ handler: @escaping (repeat each I) async throws -> O) {
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws -> O) where repeat each I: Sendable {
         self.output = { invocation in
             Return(asyncThrowingValue: {
                 try await handler(repeat each invocation.arguments)

@@ -6,7 +6,7 @@
 //
 
 /// Represents an error that occurred during mocking or verification.
-public struct MockingError: Error, Equatable {
+public struct MockingError: Error, Equatable, Sendable {
     public static func == (lhs: MockingError, rhs: MockingError) -> Bool {
         return lhs.message == rhs.message
     }
@@ -44,6 +44,6 @@ public struct MockingError: Error, Equatable {
 }
 
 /// An error thrown when `until` fails to observe a matching interaction before timing out.
-public enum UntilError: Error {
+public enum UntilError: Error, Sendable {
     case timeout
 }

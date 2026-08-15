@@ -24,7 +24,7 @@ import Foundation
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
 ///
 @dynamicMemberLookup
-open class Mock: DefaultProvider {
+open class Mock: DefaultProvider, @unchecked Sendable {
     /// This provides a way to access super as if it where in a static context.
     ///
     ///  `super.myProtocolFunc` will use the instance subscript to create/read a spy when it is used in a non static context.
@@ -33,37 +33,95 @@ open class Mock: DefaultProvider {
         Self.self as Mock.Type
     }
 
-    public var defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
+    /// Guards post-init instance configuration (`defaultProviderRegistry`,
+    /// `isLoggingEnabled`) so the @unchecked Sendable conformance is honest.
+    private let configLock = NSLock()
+
+    private func locked<T>(_ body: () throws -> T) rethrows -> T {
+        configLock.lock()
+        defer { configLock.unlock() }
+        return try body()
+    }
+
+    private var _defaultProviderRegistry: DefaultProvidableRegistry = MockScope.fallbackValueRegistry
+    public var defaultProviderRegistry: DefaultProvidableRegistry {
+        get { locked { _defaultProviderRegistry } }
+        set {
+            locked { _defaultProviderRegistry = newValue }
+            for spyGroup in snapshotSpies().values {
+                spyGroup.forEach { $0.defaultProviderRegistry = newValue }
+            }
+        }
+    }
     public static var defaultProviderRegistry: DefaultProvidableRegistry {
         MockScope.fallbackValueRegistry
     }
 
     /// Stores spies per protocol  requirement. Keys are function or variable names.
-    private(set) var spies: [String: [AnySpy]] = [:]
+    private var _spies: [String: [AnySpy]] = [:]
+    /// A point-in-time snapshot of the spies managed by this mock.
+    var spies: [String: [AnySpy]] { snapshotSpies() }
 
     private static let lock = NSLock()
     private let lock = NSLock()
 
-    public var isLoggingEnabled: Bool = false {
-        didSet {
-            for spyGroup in spies.values {
-                spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled})
+    private var _isLoggingEnabled = false
+    public var isLoggingEnabled: Bool {
+        get { locked { _isLoggingEnabled } }
+        set {
+            locked { _isLoggingEnabled = newValue }
+            for spyGroup in snapshotSpies().values {
+                spyGroup.forEach { $0.isLoggingEnabled = newValue }
             }
         }
     }
 
-    nonisolated(unsafe) public static var isLoggingEnabled: Bool = false {
-        didSet {
+    // NOTE: Using nonisolated(unsafe) here because Swift 6 strict concurrency
+    // does not allow static mutable properties without proper isolation.
+    // The actual thread safety is provided by the NSLock-based synchronization
+    // in the computed property below. This is a known limitation and a
+    // future improvement would be to use an actor for this state.
+    private static let loggingLock = NSLock()
+    private nonisolated(unsafe) static var _isLoggingEnabled: Bool = false
+
+    /// Thread-safe access to static logging enabled state.
+    ///
+    /// Uses NSLock-based synchronization to prevent data races when
+    /// multiple threads access or modify the logging state concurrently.
+    public static var isLoggingEnabled: Bool {
+        get {
+            loggingLock.lock()
+            defer { loggingLock.unlock() }
+            return _isLoggingEnabled
+        }
+        set {
+            loggingLock.lock()
+            defer { loggingLock.unlock() }
+            _isLoggingEnabled = newValue
+            // Propagate to existing spies
             let provider = MockScope.storageProvider
             for dict in provider.storage.values {
                 for spyGroup in dict.values {
-                    spyGroup.forEach({ $0.isLoggingEnabled = isLoggingEnabled })
+                    spyGroup.forEach({ $0.isLoggingEnabled = newValue })
                 }
             }
         }
     }
 
     public init() { }
+
+    /// Returns a deep, point-in-time copy of the instance spy storage.
+    ///
+    /// The copy is taken under `lock` and fully disconnects its storage from `spies`
+    /// (a fresh dictionary of fresh arrays) so callers can iterate it outside the lock
+    /// without racing the locked writes in `subscript(dynamicMember:)` — including the
+    /// dictionary resize those writes trigger, which operates on shared CoW storage if a
+    /// shallow copy escapes the lock.
+    private func snapshotSpies() -> [String: [AnySpy]] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _spies.mapValues { Array($0) }
+    }
 
     static var spies: [String: [AnySpy]] {
         let provider = MockScope.storageProvider
@@ -82,14 +140,14 @@ open class Mock: DefaultProvider {
     public subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
         lock.lock()
         defer { lock.unlock() }
-        if let existingSpy = spies[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> })  {
+        if let existingSpy = _spies[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> })  {
             return existingSpy
         } else {
             let methodLabel = "\(Self.self).\(member)"
             let spy = Spy<repeat each Input, Eff, Output>(label: methodLabel)
             spy.isLoggingEnabled = isLoggingEnabled
             spy.defaultProviderRegistry = defaultProviderRegistry
-            spies[member, default: []].append(spy)
+            _spies[member, default: []].append(spy)
             return spy
         }
     }
@@ -128,7 +186,7 @@ open class Mock: DefaultProvider {
     /// Call this method in your test's `tearDown` to ensure that each test starts with a
     /// clean mock object, free from any interactions or stubs from previous tests.
     public func clear() {
-        for spyGroup in spies.values {
+        for spyGroup in snapshotSpies().values {
             spyGroup.forEach { $0.clear() }
         }
     }

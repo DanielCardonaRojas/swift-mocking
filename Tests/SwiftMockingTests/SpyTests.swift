@@ -51,7 +51,7 @@ final class SpyTests: XCTestCase {
         // Order of these does not matter since they have different precedence values
         spy.when(calledWith: .any).thenReturn(7)
         spy.when(calledWith: "hello").thenReturn(13)
-        spy.when(calledWith: .any(that: { $0.count > 8 })).thenReturn(17)
+        spy.when(calledWith: .any(that: { @Sendable (input: String) in input.count > 8 })).thenReturn(17)
 
         // Ensure matcher .any has lower priority
         XCTAssertEqual(spy("hello"), 13) // should be matched by .equal matcher
@@ -195,8 +195,22 @@ final class SpyTests: XCTestCase {
     }
 
     func test_whenHelperFiltersSpecificInteraction() {
+        final class CaptureBox: @unchecked Sendable {
+            private let lock = NSLock()
+            private var items: [String] = []
+            func append(_ item: String) {
+                lock.lock()
+                items.append(item)
+                lock.unlock()
+            }
+            var values: [String] {
+                lock.lock()
+                defer { lock.unlock() }
+                return items
+            }
+        }
         let spy = Spy<String, None, Void>()
-        var captured: [String] = []
+        let captured = CaptureBox()
 
         when(spy(.equal("track"))).do({ value in
             captured.append(value)
@@ -205,7 +219,7 @@ final class SpyTests: XCTestCase {
         spy("track")
         spy("skip")
 
-        XCTAssertEqual(captured, ["track"])
+        XCTAssertEqual(captured.values, ["track"])
     }
 
     func test_await_until() async throws {
@@ -353,6 +367,106 @@ final class SpyTests: XCTestCase {
         group.wait()
 
         XCTAssertEqual(spy.stubs.count, iterationCount)
+    }
+
+    func test_spy_concurrent_read_write_race_condition() {
+        // Regression guard for the P0-1 fix: the inspection paths (`invocationCount`,
+        // `verify` -> `invocationCount(matching:)`) must be synchronized with the locked
+        // append in `intake`. Before the fix these reads were unlocked and raced the writer.
+        let spy = Spy<Int, None, Void>()
+        spy.when(calledWith: .any).thenReturn(Void())
+        let queue = DispatchQueue(label: "com.swiftmocking.verify_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy(i)
+                _ = spy.invocationCount
+                _ = spy.verify(calledWith: .equal(i), count: .any)
+                group.leave()
+            }
+        }
+
+        group.wait()
+
+        XCTAssertEqual(spy.invocations.count, iterationCount)
+    }
+
+    func test_stub_output_reassign_invoke_race_condition() {
+        // Regression guard for P0-4: Stub.output is reassigned during arrangement
+        // (thenReturn) and read during invoke (returnValue). A stub becomes visible in
+        // spy.stubs before its output is set, so concurrent stub + invoke raced the slot.
+        let spy = Spy<Int, None, String>()
+        spy.when(calledWith: .any).thenReturn("seed")
+        let queue = DispatchQueue(label: "com.swiftmocking.stub_output_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy.when(calledWith: .any).thenReturn("v\(i)")
+                group.leave()
+            }
+            group.enter()
+            queue.async {
+                _ = spy(i)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
+
+    func test_spy_config_concurrent_set_invoke_race_condition() {
+        // Regression guard for P1: isLoggingEnabled and defaultProviderRegistry are public
+        // settable and read on the invoke path; both must be synchronized.
+        let spy = Spy<Int, None, String>()
+        let registry = DefaultProvidableRegistry.default
+        let queue = DispatchQueue(label: "com.swiftmocking.spy_config_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy.isLoggingEnabled = (i % 2 == 0)
+                spy.defaultProviderRegistry = registry
+                group.leave()
+            }
+            group.enter()
+            queue.async {
+                _ = spy(i)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
+
+    func test_spy_invocations_getter_concurrent_read_write_race_condition() {
+        // Regression guard: the public `invocations` getter must snapshot under the lock so
+        // external readers (e.g. cross-spy verification) do not race intake's appends.
+        let spy = Spy<Int, None, Void>()
+        spy.when(calledWith: .any).thenReturn(Void())
+        let queue = DispatchQueue(label: "com.swiftmocking.invocations_getter_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                spy(i)
+                _ = spy.invocations
+                group.leave()
+            }
+        }
+
+        group.wait()
+
+        XCTAssertEqual(spy.invocations.count, iterationCount)
     }
 
     func test_spy_with_results_param() {

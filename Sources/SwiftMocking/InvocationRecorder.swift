@@ -11,6 +11,11 @@ import Foundation
 ///
 /// This lightweight struct captures essential information about method calls across all spies,
 /// enabling cross-spy call order verification while maintaining performance.
+///
+/// - Note: The `arguments` array contains type-erased `Any` values and is therefore
+///   deliberately NOT Sendable: recorded payloads may carry shared references across
+///   isolation domains, and the recorder's lock protects the recording list, not the
+///   referenced values.
 public struct Recorded {
     /// Sequential index in the global timeline
     public let index: Int
@@ -50,6 +55,13 @@ public struct Recorded {
 ///
 /// By default, a task-local instance is accessed via `MockScope.invocationRecorder` to provide
 /// automatic test isolation. Tests can override the recorder instance using MockScope scoped methods.
+///
+/// ## Thread Safety
+/// All public methods are thread-safe through NSLock-based synchronization.
+/// The `@unchecked Sendable` conformance is safe because:
+/// - All mutable state is protected by `lock`
+/// - All public methods properly acquire and release the lock
+/// - The lock is always released using `defer` to ensure cleanup on early returns
 public final class InvocationRecorder: @unchecked Sendable {
     /// Shared instance used as the default for the task-local current recorder
     public static let shared = InvocationRecorder()
