@@ -1,22 +1,13 @@
-// swift-tools-version: 6.1
+// swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 import CompilerPluginSupport
 
-// Conditional compilation settings based on Swift version
-// The -O flag enables optimizations which allows @inline(__always) to work correctly.
-// We use @inline(__always) to ensure fatalError() calls for unstubbed values are surfaced
-// in the client code stack traces, not in SwiftMocking's internal code.
-// This improves debugging by showing errors at the call site in user tests.
-// Applies to unstubbed non-throwing spies (Async and None effects).
-// Only enabled for Swift 6.2+ to avoid compiler issues in earlier versions.
 var swiftSettings: [SwiftSetting] = [
-    .swiftLanguageMode(.v6)
+    .enableUpcomingFeature("StrictConcurrency"),
+    .enableUpcomingFeature("StrictConcurrencyComplete")
 ]
-#if swift(>=6.2)
-swiftSettings.append(.unsafeFlags(["-O"]))
-#endif
 
 let package = Package(
     name: "swift-mocking",
@@ -28,7 +19,6 @@ let package = Package(
         .macCatalyst(.v13)
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "SwiftMocking",
             targets: ["SwiftMocking"]
@@ -43,7 +33,6 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.5"),
         .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.6.0")
-
     ],
     targets: [
         .target(
@@ -60,8 +49,7 @@ let package = Package(
             name: "SwiftMockingTestSupport",
             dependencies: [
                 "SwiftMocking"
-            ],
-            swiftSettings: [.swiftLanguageMode(.v6)]
+            ]
         ),
         .target(name: "SwiftMockingOptions"),
         .target(
@@ -85,20 +73,17 @@ let package = Package(
             dependencies: [
                 "SwiftMocking",
                 "SwiftMockingTestSupport",
-            ],
-            swiftSettings: [.swiftLanguageMode(.v6)]
+            ]
         ),
         .testTarget(name: "SwiftMockingMacrosTests", dependencies: [
             "SwiftMocking",
             "SwiftMockingMacros",
             .product(name: "MacroTesting", package: "swift-macro-testing"),
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
-        ], swiftSettings: [.swiftLanguageMode(.v6)])
-        ,
+        ]),
         .testTarget(
             name: "Swift5CompatTests",
-            dependencies: ["SwiftMocking"],
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            dependencies: ["SwiftMocking"]
         )
     ]
 )
