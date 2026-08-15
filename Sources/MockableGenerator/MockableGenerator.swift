@@ -16,14 +16,14 @@ public enum MockableGenerator {
     /// ```
     /// This function will generate the following structure:
     /// ```swift
-    ///class PricingServiceMock: Mock, PricingService {
+    /// class PricingServiceMock: Mock, @unchecked Sendable, PricingService {
     ///     func price(_ item: String) throws -> Int {
     ///         return try adaptThrowing(super.price, item)
     ///     }
     ///     func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
     ///         Interaction(item, spy: super.price)
     ///     }
-    ///}
+    /// }
     /// ```
     public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
         let protocolName = protocolDecl.name.text
@@ -46,6 +46,11 @@ public enum MockableGenerator {
         let interactions = makeInteractions(protocolDecl: protocolDecl)
         let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
 
+        var members = [MemberBlockItemSyntax]()
+        members.append(contentsOf: typeAliases.map { MemberBlockItemSyntax(decl: $0) })
+        members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
+        members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
+
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
             name: TokenSyntax.identifier(mockName),
@@ -59,17 +64,23 @@ public enum MockableGenerator {
                         trailingComma: .commaToken()
                     ),
                     InheritedTypeSyntax(
+                        // `Mock` is `@unchecked Sendable`; subclasses must restate the
+                        // conformance to stay warning-free under Swift 6 concurrency.
+                        type: AttributedTypeSyntax(
+                            specifiers: [],
+                            attributes: [.attribute(
+                                AttributeSyntax(attributeName: IdentifierTypeSyntax(name: .identifier("unchecked")))
+                            )],
+                            baseType: IdentifierTypeSyntax(name: TokenSyntax.identifier("Sendable"))
+                        ),
+                        trailingComma: .commaToken()
+                    ),
+                    InheritedTypeSyntax(
                         type: IdentifierTypeSyntax(name: protocolDecl.name)
                     )
                 ]
             ),
-            memberBlock: MemberBlockSyntax {
-                var members = [MemberBlockItemSyntax]()
-                members.append(contentsOf: typeAliases.map({ MemberBlockItemSyntax(decl: $0)}))
-                members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
-                members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
-                return MemberBlockItemListSyntax(members)
-            }
+            memberBlock: MemberBlockSyntax(members: MemberBlockItemListSyntax(members))
         )
 
         let ifConfigDecl = ifConfig(MemberBlockItemListSyntax {

@@ -24,7 +24,7 @@ final class MockableMacroTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockPricingService: Mock, PricingService {
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)
                 }

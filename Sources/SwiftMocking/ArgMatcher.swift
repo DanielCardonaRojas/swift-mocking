@@ -257,9 +257,13 @@ public extension ArgMatcher where Argument: FloatingPoint & Sendable {
     /// // Verifying a method was called with a value close to 2.5
     /// verify(spy.calculate(.approximately(2.5))).called()
     /// ```
-    static func approximately(_ value: Argument, tolerance: Argument = 0.001) -> Self {
-        .init(precedence: .predicate) { argument in
-            abs(argument - value) <= tolerance
+    static func approximately(_ value: Argument, tolerance: Argument? = nil) -> Self {
+        // `1 / 1000` is expressible for any `FloatingPoint` (which refines
+        // `ExpressibleByIntegerLiteral`), avoiding default-expression inference
+        // that is an error in Swift 6 language mode.
+        let defaultTolerance: Argument = 1 / 1000
+        return .init(precedence: .predicate) { argument in
+            abs(argument - value) <= (tolerance ?? defaultTolerance)
         }
     }
 }
@@ -521,7 +525,7 @@ public extension ArgMatcher {
 }
 
 // MARK: - Collection
-public extension ArgMatcher where Argument: Collection {
+public extension ArgMatcher where Argument: Collection, Argument: Sendable {
     /// A matcher that matches an empty collection.
     ///
     /// ```swift
@@ -608,7 +612,7 @@ public extension ArgMatcher where Argument: Collection {
     }
 }
 
-public extension ArgMatcher where Argument: Collection, Argument.Element: Equatable & Sendable {
+public extension ArgMatcher where Argument: Collection, Argument: Sendable, Argument.Element: Equatable & Sendable {
     /// A matcher that matches a collection containing the given element.
     /// - Parameter element: The element to search for.
     ///

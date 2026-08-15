@@ -20,7 +20,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockPricingService: Mock, PricingService {
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)
                 }
@@ -48,7 +48,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockPrinter: Mock, Printer {
+            class MockPrinter: Mock, @unchecked Sendable, Printer {
                 func print(_ values: ArgMatcher<String>...) -> Interaction<[String], None, Void> {
                     Interaction(.variadic(values), spy: super.print)
                 }
@@ -76,7 +76,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockPricingService: Mock, PricingService {
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
                     Interaction(item, spy: super.price)
                 }
@@ -104,7 +104,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockPricingService: Mock, PricingService {
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, Async, Int> {
                     Interaction(item, spy: super.price)
                 }
@@ -132,7 +132,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockPricingService: Mock, PricingService {
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncThrows, Int> {
                     Interaction(item, spy: super.price)
                 }
@@ -162,7 +162,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockFeedService: Mock, FeedService {
+            class MockFeedService: Mock, @unchecked Sendable, FeedService {
                 func fetch(from url: ArgMatcher<URL>) -> Interaction<URL, AsyncThrows, Data> {
                     Interaction(url, spy: super.fetch)
                 }
@@ -196,7 +196,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockService: Mock, Service {
+            class MockService: Mock, @unchecked Sendable, Service {
                 func doSomething() -> Interaction<Void, None, String> {
                     Interaction(.any, spy: super.doSomething)
                 }
@@ -224,7 +224,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockService: Mock, Service {
+            class MockService: Mock, @unchecked Sendable, Service {
                 func doSomething(with value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
                     Interaction(value, spy: super.doSomething)
                 }
@@ -252,7 +252,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockService: Mock, Service {
+            class MockService: Mock, @unchecked Sendable, Service {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
                 }
@@ -281,7 +281,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockLogger: Mock, Logger {
+            class MockLogger: Mock, @unchecked Sendable, Logger {
                 static func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
                     Interaction(message, spy: super.log)
                 }
@@ -310,7 +310,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockAnalyticsProtocol: Mock, AnalyticsProtocol {
+            class MockAnalyticsProtocol: Mock, @unchecked Sendable, AnalyticsProtocol {
                 func logEvent<E: Identifiable>(_ event: ArgMatcher<E>) -> Interaction<E, None, Bool> {
                     Interaction(event, spy: super.logEvent)
                 }
@@ -338,7 +338,7 @@ final class FunctionSignatureTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockCallbackService: Mock, CallbackService {
+            class MockCallbackService: Mock, @unchecked Sendable, CallbackService {
                 func execute(completion: ArgMatcher<(String) -> Void>) -> Interaction<(String) -> Void, None, Void> {
                     Interaction(completion, spy: super.execute)
                 }

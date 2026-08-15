@@ -74,13 +74,13 @@ final class MockTests: MockingTestCase {
     }
 
     func testStatic() {
-        class LoggerMock: Mock {
+        class LoggerMock: Mock, @unchecked Sendable {
             static func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
                 Interaction(message, spy: super.log)
             }
         }
 
-        class PrinterMock: Mock {
+        class PrinterMock: Mock, @unchecked Sendable {
             static func print(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
                 Interaction(message, spy: super.print)
             }
@@ -117,13 +117,13 @@ final class MockTests: MockingTestCase {
         let logExpectation = XCTestExpectation(description: "log should not be called")
         logExpectation.isInverted = true
 
-        class LoggerMock: Mock {
+        class LoggerMock: Mock, @unchecked Sendable {
             func log(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
                 Interaction(message, spy: super.log)
             }
         }
 
-        class PrinterMock: Mock {
+        class PrinterMock: Mock, @unchecked Sendable {
             func print(_ message: ArgMatcher<String>) -> Interaction<String, None, Void> {
                 Interaction(message, spy: super.print)
             }
@@ -193,7 +193,7 @@ final class MockTests: MockingTestCase {
         // Regression guard for P0-5: adapt() must not rewrite spy.defaultProviderRegistry
         // on every call. It raced concurrent invokes and the invoke-time read of the same
         // property; the registry is now captured once at spy creation.
-        final class AdapterMock: Mock {
+        final class AdapterMock: Mock, @unchecked Sendable {
             @discardableResult
             func echo(_ x: Int) -> Int { adapt(super.echo, x) }
         }
@@ -249,7 +249,7 @@ final class MockTests: MockingTestCase {
     func test_registryUpdatePropagatesToExistingSpies() {
         // Regression guard (PR review): spies created before the mock's registry changes
         // must observe the update — the adapters no longer refresh the registry per call.
-        final class RegistryMock: Mock {
+        final class RegistryMock: Mock, @unchecked Sendable {
             @discardableResult
             func echo() -> String { adapt(super.echo) }
         }
