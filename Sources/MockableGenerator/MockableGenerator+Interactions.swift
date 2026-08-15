@@ -255,9 +255,15 @@ public extension MockableGenerator {
     /// For example, for `async throws -> Int`, this will return `AsyncThrows`.
     static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> EffectType {
         let effects = funcDecl.signature.effectSpecifiers
-        if effects?.throwsClause != nil && effects?.asyncSpecifier != nil {
+        #if canImport(SwiftSyntax600)
+        let doesThrow = effects?.throwsClause != nil
+        #else
+        // swift-syntax < 600 models the throws specifier as a plain token.
+        let doesThrow = effects?.throwsSpecifier != nil
+        #endif
+        if doesThrow && effects?.asyncSpecifier != nil {
             return .asyncThrows
-        } else if effects?.throwsClause != nil {
+        } else if doesThrow {
             return .throws
         } else if effects?.asyncSpecifier != nil {
             return .async
