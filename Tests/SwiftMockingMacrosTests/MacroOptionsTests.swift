@@ -20,7 +20,7 @@ final class MacroOptionsTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: Mock, MyService {
+            class MockMyService: Mock, @unchecked Sendable, MyService {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
                 }
@@ -48,7 +48,7 @@ final class MacroOptionsTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MyServiceMock: Mock, MyService {
+            class MyServiceMock: Mock, @unchecked Sendable, MyService {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
                 }

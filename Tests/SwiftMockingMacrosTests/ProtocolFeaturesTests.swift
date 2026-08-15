@@ -21,7 +21,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockService: Mock, Service {
+            class MockService: Mock, @unchecked Sendable, Service {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
                 }
@@ -49,7 +49,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: Mock, MyService {
+            class MockMyService: Mock, @unchecked Sendable, MyService {
                 func getValue() -> Interaction<Void, None, Int > {
                     Interaction(.any, spy: super.value)
                 }
@@ -80,7 +80,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: Mock, MyService {
+            class MockMyService: Mock, @unchecked Sendable, MyService {
                 required init(value: Int) {
                 }
             }
@@ -104,7 +104,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: Mock, MyService {
+            class MockMyService: Mock, @unchecked Sendable, MyService {
                 subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
                     get {
                         Interaction(index, spy: super.subscript)
@@ -138,7 +138,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService<Item>: Mock, MyService {
+            class MockMyService<Item>: Mock, @unchecked Sendable, MyService {
                 typealias Item = Item
                 func item() -> Interaction<Void, None, Item> {
                     Interaction(.any, spy: super.item)

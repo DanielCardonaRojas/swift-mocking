@@ -275,7 +275,7 @@ final class AssertTests: XCTestCase {
 // MARK: - Test Mock for verifyZeroInteractions
 
 @dynamicMemberLookup
-class TestMock: Mock {
+class TestMock: Mock, @unchecked Sendable {
     var testMethod: Spy<String, None, Void> {
         self[dynamicMember: "testMethod"]
     }
