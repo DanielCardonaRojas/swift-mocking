@@ -28,10 +28,10 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", "509.0.0"..<"602.0.0"),
-        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3"),
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.5"),
-        .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.6.0")
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "509.0.0"..<"600.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", "0.6.3"..<"0.7.0"),
+        .package(url: "https://github.com/apple/swift-docc-plugin.git", "1.3.0"..<"1.4.0"),
+        .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay.git", "1.3.0"..<"1.6.0")
     ],
     targets: [
         .target(
