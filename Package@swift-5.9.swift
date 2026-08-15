@@ -5,8 +5,7 @@ import PackageDescription
 import CompilerPluginSupport
 
 var swiftSettings: [SwiftSetting] = [
-    .enableUpcomingFeature("StrictConcurrency"),
-    .enableUpcomingFeature("StrictConcurrencyComplete")
+    .enableUpcomingFeature("StrictConcurrency")
 ]
 
 let package = Package(
