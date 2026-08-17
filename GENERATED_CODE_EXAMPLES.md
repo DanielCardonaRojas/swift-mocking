@@ -16,7 +16,7 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-class PricingServiceMock: Mock, PricingService {
+class PricingServiceMock: Mock, @unchecked Sendable, PricingService {
     func price(_ item: String) throws -> Int {
         return try adaptThrowing(super.price, item)
     }
@@ -39,7 +39,7 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-class PricingServiceMock: Mock, PricingService {
+class PricingServiceMock: Mock, @unchecked Sendable, PricingService {
     func price(_ item: String) async -> Int {
         return await adapt(super.price, item)
     }
@@ -62,7 +62,7 @@ protocol PricingService {
 <summary>Generated Code</summary>
 
 ```swift
-class PricingServiceMock: Mock, PricingService {
+class PricingServiceMock: Mock, @unchecked Sendable, PricingService {
     func price(_ item: String) async throws -> Int {
         return try await adaptThrowing(super.price, item)
     }
@@ -88,7 +88,7 @@ protocol FeedService {
 <summary>Generated Code</summary>
 
 ```swift
-class FeedServiceMock: Mock, FeedService {
+class FeedServiceMock: Mock, @unchecked Sendable, FeedService {
     func fetch(from url: URL) async throws -> Data {
         return try await adaptThrowing(super.fetch, url)
     }
@@ -117,7 +117,7 @@ protocol Service {
 <summary>Generated Code</summary>
 
 ```swift
-class ServiceMock: Mock, Service {
+class ServiceMock: Mock, @unchecked Sendable, Service {
     func doSomething() {
         return adapt(super.doSomething)
     }
@@ -192,7 +192,7 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock: Mock, MyService {
+class MyServiceMock: Mock, @unchecked Sendable, MyService {
 
     var value: Int {
         get {
@@ -218,7 +218,7 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock: Mock, MyService {
+class MyServiceMock: Mock, @unchecked Sendable, MyService {
     subscript(index: Int) -> String {
         get {
             return adapt(super.subscript, index)
@@ -245,7 +245,7 @@ public protocol Service {
 <summary>Generated Code</summary>
 
 ```swift
-class ServiceMock: Mock, Service {
+class ServiceMock: Mock, @unchecked Sendable, Service {
     func doSomething() {
         return adapt(super.doSomething)
     }

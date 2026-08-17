@@ -29,7 +29,7 @@
     *   [Descriptive Error Reporting](#descriptive-error-reporting)
 *   [How it Works](#️-how-it-works)
 *   [Generated Code Examples](GENERATED_CODE_EXAMPLES.md)
-*   [AI Agent Guide](#-ai-agent-guide)
+*   [Agent Skill](#-agent-skill)
 *   [Known Limitations](#️-known-limitations)
 
 ---
@@ -594,42 +594,42 @@ error: Unfulfilled call count. Actual: 2
 
 ---
 
-## 🤖 AI Agent Guide
+## 🤖 Agent Skill
 
-SwiftMocking includes a comprehensive guide for AI coding assistants to help generate high-quality unit tests automatically. This guide enables AI tools like Claude Code, GitHub Copilot, and ChatGPT to understand SwiftMocking patterns and create consistent, well-structured tests.
+SwiftMocking ships an installable **agent skill** (`skills/swift-mocking/`) that teaches AI coding assistants (Claude Code, Codex, Cursor, ...) to write correct SwiftMocking tests — including **hand-writing mock classes for protocols with inheritance**, which the `@Mockable` macro does not support (inherited requirements are dropped and the mock fails to conform).
 
-### Using the Agent Guide
+The skill covers:
 
-The [AGENT_GUIDE.md](AGENT_GUIDE.md) contains everything AI tools need to know about SwiftMocking, including:
+- Manual mock generation mirroring `MockableGenerator` output (inheritance chains, properties, subscripts, variadics, associated types, statics, initializers)
+- `when`/`verify` stubbing and verification patterns with argument matchers
+- Swift 6 `Sendable`/concurrency contract and workarounds
 
-- Framework fundamentals and setup patterns
-- Stubbing and verification strategies
-- Argument matching techniques
-- Common testing scenarios and best practices
-- Integration with Swift Testing and XCTest
+### Install
 
-### Quick Start for AI Tools
+Using the [Skills CLI](https://skills.sh/) (recommended — works with Claude Code, Codex, and other agents):
 
-Copy this URL to provide the complete guide to your preferred AI coding assistant:
-
-```
-https://raw.githubusercontent.com/DanielCardonaRojas/swift-mocking/main/AGENT_GUIDE.md
+```bash
+npx skills add DanielCardonaRojas/swift-mocking@swift-mocking -g
 ```
 
-**Example Prompt:**
-```
-Please fetch and review this SwiftMocking guide: https://raw.githubusercontent.com/DanielCardonaRojas/swift-mocking/main/AGENT_GUIDE.md
+Or manually, copy or symlink the skill directory into your agent's skills folder:
 
-Then help me write comprehensive unit tests for my [YourService] protocol following the patterns and best practices in the guide.
+```bash
+# Claude Code
+git clone https://github.com/DanielCardonaRojas/swift-mocking.git
+ln -s "$(pwd)/swift-mocking/skills/swift-mocking" ~/.claude/skills/swift-mocking
+
+# Codex (and other agents using ~/.agents)
+ln -s "$(pwd)/swift-mocking/skills/swift-mocking" ~/.agents/skills/swift-mocking
 ```
+
+Once installed, the skill activates automatically when the agent works on Swift tests that use SwiftMocking (or needs a mock the macro can't generate). No prompt changes required.
 
 ---
 
 ## ⚙️ How it Works
 
 `SwiftMocking` leverages the power of Swift macros to generate mock implementations of your protocols. When you apply the `@Mockable` macro to a protocol, it generates a new class that inherits from a `Mock` base class. This generated mock class conforms to the original protocol.
-
-The `Mock` base class uses `@dynamicMemberLookup` to create and manage spies to for every protocol requirement.
 
 A Spy has this structure:
 
@@ -650,6 +650,15 @@ This approach eliminates the need for manual mock implementations and provides a
 
 
 ## ⚠️ Known Limitations
+
+### Protocol Inheritance
+
+`@Mockable` does not generate inherited requirements. For `protocol B: A` where `A` declares members, the generated mock fails to conform (`error: type 'BMock' does not conform to protocol 'A'`). Workaround: hand-write the mock — the [Agent Skill](#-agent-skill) teaches the exact recipe, or see [GENERATED_CODE_EXAMPLES.md](GENERATED_CODE_EXAMPLES.md) for the code shapes to mirror.
+
+### Zero-Parameter Members and Property Getters
+
+In macro-generated mocks, stubbing zero-parameter methods (`when(mock.f()).thenReturn(v)`) and property getters (`when(mock.getX()).thenReturn(v)`) is silently ignored, and verification of those members always counts 0 — a parameter-pack shape mismatch creates a second, disconnected spy. Setters and members with one or more parameters are unaffected. Workaround: hand-write those members with the pinned-spy form documented in the [Agent Skill](#-agent-skill).
+
 
 ### Xcode Autocomplete
 
