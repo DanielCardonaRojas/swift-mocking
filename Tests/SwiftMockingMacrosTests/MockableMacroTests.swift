@@ -24,13 +24,14 @@ final class MockableMacroTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockPricingService: Mock, @unchecked Sendable, PricingService {
+            class MockPricingService: @unchecked Sendable, PricingService, MockBacked {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
-                    Interaction(item, spy: super.price)
+                    Interaction(item, spy: mock.price)
                 }
                 func price(_ item: String) -> Int {
-                    return adapt(super.price, item)
+                    return mock.adapt(mock.price, item)
                 }
+                let mock = Mock()
             }
             #endif
             """

@@ -59,7 +59,7 @@ final class NonSendableFixturesTests: XCTestCase {
         let mock = MockLegacyService()
         var registry = DefaultProvidableRegistry.default
         registry.register(DefaultProviding(NonSendableMessage.self, create: { NonSendableMessage() }))
-        mock.defaultProviderRegistry = registry
+        mock.mock.defaultProviderRegistry = registry
 
         let made = mock.makeMessage(seed: 0)
 

@@ -148,12 +148,12 @@ public func verifyNever<each Input, Eff: Effect, Output>(
 /// - Parameter file: The file where a verification failure is reported.
 /// - Parameter line: The line where a verification failure is reported.
 public func verifyZeroInteractions(
-    _ mock: Mock,
+    _ mock: any MockBacked,
     file: StaticString = #filePath,
     line: UInt = #line
 ) {
-    let totalInvocations = mock.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
-    
+    let totalInvocations = mock.mock.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
+
     if totalInvocations > 0 {
         let mockTypeName = String(describing: type(of: mock))
         reportIssue("Expected zero interactions with \(mockTypeName) but found \(totalInvocations) invocation(s)", filePath: file, line: line)
@@ -226,7 +226,8 @@ public extension Assert {
     /// Asserts that the mocked method was called a specific number of times.
     ///
     /// - Parameter countMatcher: An `ArgMatcher<Int>` to specify the expected call count.
-    ///   Defaults to `.equal(1)` if `nil`, meaning the method is expected to be called exactly once.
+    ///   Defaults to `.greaterThan(.zero)` if `nil`, meaning the method is expected to have been
+    ///   called at least once. Pass a specific count, e.g. `.called(1)`, to assert an exact number of calls.
     /// - Parameter file: The file where a verification failure is reported.
     /// - Parameter line: The line where a verification failure is reported.
     func called(

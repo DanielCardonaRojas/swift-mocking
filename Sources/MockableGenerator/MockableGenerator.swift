@@ -43,28 +43,28 @@ public enum MockableGenerator {
             protocolDecl: protocolDecl
         )
         let typeAliases = makeTypeAliases(protocolDecl)
-        let interactions = makeInteractions(protocolDecl: protocolDecl)
-        let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
+        let interactions = makeInteractions(protocolDecl: protocolDecl, mockName: mockName)
+        let conformanceRequirements = makeConformanceRequirements(for: protocolDecl, mockName: mockName)
 
         var members = [MemberBlockItemSyntax]()
         members.append(contentsOf: typeAliases.map { MemberBlockItemSyntax(decl: $0) })
         members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
         members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
 
-        // Create the Mock struct
+        // Composition: the generated mock owns a private `Mock` instance and delegates
+        // spy storage, stubbing and configuration to it. The public API surface is
+        // preserved by forwarding members below.
+        members.append(MemberBlockItemSyntax(decl: DeclSyntax(stringLiteral: "let mock = Mock()")))
+
+        // Create the Mock class. `MockBacked` exposes the backing `Mock` so library
+        // helpers (e.g. `verifyZeroInteractions`) keep accepting generated mocks.
         let mockStruct = ClassDeclSyntax(
             name: TokenSyntax.identifier(mockName),
             genericParameterClause: genericParameters,
             inheritanceClause: InheritanceClauseSyntax(
                 inheritedTypes: [
                     InheritedTypeSyntax(
-                        type: IdentifierTypeSyntax(
-                            name: .identifier("Mock")
-                        ),
-                        trailingComma: .commaToken()
-                    ),
-                    InheritedTypeSyntax(
-                        // `Mock` is `@unchecked Sendable`; subclasses must restate the
+                        // `Mock` is `@unchecked Sendable`; composed mocks restate the
                         // conformance to stay warning-free under Swift 6 concurrency.
                         type: AttributedTypeSyntax(
                             specifiers: [],
@@ -76,7 +76,11 @@ public enum MockableGenerator {
                         trailingComma: .commaToken()
                     ),
                     InheritedTypeSyntax(
-                        type: IdentifierTypeSyntax(name: protocolDecl.name)
+                        type: IdentifierTypeSyntax(name: .identifier(protocolName)),
+                        trailingComma: .commaToken()
+                    ),
+                    InheritedTypeSyntax(
+                        type: IdentifierTypeSyntax(name: .identifier("MockBacked"))
                     )
                 ]
             ),

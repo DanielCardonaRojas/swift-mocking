@@ -32,19 +32,19 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
-    static func makeInteractions(protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
+    static func makeInteractions(protocolDecl: ProtocolDeclSyntax, mockName: String) -> [DeclSyntax] {
         var members = [DeclSyntax]()
         var functionNames = [String: Int]()
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let stubFunction = processFunc(funcDecl, &functionNames)
+                let stubFunction = processFunc(funcDecl, &functionNames, mockName: mockName)
                 members.append(stubFunction)
             } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                let stubFunctions = processVar(varDecl)
+                let stubFunctions = processVar(varDecl, mockName: mockName)
                 members.append(contentsOf: stubFunctions)
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
-                let stubFunction = processSubscript(subscriptDecl)
+                let stubFunction = processSubscript(subscriptDecl, mockName: mockName)
                 members.append(stubFunction)
             }
         }
@@ -60,7 +60,7 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: super.doSomething)
     /// }
     /// ```
-    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) -> DeclSyntax {
+    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int], mockName: String) -> DeclSyntax {
         let funcName = funcDecl.name.text
         let spyPropertyName = funcDecl.name.text
 
@@ -69,7 +69,9 @@ public extension MockableGenerator {
             spyPropertyName: spyPropertyName,
             funcDecl: funcDecl,
             genericParameterClause: funcDecl.genericParameterClause,
-            genericWhereClause: funcDecl.genericWhereClause
+            genericWhereClause: funcDecl.genericWhereClause,
+            isStatic: funcDecl.modifiers.contains(where: { $0.name.text == "static" }),
+            mockName: mockName
         )
 
         return DeclSyntax(stubFunction)
@@ -82,7 +84,7 @@ public extension MockableGenerator {
     /// func getName() -> Interaction<Void, None, String> { ... }
     /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
     /// ```
-    private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
+    private static func processVar(_ varDecl: VariableDeclSyntax, mockName: String) -> [DeclSyntax] {
         var decls = [DeclSyntax]()
         for binding in varDecl.bindings {
             guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
@@ -99,7 +101,8 @@ public extension MockableGenerator {
             let getter = createGetterInteraction(
                 varName: varName,
                 type: type,
-                modifiers: varDecl.modifiers
+                modifiers: varDecl.modifiers,
+                mockName: mockName
             )
             decls.append(DeclSyntax(getter))
 
@@ -107,7 +110,8 @@ public extension MockableGenerator {
                 let setter = createSetterInteraction(
                     varName: varName,
                     type: type,
-                    modifiers: varDecl.modifiers
+                    modifiers: varDecl.modifiers,
+                    mockName: mockName
                 )
                 decls.append(DeclSyntax(setter))
             }
@@ -123,7 +127,7 @@ public extension MockableGenerator {
     ///     get { ... }
     /// }
     /// ```
-    private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> DeclSyntax {
+    private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax, mockName: String) -> DeclSyntax {
         let subscriptDecl = SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
@@ -144,7 +148,9 @@ public extension MockableGenerator {
                         bodyBuilder: {
                             createFunctionBody(
                                 spyPropertyName: "subscript",
-                                parameterNames: subscriptDecl.parameterClause.parameters
+                                parameterNames: subscriptDecl.parameterClause.parameters,
+                                isStatic: subscriptDecl.modifiers.contains(where: { $0.name.text == "static" }),
+                                mockName: mockName
                             ).statements
                         }
                     )
@@ -163,9 +169,9 @@ public extension MockableGenerator {
     /// ```swift
     /// func getName() -> Interaction<Void, None, String> { ... }
     /// ```
-    private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+    private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax, mockName: String) -> FunctionDeclSyntax {
         let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
-        let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])
+        let body = createFunctionBody(spyPropertyName: varName, parameterNames: [], isStatic: modifiers.contains(where: { $0.name.text == "static" }), mockName: mockName)
         return FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
             name: .identifier("get\(varName.capitalized)"),
@@ -183,7 +189,7 @@ public extension MockableGenerator {
     /// ```swift
     /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
     /// ```
-    private static func createSetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+    private static func createSetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax, mockName: String) -> FunctionDeclSyntax {
         let setterName = "set" + varName.capitalized
         let parameter = FunctionParameterSyntax(
             firstName: .identifier("newValue"),
@@ -204,13 +210,15 @@ public extension MockableGenerator {
         let parameterList = FunctionParameterListSyntax([parameter])
         let interactionReturnType = createInteractionReturnType(inputTypes: [type], outputType: TypeSyntax(stringLiteral: "Void"), effectType: .none, genericParameterClause: nil)
         let body = createFunctionBody(
-            spyPropertyName: setterName,
+            spyPropertyName: "set\(varName.capitalized)",
             parameterNames: FunctionParameterListSyntax {
                 FunctionParameterSyntax.init(
                     firstName: .identifier("newValue"),
                     type: type
                 )
-            }
+            },
+            isStatic: modifiers.contains(where: { $0.name.text == "static" }),
+            mockName: mockName
         )
 
         return FunctionDeclSyntax(
@@ -279,7 +287,9 @@ public extension MockableGenerator {
         spyPropertyName: String,
         funcDecl: FunctionDeclSyntax,
         genericParameterClause: GenericParameterClauseSyntax?,
-        genericWhereClause: GenericWhereClauseSyntax?
+        genericWhereClause: GenericWhereClauseSyntax?,
+        isStatic: Bool,
+        mockName: String
     ) -> FunctionDeclSyntax {
 
         let (inputTypes, _, _) = getFunctionParameters(funcDecl)
@@ -292,7 +302,9 @@ public extension MockableGenerator {
         let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType, genericParameterClause: genericParameterClause)
         let body = createFunctionBody(
             spyPropertyName: spyPropertyName,
-            parameterNames: funcDecl.signature.parameterClause.parameters
+            parameterNames: funcDecl.signature.parameterClause.parameters,
+            isStatic: isStatic,
+            mockName: mockName
         )
 
         return FunctionDeclSyntax(
@@ -428,7 +440,7 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
-    private static func createFunctionBody(spyPropertyName: String, parameterNames: FunctionParameterListSyntax) -> CodeBlockSyntax {
+    private static func createFunctionBody(spyPropertyName: String, parameterNames: FunctionParameterListSyntax, isStatic: Bool, mockName: String) -> CodeBlockSyntax {
         let interactionCall = FunctionCallExprSyntax(
             callee: DeclReferenceExprSyntax(baseName: .identifier("Interaction"))
         ) {
@@ -464,10 +476,24 @@ public extension MockableGenerator {
 
             LabeledExprSyntax(
                 label: "spy",
-                expression: MemberAccessExprSyntax(
-                    base: SuperExprSyntax(),
-                    name: .identifier(spyPropertyName)
-                )
+                expression: isStatic ? 
+                    ExprSyntax(
+                        FunctionCallExprSyntax(
+                            calledExpression: MemberAccessExprSyntax(base: DeclReferenceExprSyntax(baseName: .identifier("Mock")), name: .identifier("staticSpy")),
+                            leftParen: .leftParenToken(),
+                            arguments: [
+                                LabeledExprSyntax(label: "typeName", colon: .colonToken(), expression: StringLiteralExprSyntax(content: mockName), trailingComma: .commaToken()),
+                                LabeledExprSyntax(label: "member", expression: StringLiteralExprSyntax(content: spyPropertyName))
+                            ],
+                            rightParen: .rightParenToken()
+                        )
+                    ) : 
+                    ExprSyntax(
+                        MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(baseName: .identifier("mock")),
+                            name: .identifier(spyPropertyName)
+                        )
+                    )
             )
 
         }

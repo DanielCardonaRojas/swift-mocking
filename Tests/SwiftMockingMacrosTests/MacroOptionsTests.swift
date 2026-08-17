@@ -20,13 +20,14 @@ final class MacroOptionsTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: Mock, @unchecked Sendable, MyService {
+            class MockMyService: @unchecked Sendable, MyService, MockBacked {
                 func doSomething() -> Interaction<Void, None, Void> {
-                    Interaction(.any, spy: super.doSomething)
+                    Interaction(.any, spy: mock.doSomething)
                 }
                 func doSomething() {
-                    return adapt(super.doSomething)
+                    return mock.adapt(mock.doSomething)
                 }
+                let mock = Mock()
             }
             #endif
             """
@@ -48,13 +49,14 @@ final class MacroOptionsTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MyServiceMock: Mock, @unchecked Sendable, MyService {
+            class MyServiceMock: @unchecked Sendable, MyService, MockBacked {
                 func doSomething() -> Interaction<Void, None, Void> {
-                    Interaction(.any, spy: super.doSomething)
+                    Interaction(.any, spy: mock.doSomething)
                 }
                 func doSomething() {
-                    return adapt(super.doSomething)
+                    return mock.adapt(mock.doSomething)
                 }
+                let mock = Mock()
             }
             #endif
             """

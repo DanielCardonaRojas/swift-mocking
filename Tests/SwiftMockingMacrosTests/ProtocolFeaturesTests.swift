@@ -21,13 +21,14 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockService: Mock, @unchecked Sendable, Service {
+            class MockService: @unchecked Sendable, Service, MockBacked {
                 func doSomething() -> Interaction<Void, None, Void> {
-                    Interaction(.any, spy: super.doSomething)
+                    Interaction(.any, spy: mock.doSomething)
                 }
                 func doSomething() {
-                    return adapt(super.doSomething)
+                    return mock.adapt(mock.doSomething)
                 }
+                let mock = Mock()
             }
             #endif
             """
@@ -49,16 +50,17 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: Mock, @unchecked Sendable, MyService {
+            class MockMyService: @unchecked Sendable, MyService, MockBacked {
                 func getValue() -> Interaction<Void, None, Int > {
-                    Interaction(.any, spy: super.value)
+                    Interaction(.any, spy: mock.value)
                 }
 
                     var value: Int {
                     get {
-                        adapt(super.value)
+                        mock.adapt(mock.value)
                     }
                 }
+                let mock = Mock()
             }
             #endif
             """
@@ -80,9 +82,10 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: Mock, @unchecked Sendable, MyService {
+            class MockMyService: @unchecked Sendable, MyService, MockBacked {
                 required init(value: Int) {
                 }
+                let mock = Mock()
             }
             #endif
             """
@@ -104,17 +107,18 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: Mock, @unchecked Sendable, MyService {
+            class MockMyService: @unchecked Sendable, MyService, MockBacked {
                 subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
                     get {
-                        Interaction(index, spy: super.subscript)
+                        Interaction(index, spy: mock.subscript)
                     }
                 }
                 subscript(index: Int) -> String {
                     get {
-                        return adapt(super.subscript, index)
+                        return mock.adapt(mock.subscript, index)
                     }
                 }
+                let mock = Mock()
             }
             #endif
             """
@@ -138,14 +142,15 @@ final class ProtocolFeaturesTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService<Item>: Mock, @unchecked Sendable, MyService {
+            class MockMyService<Item>: @unchecked Sendable, MyService, MockBacked {
                 typealias Item = Item
                 func item() -> Interaction<Void, None, Item> {
-                    Interaction(.any, spy: super.item)
+                    Interaction(.any, spy: mock.item)
                 }
                 func item() -> Item {
-                    return adapt(super.item)
+                    return mock.adapt(mock.item)
                 }
+                let mock = Mock()
             }
             #endif
             """
