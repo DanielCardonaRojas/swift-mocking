@@ -1,0 +1,133 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Match Arguments Precisely") {
+        Stubbing `"apple"` and verifying `.any` is just the beginning. Real tests need finer control: *any* amount, amounts *under* 100, codes *in* a range, collections *of a certain size* — or some predicate only you can express.
+
+        In this tutorial you'll drive an `OrderService` through the full matcher vocabulary, then reach the arguments your code actually passed with `captured`.
+
+        @Image(source: intro-matching, alt: "Three argument values flowing into a funnel, with only one passing through to the other side.")
+    }
+
+    @Section(title: "Match any — or exactly one") {
+        @ContentAndMedia {
+            Every argument position in a `when` or `verify` call takes an `ArgMatcher`. Two extremes cover most cases: `.any` matches everything, while `.equal` — or a plain literal, thanks to literal conformances — matches one exact value.
+
+            @Image(source: chapter-matching, alt: "Two argument bubbles, one labeled any with many arrows passing through, one labeled equal with a single arrow.")
+        }
+
+        @Steps {
+            @Step {
+                Create `OrderService.swift` with a protocol that prices orders in cents and validates item lists:
+
+                @Code(name: "OrderService.swift", file: "02-1-1-order-service.swift")
+            }
+
+            @Step {
+                In a test, stub the broad case with `.any`, then add a more specific stub for one exact amount. Specific matchers win; everything else falls through to `.any`:
+
+                @Code(name: "OrderServiceTests.swift", file: "02-1-2-any-and-exact.swift", reset: true)
+            }
+
+            @Step {
+                Optional arguments have their own matchers — `.notNil()` and `.nil()` — and they read naturally in both directions: `when(mock.validate(items: .any, coupon: .nil())).thenReturn(true)` stubs only coupon-less validations, while `verify(mock.validate(items: .any, coupon: .notNil())).called(1)` counts the rest.
+            }
+        }
+    }
+
+    @Section(title: "Match with predicates and ranges") {
+        @ContentAndMedia {
+            When the boundary matters more than the value, reach for comparison and range matchers. They mirror Swift's own vocabulary: `.lessThan`, `.greaterThan`, `.in(...)` with any range expression, and `.hasCount(in:)` for collections.
+
+            @Image(source: chapter-matching, alt: "A number line with three shaded ranges labeled less than, in, and greater than.")
+        }
+
+        @Steps {
+            @Step {
+                Stub a discount ladder using comparisons and ranges, then check each band behaves as configured:
+
+                @Code(name: "OrderServiceTests.swift", file: "02-2-1-predicates-and-ranges.swift", reset: true)
+            }
+
+            @Step {
+                For everything else there's `.any(that:)`: your closure becomes the matcher, and it receives the real argument — an `Int`, not `Any` — so it type-checks like ordinary Swift. The listing above uses it to count round amounts: only `500` and `5000` are multiples of 100, so the assertion expects exactly two calls.
+            }
+        }
+    }
+
+    @Section(title: "Capture and inspect arguments") {
+        @ContentAndMedia {
+            Matchers assert; sometimes you want to *examine*. `captured` replays each matching invocation through a closure, handing you the concrete arguments your production code passed — perfect for invariants that don't reduce to a single equality check.
+
+            @Image(source: intro-matching, alt: "A magnifying glass hovering over two recorded invocations and their argument values.")
+        }
+
+        @Steps {
+            @Step {
+                Record a few validations, then narrow the capture with matchers and inspect what survives. The closure runs once per matching call, with fully typed arguments:
+
+                @Code(name: "OrderServiceTests.swift", file: "02-3-1-captured.swift", reset: true)
+            }
+
+            @Step {
+                Filter and inspect compose freely: the matcher selects the invocations, `captured` shows you them. If no invocation matches, the verification reports a failed call count instead of silently skipping your assertions.
+            }
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            `when(mock.discount(forAmountCents: 199)).thenReturn(50)` stubs which calls?
+
+            @Choice(isCorrect: true) {
+                Exactly the calls passing `199` — the literal behaves as `.equal(199)`.
+
+                @Justification(reaction: "That's right!") {
+                    `ArgMatcher` conforms to the integer-literal protocols, so a bare value is sugar for `.equal`.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                Any call, because a bare value is treated like `.any`.
+
+                @Justification(reaction: "Try again!") {
+                    Literals narrow to `.equal`, not broaden to `.any`. Pass `.any` explicitly for that.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                Calls with amounts within 100 of 199.
+
+                @Justification(reaction: "Try again!") {
+                    There's no fuzzy matching — that's what `.any(that:)` or range matchers are for.
+                }
+            }
+        }
+
+        @MultipleChoice {
+            Which matcher accepts amounts from 0 through 100, inclusive?
+
+            @Choice(isCorrect: false) {
+                `.lessThan(101)`
+
+                @Justification(reaction: "Technically it works for integers, but it's not the clearest tool here.") {
+                    Prefer the range form — it states the intent directly.
+                }
+            }
+
+            @Choice(isCorrect: true) {
+                `.in(0...100)`
+
+                @Justification(reaction: "That's right!") {
+                    `.in` accepts any Swift range expression — closed, partial, you name it.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                `.hasCount(in: 0...100)`
+
+                @Justification(reaction: "Try again!") {
+                    `.hasCount` matches collection *lengths*, not scalar values.
+                }
+            }
+        }
+    }
+}

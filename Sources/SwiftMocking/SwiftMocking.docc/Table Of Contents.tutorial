@@ -1,0 +1,35 @@
+@Tutorials(name: "SwiftMocking") {
+    @Intro(title: "Meet SwiftMocking") {
+        Stop hand-writing mock classes. With SwiftMocking, one `@Mockable` annotation turns any protocol into a fully featured mock: stub return values, match arguments with expressive matchers, drive callbacks, and verify every interaction — all type-safe, all local, no code generation steps in your build.
+
+        These tutorials walk you from your first generated mock to verifying call order across multiple mocks, using the same `when` / `verify` vocabulary throughout.
+
+        @Image(source: intro, alt: "The word SwiftMocking over a stylized code editor window showing a when stub and a verify assertion.")
+    }
+
+    @Chapter(name: "Getting Started") {
+        @Image(source: chapter-getting-started, alt: "A protocol declaration on the left transforming into a mock class card on the right, joined by an arrow.")
+
+        Generate your first mock from a protocol, control what its methods return, and prove your code called them.
+
+        @TutorialReference(tutorial: "doc:mocking-your-first-protocol")
+    }
+
+    @Chapter(name: "Argument Matching") {
+        @Image(source: chapter-matching, alt: "Three argument values flowing into a funnel, with only one passing through to the other side.")
+
+        Decide exactly which calls your stubs answer and which calls your verifications count — from any value, to exact values, to ranges and custom predicates.
+
+        @TutorialReference(tutorial: "doc:matching-arguments")
+    }
+
+    @Chapter(name: "Advanced Stubbing and Verification") {
+        @Image(source: chapter-advanced, alt: "A timeline of recorded method calls across two mock objects, with checkmarks confirming their order.")
+
+        Compute returns from the arguments themselves, run side effects, drive callback-based APIs, and assert the order of calls across multiple mocks.
+
+        @TutorialReference(tutorial: "doc:dynamic-stubbing")
+
+        @TutorialReference(tutorial: "doc:verifying-interactions")
+    }
+}

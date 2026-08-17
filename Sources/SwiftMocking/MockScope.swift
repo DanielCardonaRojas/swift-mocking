@@ -10,7 +10,7 @@ import Foundation
 /// Provides scoped access to the shared spy storage used by static mock requirements.
 ///
 /// Swift Testing can run tests concurrently. When mocking static protocol requirements each test
-/// should see its own set of spies. ``MockScope`` exposes a ``TaskLocal`` value that allows tests
+/// should see its own set of spies. ``MockScope`` exposes a `TaskLocal` value that allows tests
 /// to install a custom ``SpyStorageProvider`` for the duration of a scope.
 ///
 /// ```swift

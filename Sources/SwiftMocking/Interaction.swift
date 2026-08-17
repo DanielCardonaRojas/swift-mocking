@@ -14,7 +14,7 @@
 /// Interactions are typically created by generated mock methods and used with:
 /// - ``when(_:)`` - For stubbing method behavior
 /// - ``verify(_:)`` - For verifying method calls
-/// - ``verifyNever(_:)`` - For ensuring methods were not called
+/// - ``verifyNever(_:file:line:)`` - For ensuring methods were not called
 ///
 /// ## Related Types
 /// - ``Spy`` - The spy that records invocations for this interaction

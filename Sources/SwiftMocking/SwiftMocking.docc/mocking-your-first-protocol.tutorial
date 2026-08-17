@@ -1,0 +1,157 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Mock Your First Protocol") {
+        In this tutorial you'll test a `Store` that depends on a `PricingService` — without writing a mock class by hand. You'll mark a protocol with `@Mockable`, let the macro generate the mock, stub what its method returns, and verify that your code actually called it.
+
+        Along the way you'll meet the two verbs that power every SwiftMocking test: **when** to arrange behavior, and **verify** to assert it happened.
+
+        @Image(source: intro-first-mock, alt: "A test file beside a generated mock class, with one callout pointing to a when stub and another to a verify assertion.")
+    }
+
+    @Section(title: "Mark a protocol as mockable") {
+        @ContentAndMedia {
+            Every mock starts life as a plain protocol describing a dependency. The `@Mockable` macro expands that protocol into a ready-to-use mock class at compile time, so the protocol remains your single source of truth — when it changes, the mock changes with it.
+
+            @Image(source: chapter-getting-started, alt: "A protocol declaration on the left transforming into a mock class card on the right, joined by an arrow.")
+        }
+
+        @Steps {
+            @Step {
+                Consider a store that needs prices. Pricing rules live behind a protocol so tests never depend on real pricing logic. Create `PricingService.swift` with the protocol:
+
+                @Code(name: "PricingService.swift", file: "01-1-1-pricing-service.swift")
+            }
+
+            @Step {
+                Now make it mockable: import `SwiftMocking` and annotate the protocol with `@Mockable`:
+
+                @Code(name: "PricingService.swift", file: "01-1-2-pricing-service.swift")
+            }
+
+            @Step {
+                That single annotation is all the macro needs. It generates `MockPricingService` next to your protocol — the equivalent of writing this by hand:
+
+                @Code(name: "MockPricingService.swift (generated)", file: "01-1-3-generated-mock.swift", reset: true)
+            }
+
+            @Step {
+                Notice the generated class carries **two overloads** of `price(for:)`. The `ArgMatcher<String>` version returns an `Interaction` — calling it, as in `mock.price(for: .any)`, *describes* a call for stubbing or verification and never runs your code. The plain `String` version is the real protocol requirement: calling it records the invocation and returns the stubbed value. That duality is the whole trick — the same syntax describes a call and performs it.
+            }
+        }
+    }
+
+    @Section(title: "Create the system under test") {
+        @ContentAndMedia {
+            With the mock generated, build the class you actually want to test. `Store` takes any `PricingService` — in production a real implementation, in tests the mock.
+
+            @Image(source: intro-first-mock, alt: "A Store box receiving a PricingService dependency from above.")
+        }
+
+        @Steps {
+            @Step {
+                Create `Store.swift`. The store registers items and asks the pricing service for each item's price:
+
+                @Code(name: "Store.swift", file: "01-2-1-store.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Stub return values with when") {
+        @ContentAndMedia {
+            An unstubbed method can't answer on its own. `when` arranges behavior: you describe the call with a matcher — here the literal `"apple"` — and declare what it returns.
+
+            @Image(source: chapter-getting-started, alt: "A when statement routing two different item names to two different return values.")
+        }
+
+        @Steps {
+            @Step {
+                Create `StoreTests.swift`, instantiate the mock, and stub a price for each item you'll register. Then drive the store and assert the stubbed prices flowed through:
+
+                @Code(name: "StoreTests.swift", file: "01-3-1-store-tests.swift", reset: true)
+            }
+
+            @Step {
+                Run the test. The store called `price(for:)` twice — once per registered item — and each call was answered by the matching stub. No real pricing logic was ever involved.
+            }
+        }
+    }
+
+    @Section(title: "Verify the interaction") {
+        @ContentAndMedia {
+            Asserting output is half the story; interaction tests also assert *that a dependency was used, and how*. `verify` takes the same call description as `when` and asserts how often it happened.
+
+            @Image(source: intro-verifying, alt: "A verify statement counting two recorded calls to the price method.")
+        }
+
+        @Steps {
+            @Step {
+                Add a verification to the test. The `.any` matcher matches every call regardless of the item, and `.called(2)` asserts exactly two invocations:
+
+                @Code(name: "StoreTests.swift", file: "01-4-1-store-tests.swift")
+            }
+
+            @Step {
+                Run the test again — it still passes, and now it also fails loudly if the store ever stops consulting the pricing service.
+
+                You've completed the full mocking loop: **generate** with `@Mockable`, **arrange** with `when`, **act** on your type, **assert** with `verify`.
+            }
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            What does applying `@Mockable` to a protocol do?
+
+            @Choice(isCorrect: false) {
+                It adds default implementations to the protocol via an extension.
+
+                @Justification(reaction: "Try again!") {
+                    The mock is a separate class, and nothing is attached to the protocol itself.
+                }
+            }
+
+            @Choice(isCorrect: true) {
+                It generates a `Mock`-subclassing class that conforms to the protocol, with one overload for describing calls and one for performing them.
+
+                @Justification(reaction: "That's right!") {
+                    The generated class has an `ArgMatcher` overload returning an `Interaction`, plus the real protocol requirement that records invocations and returns stubs.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                It registers the protocol with a runtime mock factory that creates mocks on demand.
+
+                @Justification(reaction: "Try again!") {
+                    Everything here happens at compile time — there's no runtime registry.
+                }
+            }
+        }
+
+        @MultipleChoice {
+            Which pair of functions arranges a stub and then asserts it was used?
+
+            @Choice(isCorrect: false) {
+                `stub` and `assert`
+
+                @Justification(reaction: "Try again!") {
+                    Close vocabulary, but not the names SwiftMocking uses.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                `given` and `check`
+
+                @Justification(reaction: "Try again!") {
+                    That's MockK's vocabulary. SwiftMocking borrows from Mockito instead.
+                }
+            }
+
+            @Choice(isCorrect: true) {
+                `when` and `verify`
+
+                @Justification(reaction: "That's right!") {
+                `when(mock.price(for: "apple")).thenReturn(13)` arranges; `verify(mock.price(for: .any)).called(2)` asserts.
+                }
+            }
+        }
+    }
+}

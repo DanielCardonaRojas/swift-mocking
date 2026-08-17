@@ -1,0 +1,135 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Verify Every Interaction") {
+        You've verified counts and matched arguments. This page completes the toolkit: asserting a call happened *never*, proving a mock was *untouched*, and — the signature feature — verifying the *order* of calls as they happened across multiple mocks.
+
+        You'll also learn to read failure output and turn on invocation logging when a test goes sideways.
+
+        @Image(source: intro-verifying, alt: "A vertical timeline of recorded calls across two mock objects, each entry checked in order.")
+    }
+
+    @Section(title: "Assert call counts") {
+        @ContentAndMedia {
+            `verify(...).called(n)` asserts an *exact* count, and `called()` with no argument asserts exactly once. For the negative space there's `neverCalled()` on an interaction and `verifyZeroInteractions(_:)` for an entire mock.
+
+            @Image(source: intro-verifying, alt: "A counter above three recorded calls reading exactly three.")
+        }
+
+        @Steps {
+            @Step {
+                Drive a pricing mock and pin down every corner: two total calls, one specific, one never-made, and a second mock entirely untouched:
+
+                @Code(name: "CallCountTests.swift", file: "04-1-1-counts.swift")
+            }
+
+            @Step {
+                Count matchers compose too — `.called(.greaterThan(1))` or `.called(.in(1...3))` accept any `ArgMatcher<Int>`, just like value matchers.
+            }
+        }
+    }
+
+    @Section(title: "Verify order across mocks") {
+        @ContentAndMedia {
+            Some bugs are pure ordering: log *after* charging, refresh *before* reading. `verifyInOrder` asserts a whole sequence — and because it works across spies, the sequence can span multiple mocks.
+
+            @Image(source: chapter-advanced, alt: "A purchase flow with calls to two different mocks interleaved on one timeline in the asserted order.")
+        }
+
+        @Steps {
+            @Step {
+                Declare a second dependency for analytics, then interleave calls to both mocks from your system:
+
+                @Code(name: "CheckoutTests.swift", file: "04-2-1-in-order.swift")
+            }
+
+            @Step {
+                Wrap the expected sequence in `verifyInOrder` — each entry is the same call description you'd pass to `verify`:
+
+                @Code(name: "CheckoutTests.swift", file: "04-2-2-in-order-verify.swift")
+            }
+
+            @Step {
+                The assertion passes only if matching invocations exist on each spy *in the written order* — other calls may interleave freely; only the relative order of the listed interactions is checked.
+            }
+        }
+    }
+
+    @Section(title: "Debug failing verifications") {
+        @ContentAndMedia {
+            A failed count check reports exactly what actually happened — for example, expecting 4 calls and getting `Unfulfilled call count. Actual: 2`. When counts don't add up, two tools close the gap: `captured` to see the real arguments, and invocation logging to watch calls arrive.
+
+            @Image(source: intro-verifying, alt: "A failing verification message beside a console log listing each recorded invocation.")
+        }
+
+        @Steps {
+            @Step {
+                Flip any expected count to a wrong number and the test reports the actual count in place, at the failing line:
+
+                @Code(name: "CallCountTests.swift", file: "04-3-1-failing.swift", reset: true)
+            }
+
+            @Step {
+                Enable logging on a mock instance and every subsequent invocation prints to the console — invaluable when you can't tell which arguments your production code is really passing:
+
+                @Code(name: "LoggingTests.swift", file: "04-3-2-logging.swift", reset: true)
+            }
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            What does `verify(mock.price(for: .any)).called()` assert, with no argument?
+
+            @Choice(isCorrect: false) {
+                The method was called at least once.
+
+                @Justification(reaction: "Try again!") {
+                    That's the behavior of some frameworks, but here the default is stricter.
+                }
+            }
+
+            @Choice(isCorrect: true) {
+                The method was called exactly once.
+
+                @Justification(reaction: "That's right!") {
+                    `called()` defaults to `.equal(1)`. For looser bounds pass a count matcher, like `.called(.greaterThan(0))`.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                The method was called at most once.
+
+                @Justification(reaction: "Try again!") {
+                    Zero calls would fail too — it's an exact assertion.
+                }
+            }
+        }
+
+        @MultipleChoice {
+            Your checkout test needs to prove the analytics event fired *between* the two pricing calls. Which tool asserts that?
+
+            @Choice(isCorrect: false) {
+                Three separate `verify(...).called()` assertions.
+
+                @Justification(reaction: "Try again!") {
+                    Separate assertions prove each call happened, but say nothing about their order.
+                }
+            }
+
+            @Choice(isCorrect: true) {
+                A single `verifyInOrder` listing all three interactions.
+
+                @Justification(reaction: "That's right!") {
+                    `verifyInOrder` checks the listed interactions occurred in the written sequence, even across different mocks.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                `verifyZeroInteractions` on the analytics mock.
+
+                @Justification(reaction: "Try again!") {
+                    That asserts the *absence* of all interactions — the opposite of what you need.
+                }
+            }
+        }
+    }
+}

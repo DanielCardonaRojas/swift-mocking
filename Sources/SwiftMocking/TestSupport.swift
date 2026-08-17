@@ -67,6 +67,8 @@ public func verify<each Input, Eff: Effect, Output>(
 ///
 /// - Parameters:
 ///   - verifiables: An array of `CrossSpyVerifiable` objects representing the expected sequence of calls.
+///   - file: The file where a verification failure is reported.
+///   - line: The line where a verification failure is reported.
 public func verifyInOrder(
     _ verifiables: [any CrossSpyVerifiable],
     file: StaticString = #filePath,
@@ -115,6 +117,8 @@ public func verifyInOrder(
 /// ```
 ///
 /// - Parameter interaction: An `Interaction` object representing the method call that should never have occurred.
+/// - Parameter file: The file where a verification failure is reported.
+/// - Parameter line: The line where a verification failure is reported.
 public func verifyNever<each Input, Eff: Effect, Output>(
     _ interaction: Interaction<repeat each Input, Eff, Output>,
     file: StaticString = #filePath,
@@ -141,6 +145,8 @@ public func verifyNever<each Input, Eff: Effect, Output>(
 /// ```
 ///
 /// - Parameter mock: A `Mock` object to verify has had no interactions.
+/// - Parameter file: The file where a verification failure is reported.
+/// - Parameter line: The line where a verification failure is reported.
 public func verifyZeroInteractions(
     _ mock: Mock,
     file: StaticString = #filePath,
@@ -221,6 +227,8 @@ public extension Assert {
     ///
     /// - Parameter countMatcher: An `ArgMatcher<Int>` to specify the expected call count.
     ///   Defaults to `.equal(1)` if `nil`, meaning the method is expected to be called exactly once.
+    /// - Parameter file: The file where a verification failure is reported.
+    /// - Parameter line: The line where a verification failure is reported.
     func called(
         _ countMatcher: ArgMatcher<Int>? = nil,
         file: StaticString = #filePath,
@@ -259,6 +267,8 @@ public extension Assert where Eff == Throws {
     ///
     /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
     ///   Defaults to `.anyError()` if `nil`, meaning any error is expected.
+    /// - Parameter file: The file where a verification failure is reported.
+    /// - Parameter line: The line where a verification failure is reported.
     func `throws`(
         _ errorMatcher: ArgMatcher<any Error>? = nil,
         file: StaticString = #filePath,
@@ -279,6 +289,8 @@ public extension Assert where Eff == AsyncThrows {
     ///
     /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
     ///   Defaults to `.anyError()` if `nil`, meaning any error is expected.
+    /// - Parameter file: The file where a verification failure is reported.
+    /// - Parameter line: The line where a verification failure is reported.
     func `throws`(
         _ errorMatcher: ArgMatcher<any Error>? = nil,
         file: StaticString = #filePath,

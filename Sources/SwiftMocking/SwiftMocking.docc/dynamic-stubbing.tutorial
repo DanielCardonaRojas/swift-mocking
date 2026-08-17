@@ -1,0 +1,153 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Stub Dynamically") {
+        Fixed return values only go so far. Real dependencies *compute*: a calculator multiplies its operands, a sync engine mutates state, a network service delivers results through callbacks.
+
+        In this tutorial you'll stub with closures that receive the actual arguments — fully typed, no casting — learn how overlapping stubs resolve, register side effects, and drive callback-based APIs on your terms.
+
+        @Image(source: intro-dynamic, alt: "Two arguments entering a closure and a computed value leaving it, drawn as a function machine.")
+    }
+
+    @Section(title: "Return computed values") {
+        @ContentAndMedia {
+            Instead of handing `thenReturn` a value, hand it a closure. The closure's parameters are the mocked method's parameters — concrete types guaranteed by parameter packs. You are, in effect, substituting the method's implementation.
+
+            @Image(source: intro-dynamic, alt: "A function machine receiving six and seven and producing forty-two.")
+        }
+
+        @Steps {
+            @Step {
+                Create a `Calculator` protocol and mark it mockable:
+
+                @Code(name: "Calculator.swift", file: "03-1-1-calculator.swift")
+            }
+
+            @Step {
+                Stub multiplication with a closure. Note that `a` and `b` are plain `Int`s — there is no casting, ever:
+
+                @Code(name: "CalculatorTests.swift", file: "03-1-2-computed.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Order your stubs") {
+        @ContentAndMedia {
+            Stubs with different matchers coexist: the most specific matcher that matches a call answers it. When you register another stub for the *same* matcher, the later registration wins.
+
+            @Image(source: chapter-advanced, alt: "Three overlapping stub bands, with an arrow showing the most specific band answering a call first.")
+        }
+
+        @Steps {
+            @Step {
+                Register specific matchers first and the broad fallback last, then exercise the boundaries:
+
+                @Code(name: "CalculatorTests.swift", file: "03-2-1-ordering.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Run side effects with do") {
+        @ContentAndMedia {
+            Sometimes you want to observe or record without changing the response. `.do` registers an action alongside the stub — it runs with the call's arguments whenever a matching invocation occurs.
+
+            @Image(source: intro-dynamic, alt: "A mock method call branching into a spy notebook recording its arguments.")
+        }
+
+        @Steps {
+            @Step {
+                Declare a `SyncEngine` dependency whose refresh method returns `Void`:
+
+                @Code(name: "SyncEngine.swift", file: "03-3-1-sync-engine.swift")
+            }
+
+            @Step {
+                Register an action with `.do`, then pair it with a `thenReturn(())` stub for the same matcher so the call itself resolves cleanly. Every refresh appends to the array:
+
+                @Code(name: "SyncEngineTests.swift", file: "03-3-2-side-effects.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Drive callback-based APIs") {
+        @ContentAndMedia {
+            Completion-handler APIs are where mocks earn their keep. Match the closure parameter with `.any` — the only matcher that makes sense for it — then invoke the completion yourself from a `thenReturn` closure. You decide when and with what the callback fires.
+
+            @Image(source: chapter-advanced, alt: "A mock network service handing a result to a completion callback held by a test.")
+        }
+
+        @Steps {
+            @Step {
+                Declare a `NetworkService` protocol with a completion handler, plus a small `User` model:
+
+                @Code(name: "NetworkService.swift", file: "03-4-1-network-service.swift", reset: true)
+            }
+
+            @Step {
+                Stub the call, invoke the completion with a success result, and assert what arrives. The closure's `id` parameter is the real `String` that was passed in:
+
+                @Code(name: "NetworkServiceTests.swift", file: "03-4-2-callbacks.swift", reset: true)
+            }
+
+            @Step {
+                Failures are one line away — deliver `.failure(...)` instead and your error paths become just as testable as the happy path.
+            }
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            Inside `when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in ... }`, what are `a` and `b`?
+
+            @Choice(isCorrect: false) {
+                `Any` values you must cast to `Int`.
+
+                @Justification(reaction: "Try again!") {
+                    Parameter packs preserve the method's concrete parameter types — that's the headline feature.
+                }
+            }
+
+            @Choice(isCorrect: true) {
+                Real `Int`s, statically typed to match the method's signature.
+
+                @Justification(reaction: "That's right!") {
+                    The closure type is derived from the mocked method's parameters, so the compiler enforces it.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                `ArgMatcher<Int>` values you unwrap manually.
+
+                @Justification(reaction: "Try again!") {
+                    Matchers select which calls match; the closure receives the already-extracted arguments.
+                }
+            }
+        }
+
+        @MultipleChoice {
+            You stub `.any` first, then stub the exact value `42` for the same method. A call with `42` returns…
+
+            @Choice(isCorrect: false) {
+                Whatever `.any` returns — stubs can't overlap.
+
+                @Justification(reaction: "Try again!") {
+                    Stubs absolutely overlap; matching is what decides.
+                }
+            }
+
+            @Choice(isCorrect: true) {
+                The `42` stub's value — the more specific matcher wins.
+
+                @Justification(reaction: "That's right!") {
+                    The most specific matching stub answers the call; `.any` remains the fallback.
+                }
+            }
+
+            @Choice(isCorrect: false) {
+                The most recently registered stub, always.
+
+                @Justification(reaction: "Try again!") {
+                    Recency only decides between stubs for the *same* matcher, not across different matchers.
+                }
+            }
+        }
+    }
+}

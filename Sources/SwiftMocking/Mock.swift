@@ -15,7 +15,7 @@ import Foundation
 /// Each spy is stored internally and reused on subsequent accesses, ensuring that all interactions
 /// for a specific method are recorded in the same spy instance.
 ///
-/// Mock classes are typically generated using the ``Mockable`` macro rather than created manually.
+/// Mock classes are typically generated using the `@Mockable` macro rather than created manually.
 /// The generated mocks inherit from this base class and provide protocol-specific implementations.
 ///
 /// ## Related Types
