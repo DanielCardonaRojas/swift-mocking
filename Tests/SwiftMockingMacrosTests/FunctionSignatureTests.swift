@@ -201,7 +201,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(.any, spy: super.doSomething)
                 }
                 func doSomething() -> String {
-                    return adapt(super.doSomething)
+                    return adapt(super.doSomething, ())
                 }
             }
             #endif
@@ -257,7 +257,7 @@ final class FunctionSignatureTests: MacroTestCase {
                     Interaction(.any, spy: super.doSomething)
                 }
                 func doSomething() {
-                    return adapt(super.doSomething)
+                    return adapt(super.doSomething, ())
                 }
             }
             #endif
