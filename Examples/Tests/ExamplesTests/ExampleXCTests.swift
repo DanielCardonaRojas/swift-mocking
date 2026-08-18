@@ -246,6 +246,19 @@ final class MockitoTests: XCTestCase {
         verify(mock[3]).called()
     }
 
+    func testPropertyService() {
+        let mock = MockPropertyService()
+
+        // Getter stubbing and verification read like the property itself
+        when(mock.value).thenReturn(42)
+        XCTAssertEqual(mock.value, 42)
+        verify(mock.value).called(1)
+
+        // Setter verification goes through setValue(newValue:)
+        mock.value = 7
+        verify(mock.setValue(newValue: .equal(7))).called(1)
+    }
+
     func testVariadic() {
         let mock = MockPrinter()
         (mock as Printer).print("hello", "___", "world")

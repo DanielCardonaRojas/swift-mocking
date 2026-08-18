@@ -58,7 +58,7 @@ verifyInOrder([mock.auth(.any), mock.data(.any)])  // call order across spies
 ## Properties & subscripts
 
 ```swift
-when(mock.getIsEnabled()).thenReturn(true)   // getter interaction — getX()/setX(newValue:)
+when(mock.isEnabled).thenReturn(true)       // getter interaction — reads like the property itself
 mock.isEnabled = false
 verify(mock.setIsEnabled(newValue: .equal(false))).called(1)
 
@@ -66,9 +66,7 @@ when(cache[.any]).thenReturn("cached")       // subscript interactions via match
 verify(cache[.equal("key")]).called(1)
 ```
 
-⚠️ **Getter stubbing caveat (macro-generated mocks, current release)**: `when(mock.getX()).thenReturn(v)` does not reach the runtime getter — the getter returns the default value and `verify(mock.getX()).called(n)` always sees 0. Setters are unaffected. Hand-written mocks fix this with the pinned-spy getter form (see manual-mocking.md).
-
-⚠️ **Zero-parameter methods have the same defect in macro-generated mocks** — stub via `when(mock.f())` is ignored. Hand-written mocks: pinned-spy form. Bare zero-arg calls (`mock.f()`) on the mock type are ambiguous; call through the protocol type.
+Getter verification mirrors a read too: `verify(mock.isEnabled).called(1)` (also `verifyNever(mock.isEnabled)`). The getter interaction is an overload on the variable name taking `Void` — the parameter is required: a niladic form would be an `invalid redeclaration` against the property's getter accessor, and it's what lets `when(mock.x)` infer its input pack. Setter interactions keep the `setX(newValue:)` form. Bare zero-arg calls (`mock.f()`) on the mock type can be ambiguous between the runtime and interaction members — call through the protocol type.
 
 ## Closure-based dependencies (TCA pattern)
 

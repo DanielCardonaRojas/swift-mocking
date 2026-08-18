@@ -29,6 +29,18 @@ public func when<each Input, Eff: Effect, Output>(_ interaction: Interaction<rep
     interaction.spy.when(calledWith: interaction.invocationMatcher)
 }
 
+///
+/// This overload accepts an unapplied reference to a parameterless interaction member —
+/// most notably a mocked variable's getter interaction — so stubbing reads like a plain
+/// property read:
+/// ```swift
+/// when(mock.name).thenReturn("mocked_value")
+/// ```
+public func when<each Input, Eff: Effect, Output>(_ interaction: (()) -> Interaction<repeat each Input, Eff, Output>) -> Arrange<repeat each Input, Eff, Output> {
+    let interaction = interaction(())
+    return interaction.spy.when(calledWith: interaction.invocationMatcher)
+}
+
 /// Verifies that a specific interaction with a mock object has occurred.
 ///
 /// This function is used to assert that a mocked method was called with arguments
@@ -49,6 +61,19 @@ public func verify<each Input, Eff: Effect, Output>(
     _ interaction: Interaction<repeat each Input, Eff, Output>
 ) -> Assert<repeat each Input, Eff, Output>  {
     Assert(invocationMatcher: interaction.invocationMatcher, spy: interaction.spy)
+}
+
+/// Verifies that a specific interaction with a mock object has occurred, accepting an
+/// unapplied reference to a parameterless interaction member (e.g. a mocked variable's
+/// getter interaction) so verification reads like a plain property read:
+/// ```swift
+/// verify(mock.name).called(1)
+/// ```
+public func verify<each Input, Eff: Effect, Output>(
+    _ interaction: (()) -> Interaction<repeat each Input, Eff, Output>
+) -> Assert<repeat each Input, Eff, Output> {
+    let interaction = interaction(())
+    return Assert(invocationMatcher: interaction.invocationMatcher, spy: interaction.spy)
 }
 
 /// Verifies that a sequence of interactions across multiple mock objects occurred in the specified order.
@@ -121,6 +146,17 @@ public func verifyInOrder(
 /// - Parameter line: The line where a verification failure is reported.
 public func verifyNever<each Input, Eff: Effect, Output>(
     _ interaction: Interaction<repeat each Input, Eff, Output>,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    verify(interaction).neverCalled(file: file, line: line)
+}
+
+/// Verifies that a specific interaction with a mock object never occurred, accepting an
+/// unapplied reference to a parameterless interaction member (e.g. a mocked variable's
+/// getter interaction): `verifyNever(mock.name)`.
+public func verifyNever<each Input, Eff: Effect, Output>(
+    _ interaction: (()) -> Interaction<repeat each Input, Eff, Output>,
     file: StaticString = #filePath,
     line: UInt = #line
 ) {

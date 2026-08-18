@@ -198,6 +198,19 @@ struct ExampleTests {
         verify(mock[3]).called()
     }
 
+    @Test func testPropertyService() {
+        let mock = MockPropertyService()
+
+        // Getter stubbing and verification read like the property itself
+        when(mock.value).thenReturn(42)
+        #expect(mock.value == 42)
+        verify(mock.value).called(1)
+
+        // Setter verification goes through setValue(newValue:)
+        mock.value = 7
+        verify(mock.setValue(newValue: .equal(7))).called(1)
+    }
+
     @Test func testNetworkService() async throws {
         let mock = MockNetworkService()
         let url = URL(string: "https://example.com/data")!

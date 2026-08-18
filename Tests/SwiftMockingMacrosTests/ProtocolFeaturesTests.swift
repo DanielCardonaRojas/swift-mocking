@@ -50,7 +50,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
-                func getValue() -> Interaction<Void, None, Int > {
+                func value(_ void: Void) -> Interaction<Void, None, Int > {
                     Interaction(.any, spy: super.value)
                 }
 

@@ -79,7 +79,7 @@ public extension MockableGenerator {
     ///
     /// For a variable `var name: String { get set }`, this will generate:
     /// ```swift
-    /// func getName() -> Interaction<Void, None, String> { ... }
+    /// func name(_ void: Void) -> Interaction<Void, None, String> { ... }
     /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
     /// ```
     private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
@@ -161,16 +161,35 @@ public extension MockableGenerator {
     ///
     /// For a variable `var name: String`, this will generate:
     /// ```swift
-    /// func getName() -> Interaction<Void, None, String> { ... }
+    /// func name(_ void: Void) -> Interaction<Void, None, String> { ... }
     /// ```
+    ///
+    /// The `Void` parameter is load-bearing, not cosmetic:
+    /// - A niladic `func name()` alongside the conformance's `var name` property is an
+    ///   `invalid redeclaration` — the property's getter accessor already occupies the
+    ///   `name()` selector.
+    /// - The unapplied member reference `mock.name` then has exactly the type
+    ///   `(Void) -> Interaction<Void, None, T>`, which is what the `when`/`verify`
+    ///   overloads taking `(()) -> Interaction<repeat each Input, Eff, Output>` infer
+    ///   their input pack from, so `when(mock.name)` and `verify(mock.name)` resolve.
+    /// - It keeps the spy's input pack at `(Void)` — the same pack the conformance's
+    ///   `adapt(super.name, ())` records on.
     private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
         let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
         let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])
+        let voidParameter = FunctionParameterSyntax(
+            firstName: .wildcardToken(),
+            secondName: .identifier("void"),
+            colon: .colonToken(trailingTrivia: .space),
+            type: IdentifierTypeSyntax(name: .identifier("Void"))
+        )
         return FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
-            name: .identifier("get\(varName.capitalized)"),
+            name: .identifier(varName),
             signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax(parameters: []),
+                parameterClause: FunctionParameterClauseSyntax(
+                    parameters: FunctionParameterListSyntax([voidParameter])
+                ),
                 returnClause: interactionReturnType
             ),
             body: body

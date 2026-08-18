@@ -104,7 +104,7 @@ public class AuthorizingUserServiceMock: Mock, @unchecked Sendable, AuthorizingU
     public func fetchUser(id: ArgMatcher<String>) -> Interaction<String, AsyncThrows, User> {
         Interaction(id, spy: super.fetchUser)
     }
-    public func getCachePolicy() -> Interaction<Void, None, String> {
+    public func cachePolicy(_ void: Void) -> Interaction<Void, None, String> {
         Interaction(.any, spy: super.cachePolicy)
     }
     public func setCachePolicy(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> {
@@ -124,7 +124,7 @@ Rules:
 
 ## Properties
 
-Getter interaction is `get` + capitalized name; setter is `set` + capitalized name.
+Getter interaction overloads the variable name with a `Void` parameter; setter is `set` + capitalized name. The `Void` parameter is required, not cosmetic: a niladic `func cachePolicy()` next to the `var cachePolicy` conformance is an `invalid redeclaration` (the property's getter accessor already owns that selector), and the unapplied reference `mock.cachePolicy` must have exactly type `(Void) -> Interaction<…>` for `when(mock.cachePolicy)` / `verify(mock.cachePolicy)` to infer their input pack.
 
 ```swift
 // protocol: var cachePolicy: String { get set }
@@ -136,7 +136,7 @@ var cachePolicy: String {
     }
     set { return adapt(super.setCachePolicy, newValue) }
 }
-func getCachePolicy() -> Interaction<Void, None, String> {
+func cachePolicy(_ void: Void) -> Interaction<Void, None, String> {
     Interaction(.any, spy: super.cachePolicy)
 }
 func setCachePolicy(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> {
@@ -144,7 +144,7 @@ func setCachePolicy(newValue: ArgMatcher<String>) -> Interaction<String, None, V
 }
 ```
 
-Read-only property → runtime getter + `getX()` interaction only.
+Read-only property → runtime getter + the `x(_ void: Void)` interaction only.
 
 ## Subscripts
 
