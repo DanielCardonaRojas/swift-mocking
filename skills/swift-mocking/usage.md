@@ -66,7 +66,7 @@ when(cache[.any]).thenReturn("cached")       // subscript interactions via match
 verify(cache[.equal("key")]).called(1)
 ```
 
-Getter verification mirrors a read too: `verify(mock.isEnabled).called(1)` (also `verifyNever(mock.isEnabled)`). The getter interaction is an overload on the variable name taking `Void`; setter interactions keep the `setX(newValue:)` form. Bare zero-arg calls (`mock.f()`) on the mock type can be ambiguous between the runtime and interaction members — call through the protocol type.
+Getter verification mirrors a read too: `verify(mock.isEnabled).called(1)` (also `verifyNever(mock.isEnabled)`). The getter interaction is an overload on the variable name taking `Void` — the parameter is required: a niladic form would be an `invalid redeclaration` against the property's getter accessor, and it's what lets `when(mock.x)` infer its input pack. Setter interactions keep the `setX(newValue:)` form. Bare zero-arg calls (`mock.f()`) on the mock type can be ambiguous between the runtime and interaction members — call through the protocol type.
 
 ## Closure-based dependencies (TCA pattern)
 

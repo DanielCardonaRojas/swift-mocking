@@ -164,9 +164,16 @@ public extension MockableGenerator {
     /// func name(_ void: Void) -> Interaction<Void, None, String> { ... }
     /// ```
     ///
-    /// The `Void` parameter overloads the variable's own name so stubbing reads like a
-    /// property read (`when(mock.name)`), and it keeps the spy's input pack at `(Void)` —
-    /// the same pack the conformance's `adapt(super.name, ())` records on.
+    /// The `Void` parameter is load-bearing, not cosmetic:
+    /// - A niladic `func name()` alongside the conformance's `var name` property is an
+    ///   `invalid redeclaration` — the property's getter accessor already occupies the
+    ///   `name()` selector.
+    /// - The unapplied member reference `mock.name` then has exactly the type
+    ///   `(Void) -> Interaction<Void, None, T>`, which is what the `when`/`verify`
+    ///   overloads taking `(()) -> Interaction<repeat each Input, Eff, Output>` infer
+    ///   their input pack from, so `when(mock.name)` and `verify(mock.name)` resolve.
+    /// - It keeps the spy's input pack at `(Void)` — the same pack the conformance's
+    ///   `adapt(super.name, ())` records on.
     private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
         let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
         let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])

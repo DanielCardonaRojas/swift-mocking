@@ -124,7 +124,7 @@ Rules:
 
 ## Properties
 
-Getter interaction overloads the variable name with a `Void` parameter; setter is `set` + capitalized name.
+Getter interaction overloads the variable name with a `Void` parameter; setter is `set` + capitalized name. The `Void` parameter is required, not cosmetic: a niladic `func cachePolicy()` next to the `var cachePolicy` conformance is an `invalid redeclaration` (the property's getter accessor already owns that selector), and the unapplied reference `mock.cachePolicy` must have exactly type `(Void) -> Interaction<…>` for `when(mock.cachePolicy)` / `verify(mock.cachePolicy)` to infer their input pack.
 
 ```swift
 // protocol: var cachePolicy: String { get set }
