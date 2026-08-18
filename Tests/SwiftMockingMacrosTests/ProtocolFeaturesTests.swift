@@ -26,7 +26,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                     Interaction(.any, spy: super.doSomething)
                 }
                 func doSomething() {
-                    return adapt(super.doSomething)
+                    return adapt(super.doSomething, ())
                 }
             }
             #endif
@@ -56,7 +56,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                     var value: Int {
                     get {
-                        adapt(super.value)
+                        adapt(super.value, ())
                     }
                 }
             }
@@ -144,7 +144,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                     Interaction(.any, spy: super.item)
                 }
                 func item() -> Item {
-                    return adapt(super.item)
+                    return adapt(super.item, ())
                 }
             }
             #endif

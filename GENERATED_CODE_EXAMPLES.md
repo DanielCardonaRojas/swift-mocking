@@ -119,7 +119,7 @@ protocol Service {
 ```swift
 class ServiceMock: Mock, @unchecked Sendable, Service {
     func doSomething() {
-        return adapt(super.doSomething)
+        return adapt(super.doSomething, ())
     }
     func doSomething() -> Interaction<Void, None, Void> {
         Interaction(.any, spy: super.doSomething)
@@ -144,7 +144,7 @@ protocol MyService {
 ```swift
 class MockMyService: Mock, MyService {
     func doSomething() {
-        return adapt(super.doSomething)
+        return adapt(super.doSomething, ())
     }
     func doSomething() -> Interaction<Void, None, Void> {
         Interaction(.any, spy: super.doSomething)
@@ -171,7 +171,7 @@ protocol MyService {
 class MyServiceMock<Item>: Mock, MyService {
     typealias Item = Item
     func item() -> Item {
-        return adapt(super.item)
+        return adapt(super.item, ())
     }
     func item() -> Interaction<Void, None, Item> {
         Interaction(.any, spy: super.item)
@@ -196,7 +196,7 @@ class MyServiceMock: Mock, @unchecked Sendable, MyService {
 
     var value: Int {
         get {
-            adapt(super.value)
+            adapt(super.value, ())
         }
     }
     func getValue() -> Interaction<Void, None, Int > {
@@ -247,7 +247,7 @@ public protocol Service {
 ```swift
 class ServiceMock: Mock, @unchecked Sendable, Service {
     func doSomething() {
-        return adapt(super.doSomething)
+        return adapt(super.doSomething, ())
     }
     func doSomething() -> Interaction<Void, None, Void> {
         Interaction(.any, spy: super.doSomething)

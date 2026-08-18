@@ -241,13 +241,21 @@ extension MockableGenerator {
                     )
                 )
 
-                // param1, param2...
-                for parameter in parameters {
+                // param1, param2... — or () when the requirement has no
+                // parameters, so the spy's input pack stays (Void) and matches
+                // the pack spelled by the generated Interaction.
+                if parameters.isEmpty {
                     LabeledExprSyntax(
-                        expression: DeclReferenceExprSyntax.init(
-                            baseName: parameter
-                        )
+                        expression: TupleExprSyntax(elements: LabeledExprListSyntax())
                     )
+                } else {
+                    for parameter in parameters {
+                        LabeledExprSyntax(
+                            expression: DeclReferenceExprSyntax.init(
+                                baseName: parameter
+                            )
+                        )
+                    }
                 }
             },
             rightParen: .rightParenToken()

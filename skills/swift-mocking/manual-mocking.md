@@ -43,23 +43,23 @@ Non-negotiables:
 | `async -> Int` | `return await adapt(super.f, x)` | `Async` |
 | `async throws -> Int` | `return try await adaptThrowing(super.f, x)` | `AsyncThrows` |
 
-Interaction generic arguments: **input types in order**, then the effect marker, then the output type (`Void` if none). Zero parameters → `Interaction<Void, Eff, Out>` with `Interaction(.any, spy: super.f)` — and the runtime member must use the pinned-spy form below, not `adapt(super.f)`.
+Interaction generic arguments: **input types in order**, then the effect marker, then the output type (`Void` if none). Zero parameters → `Interaction<Void, Eff, Out>` with `Interaction(.any, spy: super.f)` — and the runtime member must pass `()` explicitly (`adapt(super.f, ())`) to land on that same `(Void)`-pack spy.
 
-## Zero-parameter members and property getters — pinned-spy form
+## Zero-parameter members and property getters — pass `()` explicitly
 
-`adapt(super.f)` with **no arguments** infers an empty parameter pack, which resolves to a *different* spy than the interaction member's `Spy<Void, Eff, Out>`. Symptom: `when(mock.f()).thenReturn(v)` is silently ignored (unstubbed default returned) and `verify(mock.f()).called(n)` always sees 0 — even though the member ran. The macro-generated form has this defect; a manual mock fixes it by pinning the spy type:
+`adapt(super.f)` with **no arguments** infers an empty parameter pack, which resolves to a *different* spy than the interaction member's `Spy<Void, Eff, Out>`. Symptom: `when(mock.f()).thenReturn(v)` is silently ignored (unstubbed default returned) and `verify(mock.f()).called(n)` always sees 0 — even though the member ran. The macro emits `adapt(super.f, ())`; a manual mock must do the same:
 
 ```swift
 // protocol: func getStatus() -> String
 func getStatus() -> String {
-    let spy: Spy<Void, None, String> = super.getStatus
-    return spy(())
+    return adapt(super.getStatus, ())
 }
 func getStatus() -> Interaction<Void, None, String> {
     Interaction(.any, spy: super.getStatus)
 }
+```
 
-Effect variants: `return await spy(())` (Async), `return try spy(())` (Throws), `return try await spy(())` (AsyncThrows). Property getters use the same form keyed by the property name (see Properties). Prefer `spy(())` over the free function `adapt(spy)()` — the member `adapt` shadows it, forcing a `SwiftMocking.adapt` qualification.
+Effect variants: `return await adapt(super.getStatus, ())` (Async), `return try adaptThrowing(super.getStatus, ())` (Throws), `return try await adaptThrowing(super.getStatus, ())` (AsyncThrows). Property getters use the same form keyed by the property name (see Properties).
 
 
 ## Calling the mock — go through the protocol type
@@ -130,10 +130,9 @@ Getter interaction is `get` + capitalized name; setter is `set` + capitalized na
 // protocol: var cachePolicy: String { get set }
 var cachePolicy: String {
     get {
-        // Pinned-spy form — a bare `adapt(super.cachePolicy)` hits the zero-arg
-        // spy mismatch and getter stubs/verifies silently no-op.
-        let spy: Spy<Void, None, String> = super.cachePolicy
-        return spy(())
+        // Pass () explicitly — a bare `adapt(super.cachePolicy)` hits the
+        // zero-arg spy mismatch and getter stubs/verifies silently no-op.
+        adapt(super.cachePolicy, ())
     }
     set { return adapt(super.setCachePolicy, newValue) }
 }
@@ -236,7 +235,7 @@ func execute(completion: ArgMatcher<(String) -> Void>) -> Interaction<(String) -
 | Mistake | Symptom | Fix |
 |---|---|---|
 | Missing `@unchecked Sendable` restatement | Swift 6 warnings; fails `: Sendable` protocol conformance | `class FooMock: Mock, @unchecked Sendable, Foo` |
-| Zero-arg runtime member written as `adapt(super.f)` | Stub ignored; `verify(...)` always 0 (silent) | Pinned-spy form: `let spy: Spy<Void, Eff, O> = super.f; return spy(())` |
+| Zero-arg runtime member written as `adapt(super.f)` | Stub ignored; `verify(...)` always 0 (silent) | Pass `()`: `adapt(super.f, ())` — the form the macro emits |
 | Calling `mock.f()` bare on a zero-arg mock member | `ambiguous use of 'f()'` | Call through a protocol-typed reference |
 | Getter body `adapt(super.getX)` (wrong key or bare adapt) | Getter stubs/verifies silently no-op | Pin `Spy<Void, None, T>` keyed by the **property name** |
 | Setter body without `return` | `generic parameter 'Output' could not be inferred` | `set { return adapt(super.setX, newValue) }` — the `return` pins `Output == Void` |
