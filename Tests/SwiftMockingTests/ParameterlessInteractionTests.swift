@@ -39,7 +39,7 @@ final class ParameterlessInteractionTests: XCTestCase {
     func testPropertyGetter_StubbedValueIsReturned() {
         let mock = MockParameterlessService()
         let service: ParameterlessService = mock
-        when(mock.getCounter()).thenReturn(7)
+        when(mock.counter).thenReturn(7)
 
         let result = service.counter
 
@@ -52,7 +52,13 @@ final class ParameterlessInteractionTests: XCTestCase {
 
         _ = service.counter
 
-        verify(mock.getCounter()).called(1)
+        verify(mock.counter).called(1)
+    }
+
+    func testPropertyGetter_NeverCalledVerification() {
+        let mock = MockParameterlessService()
+
+        verifyNever(mock.counter)
     }
 
     func testZeroArgAsyncMethod_StubbedValueIsReturned() async {

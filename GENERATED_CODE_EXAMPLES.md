@@ -192,15 +192,15 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock: Mock, @unchecked Sendable, MyService {
+class MockMyService: Mock, @unchecked Sendable, MyService {
+    func value(_ void: Void) -> Interaction<Void, None, Int > {
+        Interaction(.any, spy: super.value)
+    }
 
-    var value: Int {
+        var value: Int {
         get {
             adapt(super.value, ())
         }
-    }
-    func getValue() -> Interaction<Void, None, Int > {
-        Interaction(.any, spy: super.value)
     }
 }
 ```
