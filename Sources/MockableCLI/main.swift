@@ -65,10 +65,17 @@ func run(includeDebugWrapper: Bool) throws {
     print(mocks.map(\.source).joined(separator: "\n\n"))
 }
 
+let supportedArguments: Set<String> = ["--no-debug-wrap"]
+
 do {
-    let arguments = CommandLine.arguments.dropFirst()
+    let arguments = Array(CommandLine.arguments.dropFirst())
     if arguments.contains(where: { $0 == "-h" || $0 == "--help" }) {
         print(usage)
+    } else if let unsupported = arguments.first(where: { !supportedArguments.contains($0) }) {
+        FileHandle.standardError.write(
+            Data("error: unsupported argument '\(unsupported)'\n\n\(usage)\n".utf8)
+        )
+        exit(1)
     } else {
         try run(includeDebugWrapper: !arguments.contains("--no-debug-wrap"))
     }
