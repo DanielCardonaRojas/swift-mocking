@@ -32,7 +32,7 @@ Invoke as `mockable` when it is on `PATH`; otherwise `.build/release/mockable` i
 - Options ride the input: `@Mockable([.suffixMock]) protocol P {...}` on stdin.
 - Default output keeps the macro's `#if DEBUG` wrapper; pass `--no-debug-wrap` when pasting into a test target (DEBUG is per build configuration — a wrapped mock vanishes under `swift test -c release`).
 - A stderr warning about inherited requirements means the output will not conform — hand-write per manual-mocking.md instead.
-- Output keeps the macro's zero-arg/property-getter shape, which `when`/`verify` silently mis-stub — apply the pinned-spy fix from manual-mocking.md before relying on those members.
+- Output keeps the macro's zero-arg/property-getter shape: `when(...)` silently stubs a disconnected spy, and `verify(...)` reports zero calls for those members — apply the pinned-spy fix from manual-mocking.md before relying on them.
 
 ## The one rule for manual mocks
 
