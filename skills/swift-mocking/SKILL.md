@@ -14,9 +14,26 @@ Mocking for Swift protocols: `@Mockable` generates mock classes; `when(...)` stu
 | Protocol has no inheritance; need a mock | `@Mockable protocol P {...}` → use `PMock()` |
 | Protocol inherits another protocol with members | **manual-mocking.md** (macro cannot do this) |
 | Mocking without any protocol (closure/TCA dependencies) | usage.md — `Spy` + `adapt` |
-| Hand-writing any mock (macro-free, or macro plugin unavailable) | manual-mocking.md |
+| Need mock source without the macro (plugin unavailable, codegen, review) | `mockable` CLI (below) when available; hand-writing per manual-mocking.md is always valid |
 | `@Sendable`/Swift 6 concurrency errors when stubbing | sendable.md |
 | Stubbing / matching / verifying API reference | usage.md |
+
+
+## Deterministic generation: the `mockable` CLI
+
+When a mock must exist as written source (macro plugin unavailable, codegen pipeline, review), the `mockable` CLI is the fastest exact path — it needs a swift-mocking checkout and a one-time build. Hand-writing per manual-mocking.md is equally correct and needs nothing; use the CLI when it's available, hand-write when it isn't or when you're already customizing. Build once:
+
+```bash
+swift build -c release --product mockable   # → .build/release/mockable
+```
+
+```bash
+echo 'protocol P { func price(_ item: String) throws -> Int }' | .build/release/mockable
+```
+
+- Options ride the input: `@Mockable([.suffixMock]) protocol P {...}` on stdin.
+- A stderr warning about inherited requirements means the output will not conform — hand-write per manual-mocking.md instead.
+- Output keeps the macro's zero-arg/property-getter shape, which `when`/`verify` silently mis-stub — apply the pinned-spy fix from manual-mocking.md before relying on those members.
 
 ## The one rule for manual mocks
 

@@ -5,6 +5,9 @@ import MockableGenerator
 let usage = """
 usage: mockable
 
+Build once with: swift build -c release --product mockable
+Binary: .build/release/mockable
+
 Reads Swift source from stdin and writes a mock class for every top-level
 protocol declaration to stdout. Output is byte-identical to what the
 `@Mockable` macro expands to, including the `#if DEBUG` wrapper.

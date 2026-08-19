@@ -6,6 +6,8 @@ How to hand-write what `@Mockable` generates — without the macro. Required whe
 - Macro plugin unavailable (locked-down toolchains, codegen restrictions).
 - One-off customization inside a mock.
 
+Hand-writing is always a valid option, with or without the `mockable` CLI. For protocols **without** inheritance, generating the base with the CLI (see SKILL.md) is faster and byte-exact — use it when available, then hand-adjust.
+
 Everything below mirrors `MockableGenerator` — with one deliberate improvement: zero-parameter members and property getters use the pinned-spy form so `when`/`verify` actually reach them (the macro-generated form silently mis-stubs those; see the pinned-spy section).
 
 ## The two-member rule

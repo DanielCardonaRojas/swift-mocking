@@ -627,11 +627,21 @@ Once installed, the skill activates automatically when the agent works on Swift 
 
 ### Mock Generation CLI
 
-The package includes a `mockable` executable that runs the same code generation as the `@Mockable` macro, outside the compiler. It reads a protocol definition from stdin and writes the generated mock class to stdout — useful for agents and codegen pipelines, or when you want the mock source materialized:
+The package includes a `mockable` executable that runs the same code generation as the `@Mockable` macro, outside the compiler. It reads a protocol definition from stdin and writes the generated mock class to stdout — useful for agents and codegen pipelines, or when you want the mock source materialized.
+
+**Install (recommended):** build the release binary once from a clone of this repository — startup is near-instant on every subsequent run:
 
 ```bash
-echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | swift run mockable
+swift build -c release --product mockable   # → .build/release/mockable
 ```
+
+Then pipe protocol definitions through it:
+
+```bash
+echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | .build/release/mockable
+```
+
+For one-off use without building first, `swift run mockable` works the same way but pays SwiftPM planning overhead on each invocation.
 
 - Output is byte-identical to `@Mockable` macro expansion, including the `#if DEBUG` wrapper. Generation options are read from a `@Mockable` attribute on the input protocol when present (e.g. `@Mockable([.suffixMock])`); protocols without one use the default options.
 - Every top-level protocol declaration in the input gets a mock, emitted in declaration order.
