@@ -37,6 +37,10 @@ let package = Package(
             name: "SwiftMockingTestSupport",
             targets: ["SwiftMockingTestSupport"]
         ),
+        .executable(
+            name: "mockable",
+            targets: ["MockableCLI"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "509.0.0"..<"602.0.0"),
@@ -69,8 +73,18 @@ let package = Package(
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
+                .product(name: "SwiftParserDiagnostics", package: "swift-syntax"),
+                .product(name: "SwiftDiagnostics", package: "swift-syntax"),
                 "SwiftMockingOptions",
             ]
+        ),
+        .executableTarget(
+            name: "MockableCLI",
+            dependencies: [
+                "MockableGenerator",
+            ],
+            swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .macro(
             name: "SwiftMockingMacros",
@@ -91,6 +105,7 @@ let package = Package(
         .testTarget(name: "SwiftMockingMacrosTests", dependencies: [
             "SwiftMocking",
             "SwiftMockingMacros",
+            "MockableGenerator",
             .product(name: "MacroTesting", package: "swift-macro-testing"),
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
         ], swiftSettings: [.swiftLanguageMode(.v6)])
