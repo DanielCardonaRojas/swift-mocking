@@ -155,4 +155,30 @@ final class GeneratorPipelineTests: XCTestCase {
             XCTAssertTrue(diagnostics.contains("error:"), "diagnostics should annotate errors: \(diagnostics)")
         }
     }
+
+    func testGenerateMocksWithoutDebugWrapperOmitsIfConfigAndKeepsMembers() throws {
+        let mocks = try MockableGenerator.generateMocks(
+            source: """
+            @Mockable()
+            protocol PricingService {
+                func price(_ item: String) -> Int
+            }
+            """,
+            includeDebugWrapper: false
+        )
+
+        XCTAssertEqual(mocks.map(\.source), [
+            """
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
+                func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
+                    Interaction(item, spy: super.price)
+                }
+                func price(_ item: String) -> Int {
+                    return adapt(super.price, item)
+                }
+            }
+            """
+        ])
+    }
+
 }

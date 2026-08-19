@@ -16,6 +16,11 @@ Generation options are read from a `@Mockable` attribute on each protocol,
 when present (e.g. `@Mockable([.suffixMock])`). Protocols without the
 attribute use the default options.
 
+By default output keeps the `#if DEBUG` wrapper the macro emits. Pass
+--no-debug-wrap to emit the mock class bare — the right choice when pasting
+into a test target, since DEBUG is defined per build configuration (not per
+target) and a wrapped mock vanishes under `swift test -c release`.
+
 Example:
   echo 'protocol PricingService { func price(_ item: String) -> Int }' | mockable
 
@@ -51,17 +56,21 @@ func printWarnings(for mocks: [GeneratedMock]) {
     }
 }
 
-func run() throws {
-    let mocks = try MockableGenerator.generateMocks(source: readStdin())
+func run(includeDebugWrapper: Bool) throws {
+    let mocks = try MockableGenerator.generateMocks(
+        source: readStdin(),
+        includeDebugWrapper: includeDebugWrapper
+    )
     printWarnings(for: mocks)
     print(mocks.map(\.source).joined(separator: "\n\n"))
 }
 
 do {
-    if CommandLine.arguments.dropFirst().contains(where: { $0 == "-h" || $0 == "--help" }) {
+    let arguments = CommandLine.arguments.dropFirst()
+    if arguments.contains(where: { $0 == "-h" || $0 == "--help" }) {
         print(usage)
     } else {
-        try run()
+        try run(includeDebugWrapper: !arguments.contains("--no-debug-wrap"))
     }
 } catch {
     FileHandle.standardError.write(Data("error: \(error)\n".utf8))

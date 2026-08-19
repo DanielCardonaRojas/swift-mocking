@@ -643,7 +643,7 @@ echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | .b
 
 For one-off use without building first, `swift run mockable` works the same way but pays SwiftPM planning overhead on each invocation.
 
-- Output is byte-identical to `@Mockable` macro expansion, including the `#if DEBUG` wrapper. Generation options are read from a `@Mockable` attribute on the input protocol when present (e.g. `@Mockable([.suffixMock])`); protocols without one use the default options.
+- Default output keeps the `#if DEBUG` wrapper the macro emits; pass `--no-debug-wrap` to emit the mock bare — the right choice when pasting into a test target, since `DEBUG` is defined per build configuration (a wrapped mock would vanish under `swift test -c release`).
 - Every top-level protocol declaration in the input gets a mock, emitted in declaration order.
 - Warnings go to stderr (e.g. a protocol that inherits another protocol — inherited requirements are not implemented); stdout only ever contains generated code.
 - Exits non-zero, with annotated diagnostics on stderr, when the input does not parse as Swift or declares no protocol.
