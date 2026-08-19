@@ -625,6 +625,35 @@ ln -s "$(pwd)/swift-mocking/skills/swift-mocking" ~/.agents/skills/swift-mocking
 
 Once installed, the skill activates automatically when the agent works on Swift tests that use SwiftMocking (or needs a mock the macro can't generate). No prompt changes required.
 
+### Mock Generation CLI
+
+The package includes a `mockable` executable that runs the same code generation as the `@Mockable` macro, outside the compiler. It reads a protocol definition from stdin and writes the generated mock class to stdout — useful for agents and codegen pipelines, or when you want the mock source materialized.
+
+**Install (recommended):** build the release binary once from a clone of this repository — startup is near-instant on every subsequent run:
+
+```bash
+swift build -c release --product mockable   # → .build/release/mockable
+```
+
+Then pipe protocol definitions through it:
+
+```bash
+echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | .build/release/mockable
+```
+
+To make the tool available everywhere (recommended for agents), copy the binary onto your `PATH`:
+
+```bash
+cp .build/release/mockable /opt/homebrew/bin/   # or any dir on your PATH
+```
+
+For one-off use without building first, `swift run mockable` works the same way but pays SwiftPM planning overhead on each invocation.
+
+- Default output keeps the `#if DEBUG` wrapper the macro emits; pass `--no-debug-wrap` to emit the mock bare — the right choice when pasting into a test target, since `DEBUG` is defined per build configuration (a wrapped mock would vanish under `swift test -c release`).
+- Every top-level protocol declaration in the input gets a mock, emitted in declaration order.
+- Warnings go to stderr (e.g. a protocol that inherits another protocol — inherited requirements are not implemented); stdout only ever contains generated code.
+- Exits non-zero, with annotated diagnostics on stderr, when the input does not parse as Swift or declares no protocol.
+
 ---
 
 ## ⚙️ How it Works
