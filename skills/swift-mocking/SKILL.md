@@ -21,15 +21,13 @@ Mocking for Swift protocols: `@Mockable` generates mock classes; `when(...)` stu
 
 ## Deterministic generation: the `mockable` CLI
 
-When a mock must exist as written source (macro plugin unavailable, codegen pipeline, review), the `mockable` CLI is the fastest exact path — it needs a swift-mocking checkout and a one-time build. Hand-writing per manual-mocking.md is equally correct and needs nothing; use the CLI when it's available, hand-write when it isn't or when you're already customizing. Build once:
+When a mock must exist as written source (macro plugin unavailable, codegen pipeline, review), the `mockable` CLI is the fastest exact path. Hand-writing per manual-mocking.md is equally correct and needs nothing; use the CLI when it's available, hand-write when it isn't or when you're already customizing.
 
 ```bash
-swift build -c release --product mockable   # → .build/release/mockable
+echo 'protocol P { func price(_ item: String) throws -> Int }' | mockable
 ```
 
-```bash
-echo 'protocol P { func price(_ item: String) throws -> Int }' | .build/release/mockable
-```
+Invoke as `mockable` when it is on `PATH`; otherwise `.build/release/mockable` inside a swift-mocking checkout (build once with `swift build -c release --product mockable`, then optionally copy the binary onto `PATH`).
 
 - Options ride the input: `@Mockable([.suffixMock]) protocol P {...}` on stdin.
 - Default output keeps the macro's `#if DEBUG` wrapper; pass `--no-debug-wrap` when pasting into a test target (DEBUG is per build configuration — a wrapped mock vanishes under `swift test -c release`).

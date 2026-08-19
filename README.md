@@ -641,6 +641,12 @@ Then pipe protocol definitions through it:
 echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | .build/release/mockable
 ```
 
+To make the tool available everywhere (recommended for agents), copy the binary onto your `PATH`:
+
+```bash
+cp .build/release/mockable /opt/homebrew/bin/   # or any dir on your PATH
+```
+
 For one-off use without building first, `swift run mockable` works the same way but pays SwiftPM planning overhead on each invocation.
 
 - Default output keeps the `#if DEBUG` wrapper the macro emits; pass `--no-debug-wrap` to emit the mock bare — the right choice when pasting into a test target, since `DEBUG` is defined per build configuration (a wrapped mock would vanish under `swift test -c release`).
