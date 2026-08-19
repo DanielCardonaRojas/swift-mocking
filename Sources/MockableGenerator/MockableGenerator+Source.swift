@@ -57,14 +57,16 @@ public extension MockableGenerator {
     ///
     /// Options are read from a `@Mockable` attribute on each protocol, when
     /// present. A protocol without the attribute uses the default options.
-    ///
     /// - Parameter source: Swift source text containing at least one top-level
     ///   protocol declaration.
+    /// - Parameter includeDebugWrapper: When `true` (the default) output keeps
+    ///   the `#if DEBUG` wrapper the macro emits. Pass `false` to emit the mock
+    ///   class bare — appropriate for mocks pasted into test targets, which
+    ///   have no release build to strip (note `DEBUG` is defined per build
+    ///   configuration, not per target, so a bare mock also survives
+    ///   `swift test -c release`).
     /// - Returns: One `GeneratedMock` per protocol, in declaration order.
-    /// - Throws: `MockableGeneratorError.parseFailed` if the source has syntax
-    ///   errors, `MockableGeneratorError.noProtocolsFound` if it declares no
-    ///   top-level protocols.
-    static func generateMocks(source: String) throws -> [GeneratedMock] {
+    static func generateMocks(source: String, includeDebugWrapper: Bool = true) throws -> [GeneratedMock] {
         let sourceFile = Parser.parse(source: source)
 
         let diagnostics = ParseDiagnosticsGenerator.diagnostics(for: sourceFile)
@@ -78,9 +80,17 @@ public extension MockableGenerator {
         guard !protocolDecls.isEmpty else {
             throw MockableGeneratorError.noProtocolsFound
         }
-
         return try protocolDecls.map { protocolDecl in
             let mockSource = try processProtocol(protocolDecl: protocolDecl)
+                .flatMap { decl -> [DeclSyntax] in
+                    guard !includeDebugWrapper, let ifConfig = decl.as(IfConfigDeclSyntax.self) else {
+                        return [decl]
+                    }
+                    guard case .decls(let members)? = ifConfig.clauses.first?.elements else {
+                        return [decl]
+                    }
+                    return members.map(\.decl)
+                }
                 .map { decl in
                     decl.formatted(using: BasicFormat(indentationWidth: .spaces(4)))
                         .trimmedDescription(matching: \.isWhitespace)
