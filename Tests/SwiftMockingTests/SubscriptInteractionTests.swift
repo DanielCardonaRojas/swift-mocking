@@ -18,17 +18,19 @@ protocol SettableSubscriptService {
 /// get-set); these tests exercise the generated mocks at runtime.
 ///
 /// Reads stub and verify through the `ArgMatcher` interaction subscript
-/// (`mock[.any]`). Writes record on a separate `setSubscript` spy with the
-/// written value as a trailing argument, mirroring `setValue(newValue:)` for
-/// properties — reached via `mock.setSubscript(index:newValue:)`.
+/// (`mock[.any]`). Settable requirements surface a `SettableInteraction`:
+/// reads use it directly (`when(mock[.any])`), writes verify via the
+/// `assigned:` operators — `verify(mock[.any], assigned: "one")` — with the
+/// written value recorded after the index on a dedicated spy.
 final class SubscriptInteractionTests: MockingTestCase {
     // MARK: Get
 
     func testSubscriptGetter_StubbedValueIsReturned() {
         let mock = MockSubscriptService()
+        let service: SubscriptService = mock
         when(mock[.any]).thenReturn("stubbed")
 
-        let result = mock[42]
+        let result = service[42]
 
         XCTAssertEqual(result, "stubbed")
     }
@@ -70,7 +72,7 @@ final class SubscriptInteractionTests: MockingTestCase {
 
         service[0] = "written"
 
-        verify(mock.setSubscript(index: .any, newValue: .any)).called(1)
+        verify(mock[.any], assigned: .any).called(1)
     }
 
     func testSubscriptSetter_VerificationRespectsArgumentMatchers() {
@@ -81,15 +83,15 @@ final class SubscriptInteractionTests: MockingTestCase {
         service[2] = "two"
         service[2] = "two"
 
-        verify(mock.setSubscript(index: .equal(1), newValue: .equal("one"))).called(1)
-        verify(mock.setSubscript(index: .equal(2), newValue: .equal("two"))).called(2)
-        verify(mock.setSubscript(index: .any, newValue: .any)).called(3)
+        verify(mock[.equal(1)], assigned: .equal("one")).called(1)
+        verify(mock[.equal(2)], assigned: .equal("two")).called(2)
+        verify(mock[.any], assigned: .any).called(3)
     }
 
     func testSubscriptSetter_NeverCalledVerification() {
         let mock = MockSettableSubscriptService()
 
-        verifyNever(mock.setSubscript(index: .any, newValue: .any))
+        verifyNever(mock[.any], assigned: .any)
     }
 
     // MARK: Get and set are independent interactions
@@ -103,8 +105,8 @@ final class SubscriptInteractionTests: MockingTestCase {
         service[2] = "two"
 
         verify(mock[.any]).called(1)
-        verify(mock.setSubscript(index: .any, newValue: .any)).called(2)
-        verify(mock.setSubscript(index: .equal(1), newValue: .any)).called(1)
+        verify(mock[.any], assigned: .any).called(2)
+        verify(mock[.equal(1)], assigned: .any).called(1)
     }
 
     func testSettableSubscript_GetterStillStubbable() {

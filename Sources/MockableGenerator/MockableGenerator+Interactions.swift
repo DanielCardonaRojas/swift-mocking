@@ -114,23 +114,16 @@ public extension MockableGenerator {
         return decls
     }
 
-    /// Processes a subscript declaration to generate interaction declarations.
+    /// Processes a subscript declaration to generate the interaction declaration.
     ///
-    /// For a subscript `subscript(index: Int) -> String { get }`, this will generate:
-    /// ```swift
-    /// subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String> {
-    ///     get { ... }
-    /// }
-    /// ```
-    ///
-    /// If the subscript is settable, it also generates a setter interaction function
-    /// (see ``subscriptSetterInteraction(_:)``) that stubs and verifies writes.
+    /// Get-only requirements generate an `Interaction` subscript; settable
+    /// requirements generate a `SettableInteraction` subscript exposing reads
+    /// (`when`/`verify`) and writes (`assigned:`) through one surface.
     private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> [DeclSyntax] {
-        var decls = [DeclSyntax(subscriptGetterInteraction(subscriptDecl))]
         if subscriptDecl.hasSetter {
-            decls.append(DeclSyntax(subscriptSetterInteraction(subscriptDecl)))
+            return [DeclSyntax(subscriptSettableInteraction(subscriptDecl))]
         }
-        return decls
+        return [DeclSyntax(subscriptGetterInteraction(subscriptDecl))]
     }
 
     /// Creates a getter interaction subscript mirroring the requirement's indices.
@@ -173,65 +166,138 @@ public extension MockableGenerator {
         return subscriptDecl
     }
 
-    /// Creates a setter interaction function for a settable subscript.
+    /// Creates a settable interaction subscript exposing both directions.
     ///
     /// For a settable subscript `subscript(index: Int) -> String { get set }`, this will generate:
     /// ```swift
-    /// func setSubscript(index: ArgMatcher<Int>, newValue: ArgMatcher<String>) -> Interaction<Int, String, None, Void> {
-    ///     Interaction(index, newValue, spy: super.setSubscript)
+    /// subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, String> {
+    ///     get {
+    ///         SettableInteraction(get: Interaction(index, spy: super.subscript), setInteraction: { newValue in
+    ///             Interaction(index, newValue, spy: super.setSubscript)
+    ///         })
+    ///     }
     /// }
     /// ```
     ///
-    /// The written value is recorded as a trailing argument on the `setSubscript` spy,
-    /// mirroring how `setName(newValue:)` records property writes. Reads keep using
-    /// the `subscript` spy, so get and set verifications stay independent.
-    private static func subscriptSetterInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> FunctionDeclSyntax {
-        let outputType = subscriptDecl.returnClause.type
-        let setterName = TokenSyntax.identifier("setSubscript")
-
-        let parameterClause = FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax {
-                for parameter in createArgMatcherParameters(subscriptDecl.parameterClause).parameters {
-                    parameter
-                }
-                FunctionParameterSyntax(
-                    firstName: .identifier("newValue"),
-                    colon: .colonToken(trailingTrivia: .space),
-                    type: argMatcherType(outputType)
-                )
-            }
-        )
-        let interactionReturnType = createInteractionReturnType(
-            inputTypes: subscriptDecl.parameterClause.parameters.map(\.type) + [outputType],
-            outputType: TypeSyntax(stringLiteral: "Void"),
-            effectType: .none,
-            genericParameterClause: subscriptDecl.genericParameterClause
-        )
-        let body = createFunctionBody(
-            spyPropertyName: setterName.text,
-            parameterNames: FunctionParameterListSyntax {
-                for parameter in subscriptDecl.parameterClause.parameters {
-                    parameter
-                }
-                FunctionParameterSyntax(
-                    firstName: .identifier("newValue"),
-                    colon: .colonToken(trailingTrivia: .space),
-                    type: outputType
-                )
-            }
-        )
-
-        return FunctionDeclSyntax(
-            modifiers: subscriptDecl.modifiers.trimmed,
-            name: setterName,
-            genericParameterClause: subscriptDecl.genericParameterClause,
-            signature: FunctionSignatureSyntax(
-                parameterClause: parameterClause,
-                returnClause: interactionReturnType
+    /// Reads record on the `subscript` spy, writes on the `setSubscript` spy with
+    /// the written value as a trailing argument.
+    private static func subscriptSettableInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
+        SubscriptDeclSyntax(
+            attributes: subscriptDecl.attributes,
+            modifiers: subscriptDecl.modifiers,
+            parameterClause: createArgMatcherParameters(
+                subscriptDecl.parameterClause
             ),
-            genericWhereClause: subscriptDecl.genericWhereClause,
-            body: body
+            returnClause: createSettableInteractionReturnType(
+                inputTypes: subscriptDecl.parameterClause.parameters.map(\.type),
+                outputType: subscriptDecl.returnClause.type
+            ),
+            accessorBlock: AccessorBlockSyntax(
+                accessors: .accessors(AccessorDeclListSyntax {
+                    AccessorDeclSyntax(
+                        accessorSpecifier: .keyword(.get),
+                        bodyBuilder: {
+                            createSettableFunctionBody(
+                                getterSpyName: "subscript",
+                                setterSpyName: "setSubscript",
+                                parameterNames: subscriptDecl.parameterClause.parameters
+                            ).statements
+                        }
+                    )
+                })
+            )
         )
+    }
+
+    /// Creates a return type for a settable interaction subscript.
+    ///
+    /// For input types `[Int]` and output type `String`, this will generate:
+    /// ```swift
+    /// -> SettableInteraction<Int, String>
+    /// ```
+    private static func createSettableInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax) -> ReturnClauseSyntax {
+        var genericArgs = [GenericArgumentSyntax]()
+        for inputType in inputTypes {
+            #if canImport(SwiftSyntax601)
+            genericArgs.append(GenericArgumentSyntax(argument: .init(removeAttributes(inputType))))
+            #else
+            genericArgs.append(GenericArgumentSyntax(argument: removeAttributes(inputType)))
+            #endif
+        }
+        #if canImport(SwiftSyntax601)
+        genericArgs.append(GenericArgumentSyntax(argument: .init(outputType)))
+        #else
+        genericArgs.append(GenericArgumentSyntax(argument: outputType))
+        #endif
+
+        let genericStubType = IdentifierTypeSyntax(
+            name: .identifier("SettableInteraction"),
+            genericArgumentClause: GenericArgumentClauseSyntax(
+                leftAngle: .leftAngleToken(),
+                arguments: GenericArgumentListSyntax(
+                    genericArgs.enumerated().map { (index, arg) in
+                        GenericArgumentSyntax(
+                            argument: arg.argument,
+                            trailingComma: index == genericArgs.count - 1 ? nil : .commaToken()
+                        )
+                    }
+                ),
+                rightAngle: .rightAngleToken()
+            )
+        )
+
+        return ReturnClauseSyntax(
+            arrow: .arrowToken(leadingTrivia: .space, trailingTrivia: .space),
+            type: TypeSyntax(genericStubType)
+        )
+    }
+
+    /// Creates the body of a settable interaction member, wiring both spies.
+    ///
+    /// For `getterSpyName: "subscript"`, `setterSpyName: "setSubscript"` and
+    /// parameters `[index]`, this will generate:
+    /// ```swift
+    /// SettableInteraction(get: Interaction(index, spy: super.subscript), setInteraction: { newValue in
+    ///     Interaction(index, newValue, spy: super.setSubscript)
+    /// })
+    /// ```
+    ///
+    /// `newValue` is appended after the read arguments so the write pack is the
+    /// read pack plus the written value. Empty parameter lists pass `.any` for
+    /// the read's `(Void)` pack, matching `createFunctionBody`.
+    private static func createSettableFunctionBody(
+        getterSpyName: String,
+        setterSpyName: String,
+        parameterNames: FunctionParameterListSyntax
+    ) -> CodeBlockSyntax {
+        let getterCall = interactionCall(
+            spyPropertyName: getterSpyName,
+            parameterNames: parameterNames
+        )
+        let setterCall = interactionCall(
+            spyPropertyName: setterSpyName,
+            parameterNames: parameterNames,
+            newValueName: "newValue"
+        )
+        let setClosure = ClosureExprSyntax(
+            signature: ClosureSignatureSyntax(
+                parameterClause: .simpleInput(ClosureShorthandParameterListSyntax {
+                    ClosureShorthandParameterSyntax(name: .identifier("newValue"))
+                }),
+                inKeyword: .keyword(.in)
+            ),
+            statements: CodeBlockItemListSyntax([
+                CodeBlockItemSyntax(item: .expr(ExprSyntax(setterCall)))
+            ])
+        )
+        let wrapperCall = FunctionCallExprSyntax(
+            callee: DeclReferenceExprSyntax(baseName: .identifier("SettableInteraction"))
+        ) {
+            LabeledExprSyntax(label: "get", expression: getterCall)
+            LabeledExprSyntax(label: "setInteraction", expression: setClosure)
+        }
+
+        return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(wrapperCall)))])
     }
 
     /// Creates a getter interaction function for a variable.
@@ -530,7 +596,20 @@ public extension MockableGenerator {
     /// }
     /// ```
     private static func createFunctionBody(spyPropertyName: String, parameterNames: FunctionParameterListSyntax) -> CodeBlockSyntax {
-        let interactionCall = FunctionCallExprSyntax(
+        return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(interactionCall(spyPropertyName: spyPropertyName, parameterNames: parameterNames))))])
+    }
+
+    /// Creates an `Interaction(…, spy: super.<spy>)` call expression.
+    ///
+    /// Arguments are the read parameters (`.any` for an empty read pack, `.variadic(…)`
+    /// for variadic parameters), optionally followed by `newValueName` so the write
+    /// pack is the read pack plus the written value.
+    private static func interactionCall(
+        spyPropertyName: String,
+        parameterNames: FunctionParameterListSyntax,
+        newValueName: String? = nil
+    ) -> FunctionCallExprSyntax {
+        FunctionCallExprSyntax(
             callee: DeclReferenceExprSyntax(baseName: .identifier("Interaction"))
         ) {
             for parameter in parameterNames {
@@ -563,6 +642,12 @@ public extension MockableGenerator {
                 )
             }
 
+            if let newValueName {
+                LabeledExprSyntax(
+                    expression: DeclReferenceExprSyntax(baseName: .identifier(newValueName))
+                )
+            }
+
             LabeledExprSyntax(
                 label: "spy",
                 expression: MemberAccessExprSyntax(
@@ -572,7 +657,5 @@ public extension MockableGenerator {
             )
 
         }
-
-        return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(interactionCall)))])
     }
 }

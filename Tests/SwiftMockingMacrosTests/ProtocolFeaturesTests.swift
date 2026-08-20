@@ -137,13 +137,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
-                subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
+                subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, String > {
                     get {
-                        Interaction(index, spy: super.subscript)
+                        SettableInteraction(get: Interaction(index, spy: super.subscript), setInteraction: { newValue in
+                                Interaction(index, newValue, spy: super.setSubscript)
+                            })
                     }
-                }
-                func setSubscript(index: ArgMatcher<Int>, newValue: ArgMatcher<String >) -> Interaction<Int, String , None, Void> {
-                    Interaction(index, newValue, spy: super.setSubscript)
                 }
                 subscript(index: Int) -> String {
                     set {
