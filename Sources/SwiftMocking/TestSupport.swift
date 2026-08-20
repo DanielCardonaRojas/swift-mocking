@@ -41,6 +41,54 @@ public func when<each Input, Eff: Effect, Output>(_ interaction: (()) -> Interac
     return interaction.spy.when(calledWith: interaction.invocationMatcher)
 }
 
+/// Configures a stub for the reads of a settable requirement.
+///
+/// ```swift
+/// when(mock[.any]).thenReturn("mocked_value")
+/// ```
+public func when<each Input, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Output>
+) -> Arrange<repeat each Input, None, Output> {
+    when(interaction.get)
+}
+
+/// Configures a stub for the reads of a settable variable, accepting an
+/// unapplied reference to its interaction member:
+/// ```swift
+/// when(mock.value).thenReturn("mocked_value")
+/// ```
+public func when<each Input, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Output>
+) -> Arrange<repeat each Input, None, Output> {
+    when(interaction(()).get)
+}
+
+/// Configures a stub for the writes of a settable requirement — side effects
+/// on assignment.
+///
+/// ```swift
+/// when(mock[.any], assigned: "logged").thenReturn { index, value in … }
+/// ```
+public func when<each Input, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Output>,
+    assigned newValue: ArgMatcher<Output>
+) -> Arrange<repeat each Input, Output, None, Void> {
+    let write = interaction.set(newValue)
+    return write.spy.when(calledWith: write.invocationMatcher)
+}
+
+/// Configures a stub for the writes of a settable variable:
+/// ```swift
+/// when(mock.value, assigned: 7).thenReturn { _, newValue in … }
+/// ```
+public func when<each Input, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Output>,
+    assigned newValue: ArgMatcher<Output>
+) -> Arrange<repeat each Input, Output, None, Void> {
+    let write = interaction(()).set(newValue)
+    return write.spy.when(calledWith: write.invocationMatcher)
+}
+
 /// Verifies that a specific interaction with a mock object has occurred.
 ///
 /// This function is used to assert that a mocked method was called with arguments
@@ -74,6 +122,44 @@ public func verify<each Input, Eff: Effect, Output>(
 ) -> Assert<repeat each Input, Eff, Output> {
     let interaction = interaction(())
     return Assert(invocationMatcher: interaction.invocationMatcher, spy: interaction.spy)
+}
+
+/// Verifies writes to a settable requirement by assigned value.
+///
+/// ```swift
+/// verify(mock[.equal(1)], assigned: "one").called(1)
+/// verify(mock.value, assigned: 7).called(1)
+/// ```
+public func verify<each Input, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Output>,
+    assigned newValue: ArgMatcher<Output>
+) -> Assert<repeat each Input, Output, None, Void> {
+    let write = interaction.set(newValue)
+    return Assert(invocationMatcher: write.invocationMatcher, spy: write.spy)
+}
+
+/// Verifies writes to a settable variable by assigned value.
+public func verify<each Input, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Output>,
+    assigned newValue: ArgMatcher<Output>
+) -> Assert<repeat each Input, Output, None, Void> {
+    let write = interaction(()).set(newValue)
+    return Assert(invocationMatcher: write.invocationMatcher, spy: write.spy)
+}
+
+/// Verifies the reads of a settable requirement.
+public func verify<each Input, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Output>
+) -> Assert<repeat each Input, None, Output> {
+    verify(interaction.get)
+}
+
+/// Verifies the reads of a settable variable, accepting an unapplied
+/// reference to its interaction member: `verify(mock.value).called(1)`.
+public func verify<each Input, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Output>
+) -> Assert<repeat each Input, None, Output> {
+    verify(interaction(()).get)
 }
 
 /// Verifies that a sequence of interactions across multiple mock objects occurred in the specified order.
@@ -161,6 +247,51 @@ public func verifyNever<each Input, Eff: Effect, Output>(
     line: UInt = #line
 ) {
     verify(interaction).neverCalled(file: file, line: line)
+}
+
+/// Verifies that a value was never assigned to a settable requirement.
+///
+/// ```swift
+/// verifyNever(mock[.any], assigned: "deleted")
+/// ```
+public func verifyNever<each Input, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Output>,
+    assigned newValue: ArgMatcher<Output>,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    let write = interaction.set(newValue)
+    Assert(invocationMatcher: write.invocationMatcher, spy: write.spy).neverCalled(file: file, line: line)
+}
+
+/// Verifies that a value was never assigned to a settable variable.
+public func verifyNever<each Input, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Output>,
+    assigned newValue: ArgMatcher<Output>,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    let write = interaction(()).set(newValue)
+    Assert(invocationMatcher: write.invocationMatcher, spy: write.spy).neverCalled(file: file, line: line)
+}
+
+/// Verifies that a settable requirement was never read.
+public func verifyNever<each Input, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Output>,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    verify(interaction.get).neverCalled(file: file, line: line)
+}
+
+/// Verifies that a settable variable was never read, accepting an unapplied
+/// reference to its interaction member: `verifyNever(mock.value)`.
+public func verifyNever<each Input, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Output>,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    verify(interaction(()).get).neverCalled(file: file, line: line)
 }
 
 /// Verifies that a mock object has had zero interactions.
