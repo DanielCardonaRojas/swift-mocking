@@ -81,7 +81,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
-                func value(_ void: Void) -> SettableInteraction<Void, Int > {
+                func value(_ void: Void) -> SettableInteraction<Void, None, Int > {
                     SettableInteraction(get: Interaction(.any, spy: super.value), setInteraction: { newValue in
                             Interaction(.any, newValue, spy: super.setValue)
                         })
@@ -173,7 +173,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
-                subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, String > {
+                subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, None, String > {
                     get {
                         SettableInteraction(get: Interaction(index, spy: super.subscript), setInteraction: { newValue in
                                 Interaction(index, newValue, spy: super.setSubscript)

@@ -19,9 +19,9 @@ protocol SettableSubscriptService {
 ///
 /// Reads stub and verify through the `ArgMatcher` interaction subscript
 /// (`mock[.any]`). Settable requirements surface a `SettableInteraction`:
-/// reads use it directly (`when(mock[.any])`), writes verify via the
-/// `assigned:` operators — `verify(mock[.any], assigned: "one")` — with the
-/// written value recorded after the index on a dedicated spy.
+/// reads use it directly (`when(mock[.any])`), writes build a plain write
+/// interaction with the `<-` operator — `verify(mock[.any] <- "one")` —
+/// recording the written value after the index on a dedicated spy.
 final class SubscriptInteractionTests: MockingTestCase {
     // MARK: Get
 
@@ -72,7 +72,7 @@ final class SubscriptInteractionTests: MockingTestCase {
 
         service[0] = "written"
 
-        verify(mock[.any], assigned: .any).called(1)
+        verify(mock[.any] <- .any).called(1)
     }
 
     func testSubscriptSetter_VerificationRespectsArgumentMatchers() {
@@ -83,15 +83,15 @@ final class SubscriptInteractionTests: MockingTestCase {
         service[2] = "two"
         service[2] = "two"
 
-        verify(mock[.equal(1)], assigned: .equal("one")).called(1)
-        verify(mock[.equal(2)], assigned: .equal("two")).called(2)
-        verify(mock[.any], assigned: .any).called(3)
+        verify(mock[.equal(1)] <- .equal("one")).called(1)
+        verify(mock[.equal(2)] <- .equal("two")).called(2)
+        verify(mock[.any] <- .any).called(3)
     }
 
     func testSubscriptSetter_NeverCalledVerification() {
         let mock = MockSettableSubscriptService()
 
-        verifyNever(mock[.any], assigned: .any)
+        verifyNever(mock[.any] <- .any)
     }
 
     // MARK: Get and set are independent interactions
@@ -102,11 +102,13 @@ final class SubscriptInteractionTests: MockingTestCase {
 
         _ = service[1]
         service[1] = "one"
+        service[1] = "one"
         service[2] = "two"
 
         verify(mock[.any]).called(1)
-        verify(mock[.any], assigned: .any).called(2)
-        verify(mock[.equal(1)], assigned: .any).called(1)
+        verify(mock[.equal(1)] <- "one").called(2)
+        verify(mock[.equal(2)] <- "two").called()
+        verify(mock[.any] <- .any).called(3)
     }
 
     func testSettableSubscript_GetterStillStubbable() {

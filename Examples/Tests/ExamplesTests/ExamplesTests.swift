@@ -208,7 +208,7 @@ struct ExampleTests {
 
         // Setter verification reads like the assignment itself
         mock.value = 7
-        verify(mock.value, assigned: .equal(7)).called(1)
+        verify(mock.value <- 7).called(1)
     }
 
     @Test func testNetworkService() async throws {

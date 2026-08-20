@@ -187,7 +187,8 @@ public extension MockableGenerator {
             ),
             returnClause: createSettableInteractionReturnType(
                 inputTypes: subscriptDecl.parameterClause.parameters.map(\.type),
-                outputType: subscriptDecl.returnClause.type
+                outputType: subscriptDecl.returnClause.type,
+                effectType: .none
             ),
             accessorBlock: AccessorBlockSyntax(
                 accessors: .accessors(AccessorDeclListSyntax {
@@ -208,11 +209,11 @@ public extension MockableGenerator {
 
     /// Creates a return type for a settable interaction subscript.
     ///
-    /// For input types `[Int]` and output type `String`, this will generate:
+    /// For input types `[Int]`, output type `String`, and effect `None`, this will generate:
     /// ```swift
-    /// -> SettableInteraction<Int, String>
+    /// -> SettableInteraction<Int, None, String>
     /// ```
-    private static func createSettableInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax) -> ReturnClauseSyntax {
+    private static func createSettableInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: EffectType) -> ReturnClauseSyntax {
         var genericArgs = [GenericArgumentSyntax]()
         for inputType in inputTypes {
             #if canImport(SwiftSyntax601)
@@ -222,8 +223,10 @@ public extension MockableGenerator {
             #endif
         }
         #if canImport(SwiftSyntax601)
+        genericArgs.append(GenericArgumentSyntax(argument: .init(TypeSyntax(stringLiteral: effectType.rawValue))))
         genericArgs.append(GenericArgumentSyntax(argument: .init(outputType)))
         #else
+        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.rawValue)))
         genericArgs.append(GenericArgumentSyntax(argument: outputType))
         #endif
 
@@ -367,7 +370,8 @@ public extension MockableGenerator {
                 ),
                 returnClause: createSettableInteractionReturnType(
                     inputTypes: [TypeSyntax(stringLiteral: "Void")],
-                    outputType: type
+                    outputType: type,
+                    effectType: .none
                 )
             ),
             body: createSettableFunctionBody(

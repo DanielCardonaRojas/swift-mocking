@@ -22,20 +22,13 @@ import Foundation
 /// ## Usage
 /// ```swift
 /// when(mock[.any]).thenReturn("stubbed")             // stub reads
-/// verify(mock[.equal(1)], assigned: "one").called(1) // verify writes
-/// verify(mock.value, assigned: 7).called(1)          // variables likewise
-/// verifyInOrder([mock[.any].set(.equal("one"))])     // composes via set(_:)
+/// verify(mock[.equal(1)] <- "one").called(1)         // verify writes
+/// when(mock.value <- 7).thenReturn { _, new in … }   // write side effects
+/// verifyInOrder([mock[.any] <- "one"])               // composes
 /// ```
-///
-/// Get-only requirements keep returning ``Interaction`` directly, so passing
-/// `assigned:` for them is a compile-time error.
-///
-/// ## Related Types
-/// - ``Interaction`` - the single-direction surface this type wraps
-/// - ``Spy`` - records invocations for each direction
-public struct SettableInteraction<each Input, Output> {
+public struct SettableInteraction<each Input, Eff: Effect, Output> {
     /// The read interaction — records on the requirement's getter spy.
-    public let get: Interaction<repeat each Input, None, Output>
+    public let get: Interaction<repeat each Input, Eff, Output>
 
     /// Builds the write interaction for a matched value.
     ///
@@ -52,7 +45,7 @@ public struct SettableInteraction<each Input, Output> {
     ///     matcher; the generated implementation records on the write spy with
     ///     the read matchers followed by the value matcher.
     public init(
-        get: Interaction<repeat each Input, None, Output>,
+        get: Interaction<repeat each Input, Eff, Output>,
         setInteraction: @escaping @Sendable (ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void>
     ) {
         self.get = get

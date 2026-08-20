@@ -12,10 +12,10 @@ protocol MutableService {
 ///
 /// Settable variables surface a `SettableInteraction` through their getter
 /// interaction member (`mock.value`): reads stub and verify unchanged
-/// (`when(mock.value)` / `verify(mock.value)`), writes verify through the
-/// `assigned:` operators, and `set(_:)` composes with `verifyInOrder` and
-/// `captured`. Writes record `(Void, newValue)` — the read pack plus the
-/// written value.
+/// (`when(mock.value)` / `verify(mock.value)`), writes build a plain write
+/// interaction with the `<-` operator, and the result composes with
+/// `verifyInOrder` and `captured`. Writes record `(Void, newValue)` — the
+/// read pack plus the written value.
 final class SettablePropertyInteractionTests: MockingTestCase {
     func testPropertyGetter_StillStubbedThroughWrapper() {
         let mock = MockMutableService()
@@ -32,7 +32,7 @@ final class SettablePropertyInteractionTests: MockingTestCase {
 
         service.value = 7
 
-        verify(mock.value, assigned: .equal(7)).called(1)
+        verify(mock.value <- 7).called(1)
     }
 
     func testPropertyWrite_AssignedAcceptsLiteralMatcher() {
@@ -42,14 +42,14 @@ final class SettablePropertyInteractionTests: MockingTestCase {
         service.value = 7
         service.value = 9
 
-        verify(mock.value, assigned: 7).called(1)
-        verify(mock.value, assigned: .greaterThan(8)).called(1)
+        verify(mock.value <- 7).called(1)
+        verify(mock.value <- .greaterThan(8)).called(1)
     }
 
     func testPropertyWrite_NeverAssigned() {
         let mock = MockMutableService()
 
-        verifyNever(mock.value, assigned: .any)
+        verifyNever(mock.value <- .any)
     }
 
     func testPropertyWrite_StubbedSideEffectRunsOnAssignment() {
@@ -70,7 +70,7 @@ final class SettablePropertyInteractionTests: MockingTestCase {
             }
         }
         let written = CaptureBox()
-        when(mock.value, assigned: .equal(7)).thenReturn { _, newValue in
+        when(mock.value <- 7).thenReturn { _, newValue in
             written.append(newValue)
         }
 
@@ -89,7 +89,7 @@ final class SettablePropertyInteractionTests: MockingTestCase {
         service.value = 2
 
         verify(mock.value).called(1)
-        verify(mock.value, assigned: .any).called(2)
+        verify(mock.value <- .any).called(2)
     }
 
     func testPropertyWrite_ComposesWithVerifyInOrder() {
@@ -111,7 +111,7 @@ final class SettablePropertyInteractionTests: MockingTestCase {
 
         service.value = 7
 
-        verify(mock.value, assigned: .any).captured { _, newValue in
+        verify(mock.value <- .any).captured { _, newValue in
             XCTAssertEqual(newValue, 7)
         }
     }
