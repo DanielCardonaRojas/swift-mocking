@@ -193,7 +193,7 @@ protocol MyService {
 
 ```swift
 class MockMyService: Mock, @unchecked Sendable, MyService {
-    func value(_ void: Void) -> Interaction<Void, None, Int > {
+    func value(_ void: Void = ()) -> Interaction<Void, None, Int > {
         Interaction(.any, spy: super.value)
     }
 
@@ -206,7 +206,49 @@ class MockMyService: Mock, @unchecked Sendable, MyService {
 ```
 </details>
 
+### Protocol with Settable Property
+
+A settable requirement records reads and writes on two spies (`value` and `setValue`) — their input packs differ, since a write is the read pack plus the written value. One interaction member returns a `SettableInteraction` carrying both.
+
+```swift
+@Mockable
+protocol MyService {
+    var value: Int { get set }
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class MockMyService: Mock, @unchecked Sendable, MyService {
+    func value(_ void: Void = ()) -> SettableInteraction<Void, None, Int > {
+        SettableInteraction(
+            get: Interaction(.any, spy: super.value),
+            setInteraction: { newValue in
+                let writeSpy: Spy<Void, Int, None, Void> = super.setValue
+                let writeInteraction: Interaction<Void, Int, None, Void> = Interaction(.any, newValue, spy: writeSpy)
+                return writeInteraction
+            }
+        )
+    }
+
+        var value: Int {
+        set {
+            return adapt(super.setValue, (), newValue)
+        }
+        get {
+            adapt(super.value, ())
+        }
+    }
+}
+```
+</details>
+
+Usage: `when(mock.value).thenReturn(7)` stubs reads, `verify(mock.value <- 7).called(1)` verifies writes.
+
 ### Protocol with Subscript
+
+The spy name is `subscript` followed by the parameter names in camelCase — `subscript(index:)` → `subscriptIndex`, `subscript(row:column:)` → `subscriptRowColumn`. The prefix keeps subscript spies from colliding with a method or variable of the same name.
 
 ```swift
 @Mockable
@@ -218,20 +260,57 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock: Mock, @unchecked Sendable, MyService {
-    subscript(index: Int) -> String {
-        get {
-            return adapt(super.subscript, index)
-        }
-    }
+class MockMyService: Mock, @unchecked Sendable, MyService {
     subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
         get {
-            Interaction(index, spy: super.subscript)
+            Interaction(index, spy: super.subscriptIndex)
+        }
+    }
+    subscript(index: Int) -> String {
+        get {
+            return adapt(super.subscriptIndex, index)
         }
     }
 }
 ```
 </details>
+
+### Protocol with Settable Subscript
+
+```swift
+@Mockable
+protocol MyService {
+    subscript(index: Int) -> String { get set }
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class MockMyService: Mock, @unchecked Sendable, MyService {
+    subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, None, String > {
+        get {
+            SettableInteraction(
+                get: Interaction(index, spy: super.subscriptIndex),
+                setInteraction: { newValue in
+                    Interaction(index, newValue, spy: super.setSubscriptIndex)
+                }
+            )
+        }
+    }
+    subscript(index: Int) -> String {
+        set {
+            return adapt(super.setSubscriptIndex, index, newValue)
+        }
+        get {
+            return adapt(super.subscriptIndex, index)
+        }
+    }
+}
+```
+</details>
+
+Usage: `when(mock[.any]).thenReturn("v")` stubs reads, `verify(mock[.equal(1)] <- "v").called(1)` verifies writes.
 
 ### Public Protocol
 
