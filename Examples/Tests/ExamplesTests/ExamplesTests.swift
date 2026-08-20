@@ -206,9 +206,9 @@ struct ExampleTests {
         #expect(mock.value == 42)
         verify(mock.value).called(1)
 
-        // Setter verification goes through setValue(newValue:)
+        // Setter verification reads like the assignment itself
         mock.value = 7
-        verify(mock.setValue(newValue: .equal(7))).called(1)
+        verify(mock.value, assigned: .equal(7)).called(1)
     }
 
     @Test func testNetworkService() async throws {
