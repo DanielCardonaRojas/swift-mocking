@@ -188,12 +188,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
             class MockMyService: Mock, @unchecked Sendable, MyService {
                 subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
                     get {
-                        Interaction(index, spy: super.index)
+                        Interaction(index, spy: super.subscriptIndex)
                     }
                 }
                 subscript(index: Int) -> String {
                     get {
-                        return adapt(super.index, index)
+                        return adapt(super.subscriptIndex, index)
                     }
                 }
             }
@@ -223,12 +223,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
             class MockMyService: Mock, @unchecked Sendable, MyService {
                 subscript <T: Hashable>(item: ArgMatcher<T>) -> Interaction<T, None, String > {
                     get {
-                        Interaction(item, spy: super.item)
+                        Interaction(item, spy: super.subscriptItem)
                     }
                 }
                 subscript <T: Hashable>(item: T) -> String {
                     get {
-                        return adapt(super.item, item)
+                        return adapt(super.subscriptItem, item)
                     }
                 }
             }
@@ -256,19 +256,19 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, None, String > {
                     get {
                         SettableInteraction(
-                            get: Interaction(index, spy: super.index),
+                            get: Interaction(index, spy: super.subscriptIndex),
                             setInteraction: { newValue in
-                                Interaction(index, newValue, spy: super.setIndex)
+                                Interaction(index, newValue, spy: super.setSubscriptIndex)
                             }
                         )
                     }
                 }
                 subscript(index: Int) -> String {
                     set {
-                        return adapt(super.setIndex, index, newValue)
+                        return adapt(super.setSubscriptIndex, index, newValue)
                     }
                     get {
-                        return adapt(super.index, index)
+                        return adapt(super.subscriptIndex, index)
                     }
                 }
             }
@@ -295,12 +295,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
             class MockMyService: Mock, @unchecked Sendable, MyService {
                 subscript(row: ArgMatcher<Int>, column: ArgMatcher<Int>) -> Interaction<Int, Int, None, String > {
                     get {
-                        Interaction(row, column, spy: super.rowColumn)
+                        Interaction(row, column, spy: super.subscriptRowColumn)
                     }
                 }
                 subscript(row: Int, column: Int) -> String {
                     get {
-                        return adapt(super.rowColumn, row, column)
+                        return adapt(super.subscriptRowColumn, row, column)
                     }
                 }
             }
@@ -327,12 +327,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
             class MockMyService: Mock, @unchecked Sendable, MyService {
                 subscript(_ position: ArgMatcher<Int>) -> Interaction<Int, None, String > {
                     get {
-                        Interaction(position, spy: super.position)
+                        Interaction(position, spy: super.subscriptPosition)
                     }
                 }
                 subscript(_ position: Int) -> String {
                     get {
-                        return adapt(super.position, position)
+                        return adapt(super.subscriptPosition, position)
                     }
                 }
             }

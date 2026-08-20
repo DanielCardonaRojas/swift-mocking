@@ -737,19 +737,21 @@ In macro-generated mocks, stubbing zero-parameter methods (`when(mock.f()).thenR
 
 ### Colliding Spy Names
 
-Spies are keyed by a name derived from the requirement: a method uses its own name, a subscript uses its parameter names in camelCase (`subscript(row:column:)` → `rowColumn`), and a settable member adds a `set`-prefixed write spy. Argument labels do not contribute. When two requirements derive the same name **and** the same spy signature, they would share one spy — stubbing one would answer calls to the other.
+Spies are keyed by a name derived from the requirement: a method uses its own name, a subscript is namespaced as `subscript` + its parameter names in camelCase (`subscript(row:column:)` → `subscriptRowColumn`), and a settable member adds a `set`-prefixed write spy. Argument labels do not contribute.
+
+The subscript prefix means a subscript never collides with a method or variable of the same name. Two *subscripts* that differ only by argument label still derive the same key, though, and when their spy signatures also match they would share one spy — stubbing one would answer calls to the other.
 
 `@Mockable` rejects this at expansion time rather than generating a mock that misbehaves at runtime:
 
 ```swift
 @Mockable
 protocol CollisionService {
-    func index(_ value: Int) -> String
-    subscript(index: Int) -> String { get }   // ❌ both derive the spy `index`
+    subscript(_ index: Int) -> String { get }
+    subscript(index: Int) -> String { get }   // ❌ both derive the spy `subscriptIndex`
 }
 ```
 
-Rename a parameter or member so the derived names differ. Overloads that share a name but differ in signature — `func fetch(_ id: Int)` and `func fetch(_ id: String)` — are fully supported and unaffected.
+Rename a parameter so the derived names differ. Two things that are **not** collisions and work fine: a method and a subscript sharing a name (`func index(_:)` alongside `subscript(index:)` — the prefix separates them), and overloads differing in signature (`func fetch(_ id: Int)` and `func fetch(_ id: String)`).
 
 ### Xcode Autocomplete
 

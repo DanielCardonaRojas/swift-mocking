@@ -156,31 +156,28 @@ final class GeneratorPipelineTests: XCTestCase {
         }
     }
 
-    /// A method and a subscript can derive the same spy name. When their spy
-    /// signatures also match, `Mock`'s dynamic-member lookup hands both the same
-    /// spy, so stubbing one answers calls to the other — silently, at runtime.
-    func testGenerateMocksThrowsWhenAMethodAndSubscriptShareASpy() {
-        XCTAssertThrowsError(
-            try MockableGenerator.generateMocks(
-                source: """
-                @Mockable()
-                protocol CollisionService {
-                    func index(_ value: Int) -> String
-                    subscript(index: Int) -> String { get }
-                }
-                """
-            )
-        ) { error in
-            guard case let .collidingSpyKeys(name, requirements) = error as? MockableGeneratorError else {
-                return XCTFail("expected collidingSpyKeys, got \(error)")
+    /// Subscript spies are namespaced under a `subscript` prefix, so a method
+    /// and a subscript that would otherwise derive the same name — `index` —
+    /// land on distinct spies and the protocol generates cleanly.
+    func testGenerateMocksNamespacesSubscriptSpiesAwayFromMethods() throws {
+        let mocks = try MockableGenerator.generateMocks(
+            source: """
+            @Mockable()
+            protocol CollisionService {
+                func index(_ value: Int) -> String
+                subscript(index: Int) -> String { get }
             }
-            XCTAssertEqual(name, "index")
-            XCTAssertEqual(requirements.count, 2)
-        }
+            """
+        )
+
+        let source = try XCTUnwrap(mocks.first).source
+        XCTAssertTrue(source.contains("spy: super.index"), source)
+        XCTAssertTrue(source.contains("spy: super.subscriptIndex"), source)
     }
 
-    /// Argument labels do not reach the spy name, so these two subscripts
-    /// collide even though they are distinct requirements to the compiler.
+    /// Argument labels do not reach the spy name, so these two subscripts still
+    /// collide with each other — namespacing separates subscripts from other
+    /// member kinds, not subscripts from one another.
     func testGenerateMocksThrowsWhenSubscriptsDifferOnlyByArgumentLabel() {
         XCTAssertThrowsError(
             try MockableGenerator.generateMocks(
@@ -196,7 +193,7 @@ final class GeneratorPipelineTests: XCTestCase {
             guard case let .collidingSpyKeys(name, _) = error as? MockableGeneratorError else {
                 return XCTFail("expected collidingSpyKeys, got \(error)")
             }
-            XCTAssertEqual(name, "index")
+            XCTAssertEqual(name, "subscriptIndex")
         }
     }
 

@@ -12,6 +12,15 @@ protocol SettableSubscriptService {
     subscript(index: Int) -> String { get set }
 }
 
+/// A method and a subscript whose derived spy names would otherwise both be
+/// `index`. Subscript spies are namespaced (`subscriptIndex`), so the two stay
+/// independent.
+@Mockable
+protocol NamespacedSpyService {
+    func index(_ value: Int) -> String
+    subscript(index: Int) -> String { get set }
+}
+
 @Mockable
 protocol MatrixService {
     subscript(row: Int, column: Int) -> String { get set }
@@ -141,5 +150,24 @@ final class SubscriptInteractionTests: MockingTestCase {
         let write = mock[.equal(1), .equal(2)] <- "written"
         verify(write).called(1)
         verifyNever(mock[.equal(2), .equal(1)])
+    }
+
+    // MARK: Spy namespacing
+
+    func testSubscriptAndMethodOfSameNameUseIndependentSpies() {
+        let mock = MockNamespacedSpyService()
+        var service: NamespacedSpyService = mock
+        when(mock.index(.any)).thenReturn("from-method")
+        when(mock[.any]).thenReturn("from-subscript")
+
+        XCTAssertEqual(service.index(1), "from-method")
+        XCTAssertEqual(service[1], "from-subscript")
+        service[1] = "written"
+
+        verify(mock.index(.equal(1))).called(1)
+        verify(mock[.equal(1)]).called(1)
+        verify(mock[.equal(1)] <- "written").called(1)
+        // The write landed on the subscript's spy, not the method's.
+        verify(mock.index(.any)).called(1)
     }
 }

@@ -174,7 +174,7 @@ Three details the compiler will not catch for you:
 
 ## Subscripts
 
-Spy name is the parameter names concatenated in camelCase — `subscript(key:)` → `key`, `subscript(row:column:)` → `rowColumn`; a subscript with no named parameter falls back to the literal `subscript`. Write spy is `set` + that name upper-camel-cased (`setRowColumn`).
+Spy name is `subscript` followed by the parameter names in camelCase — `subscript(key:)` → `subscriptKey`, `subscript(row:column:)` → `subscriptRowColumn`; a subscript with no named parameter is just `subscript`. Write spy is `set` + that name upper-camel-cased (`setSubscriptRowColumn`). The prefix is what keeps a subscript's spy distinct from a method or variable sharing the name.
 
 ```swift
 // protocol: subscript(key: String) -> Int { get }

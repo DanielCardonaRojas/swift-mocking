@@ -245,7 +245,7 @@ Usage: `when(mock.value).thenReturn(7)` stubs reads, `verify(mock.value <- 7).ca
 
 ### Protocol with Subscript
 
-The spy name comes from the parameter names in camelCase — `subscript(index:)` → `index`, `subscript(row:column:)` → `rowColumn`.
+The spy name is `subscript` followed by the parameter names in camelCase — `subscript(index:)` → `subscriptIndex`, `subscript(row:column:)` → `subscriptRowColumn`. The prefix keeps subscript spies from colliding with a method or variable of the same name.
 
 ```swift
 @Mockable
@@ -260,12 +260,12 @@ protocol MyService {
 class MockMyService: Mock, @unchecked Sendable, MyService {
     subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
         get {
-            Interaction(index, spy: super.index)
+            Interaction(index, spy: super.subscriptIndex)
         }
     }
     subscript(index: Int) -> String {
         get {
-            return adapt(super.index, index)
+            return adapt(super.subscriptIndex, index)
         }
     }
 }
@@ -288,19 +288,19 @@ class MockMyService: Mock, @unchecked Sendable, MyService {
     subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, None, String > {
         get {
             SettableInteraction(
-                get: Interaction(index, spy: super.index),
+                get: Interaction(index, spy: super.subscriptIndex),
                 setInteraction: { newValue in
-                    Interaction(index, newValue, spy: super.setIndex)
+                    Interaction(index, newValue, spy: super.setSubscriptIndex)
                 }
             )
         }
     }
     subscript(index: Int) -> String {
         set {
-            return adapt(super.setIndex, index, newValue)
+            return adapt(super.setSubscriptIndex, index, newValue)
         }
         get {
-            return adapt(super.index, index)
+            return adapt(super.subscriptIndex, index)
         }
     }
 }

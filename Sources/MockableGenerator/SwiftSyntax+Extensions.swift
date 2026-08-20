@@ -53,12 +53,20 @@ extension String {
 }
 
 extension SubscriptDeclSyntax {
-    /// The interaction name for the subscript: its parameter names concatenated
-    /// in camelCase — `subscript(row: Int, column: Int)` names `rowColumn` —
-    /// mirroring how variables name their interactions (`value`).
+    /// The spy name for the subscript: `subscript` followed by its parameter
+    /// names in camelCase — `subscript(row: Int, column: Int)` names
+    /// `subscriptRowColumn`, and a subscript with no named parameter is just
+    /// `subscript`.
     ///
-    /// Unlabeled parameters contribute their internal name; a subscript with no
-    /// named parameter at all falls back to `subscript`. The write spy is
+    /// The prefix keeps subscripts in their own namespace. Without it a
+    /// subscript's spy name is indistinguishable from a method's or a
+    /// variable's — `func index(_:)` and `subscript(index:)` both derived
+    /// `index` — and requirements whose spy *signatures* also matched would
+    /// silently share one spy, so stubbing one answered calls to the other.
+    /// Since the name is ours to choose, namespacing removes the collision at
+    /// its source rather than asking users to rename their protocol members.
+    ///
+    /// Unlabeled parameters contribute their internal name. The write spy is
     /// ``Swift/String/setterSpyName``, matching variables (`setValue`).
     var name: String {
         let names = parameterClause.parameters
@@ -71,7 +79,7 @@ extension SubscriptDeclSyntax {
         guard let first = names.first else {
             return "subscript"
         }
-        return ([first] + names.dropFirst().map(\.upperCamelCased)).joined()
+        return "subscript" + ([first] + names.dropFirst()).map(\.upperCamelCased).joined()
     }
 }
 
