@@ -128,7 +128,7 @@ public extension MockableGenerator {
     /// For a subscript `subscript(index: Int) -> String`, this will generate:
     /// ```swift
     /// subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String> {
-    ///     get { Interaction(index, spy: super.subscript) }
+    ///     get { Interaction(index, spy: super.index) }
     /// }
     /// ```
     private static func subscriptGetterInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
@@ -151,7 +151,7 @@ public extension MockableGenerator {
                         accessorSpecifier: .keyword(.get),
                         bodyBuilder: {
                             createFunctionBody(
-                                spyPropertyName: "subscript",
+                                spyPropertyName: subscriptDecl.name,
                                 parameterNames: subscriptDecl.parameterClause.parameters
                             ).statements
                         }
@@ -169,8 +169,8 @@ public extension MockableGenerator {
     /// ```swift
     /// subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, String> {
     ///     get {
-    ///         SettableInteraction(get: Interaction(index, spy: super.subscript), setInteraction: { newValue in
-    ///             Interaction(index, newValue, spy: super.setSubscript)
+    ///         SettableInteraction(get: Interaction(index, spy: super.index), setInteraction: { newValue in
+    ///             Interaction(index, newValue, spy: super.setIndex)
     ///         })
     ///     }
     /// }
@@ -196,8 +196,8 @@ public extension MockableGenerator {
                         accessorSpecifier: .keyword(.get),
                         bodyBuilder: {
                             createSettableFunctionBody(
-                                getterSpyName: "subscript",
-                                setterSpyName: "setSubscript",
+                                getterSpyName: subscriptDecl.name,
+                                setterSpyName: "set" + subscriptDecl.name.capitalized,
                                 parameterNames: subscriptDecl.parameterClause.parameters
                             ).statements
                         }
@@ -254,11 +254,11 @@ public extension MockableGenerator {
 
     /// Creates the body of a settable interaction member, wiring both spies.
     ///
-    /// For `getterSpyName: "subscript"`, `setterSpyName: "setSubscript"` and
+    /// For `getterSpyName: "index"`, `setterSpyName: "setIndex"` and
     /// parameters `[index]`, this will generate:
     /// ```swift
-    /// SettableInteraction(get: Interaction(index, spy: super.subscript), setInteraction: { newValue in
-    ///     Interaction(index, newValue, spy: super.setSubscript)
+    /// SettableInteraction(get: Interaction(index, spy: super.index), setInteraction: { newValue in
+    ///     Interaction(index, newValue, spy: super.setIndex)
     /// })
     /// ```
     ///

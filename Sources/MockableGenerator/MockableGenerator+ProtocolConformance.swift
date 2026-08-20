@@ -140,7 +140,7 @@ extension MockableGenerator {
     ///
     /// For a subscript `subscript(index: Int) -> String { get }`, this will generate a subscript with a getter that calls the mock's `adapt` function.
     /// For a settable requirement, it also generates a setter that records the write —
-    /// indices followed by `newValue` — on the `setSubscript` spy.
+    /// indices followed by `newValue` — on the `set` + capitalized-parameters spy.
     static func subscriptRequirement(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
         let parameterNames = subscriptDecl.parameterClause.parameters.map({ ExprSyntax(DeclReferenceExprSyntax(baseName: $0.secondName ?? $0.firstName)) })
         return SubscriptDeclSyntax(
@@ -160,7 +160,7 @@ extension MockableGenerator {
                                     ReturnStmtSyntax(
                                         expression: adaptCall(
                                             effectType: .none,
-                                            requirementName: .identifier("setSubscript"),
+                                            requirementName: .identifier("set" + subscriptDecl.name.capitalized),
                                             parameters: parameterNames + [ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
                                         )
                                     )
@@ -174,7 +174,7 @@ extension MockableGenerator {
                                 ReturnStmtSyntax(
                                     expression: adaptCall(
                                         effectType: .none,
-                                        requirementName: .identifier("subscript"),
+                                        requirementName: .identifier(subscriptDecl.name),
                                         parameters: parameterNames
                                     )
                                 )

@@ -143,12 +143,12 @@ final class ProtocolFeaturesTests: MacroTestCase {
             class MockMyService: Mock, @unchecked Sendable, MyService {
                 subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
                     get {
-                        Interaction(index, spy: super.subscript)
+                        Interaction(index, spy: super.index)
                     }
                 }
                 subscript(index: Int) -> String {
                     get {
-                        return adapt(super.subscript, index)
+                        return adapt(super.index, index)
                     }
                 }
             }
@@ -175,17 +175,81 @@ final class ProtocolFeaturesTests: MacroTestCase {
             class MockMyService: Mock, @unchecked Sendable, MyService {
                 subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, None, String > {
                     get {
-                        SettableInteraction(get: Interaction(index, spy: super.subscript), setInteraction: { newValue in
-                                Interaction(index, newValue, spy: super.setSubscript)
+                        SettableInteraction(get: Interaction(index, spy: super.index), setInteraction: { newValue in
+                                Interaction(index, newValue, spy: super.setIndex)
                             })
                     }
                 }
                 subscript(index: Int) -> String {
                     set {
-                        return adapt(super.setSubscript, index, newValue)
+                        return adapt(super.setIndex, index, newValue)
                     }
                     get {
-                        return adapt(super.subscript, index)
+                        return adapt(super.index, index)
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    func testProtocolWithMultiParameterSubscript() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol MyService {
+                subscript(row: Int, column: Int) -> String { get }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                subscript(row: Int, column: Int) -> String { get }
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                subscript(row: ArgMatcher<Int>, column: ArgMatcher<Int>) -> Interaction<Int, Int, None, String > {
+                    get {
+                        Interaction(row, column, spy: super.rowColumn)
+                    }
+                }
+                subscript(row: Int, column: Int) -> String {
+                    get {
+                        return adapt(super.rowColumn, row, column)
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    func testProtocolWithUnlabeledSubscript() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol MyService {
+                subscript(_ position: Int) -> String { get }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                subscript(_ position: Int) -> String { get }
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                subscript(_ position: ArgMatcher<Int>) -> Interaction<Int, None, String > {
+                    get {
+                        Interaction(position, spy: super.position)
+                    }
+                }
+                subscript(_ position: Int) -> String {
+                    get {
+                        return adapt(super.position, position)
                     }
                 }
             }

@@ -36,6 +36,30 @@ extension SubscriptDeclSyntax {
     }
 }
 
+extension SubscriptDeclSyntax {
+    /// The interaction name for the subscript: its parameter names concatenated
+    /// in camelCase — `subscript(row: Int, column: Int)` names `rowColumn` —
+    /// mirroring how variables name their interactions (`value`).
+    ///
+    /// Unlabeled parameters contribute their internal name; a subscript with no
+    /// named parameter at all falls back to `subscript`. The write spy is
+    /// `"set" + name.capitalized`, matching variables (`setValue`).
+    var name: String {
+        let names = parameterClause.parameters
+            .compactMap { parameter -> String? in
+                if let secondName = parameter.secondName {
+                    return secondName.text
+                }
+                return parameter.firstName.text == "_" ? nil : parameter.firstName.text
+            }
+        guard let first = names.first else {
+            return "subscript"
+        }
+        return ([first] + names.dropFirst().map { $0.prefix(1).uppercased() + $0.dropFirst() })
+            .joined()
+    }
+}
+
 extension AccessorBlockSyntax.Accessors {
   /// The list of accessors, if the accessor block is of the `.accessors` case.
   var settersAndGetters: AccessorDeclListSyntax? {
