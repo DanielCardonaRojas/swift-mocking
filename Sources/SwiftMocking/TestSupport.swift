@@ -231,7 +231,12 @@ infix operator <- : AssignmentPrecedence
 /// when(mock.value <- 7).thenReturn { _, newValue in … }
 /// verifyNever(mock[.any] <- "deleted")
 /// ```
-@discardableResult
+///
+/// The result is deliberately not `@discardableResult`: this operator only
+/// *builds* an interaction, it records nothing. A bare `mock.value <- 7`
+/// statement looks like it performs a write but is a no-op, so the unused-result
+/// warning is what surfaces that mistake. To perform an actual write, assign to
+/// the requirement (`mock.value = 7`).
 public func <- <each Input, Eff: Effect, Output>(
     _ interaction: SettableInteraction<repeat each Input, Eff, Output>,
     _ newValue: ArgMatcher<Output>
@@ -241,7 +246,8 @@ public func <- <each Input, Eff: Effect, Output>(
 
 /// Builds the write interaction for a settable variable, accepting an
 /// unapplied reference to its interaction member: `mock.value <- 7`.
-@discardableResult
+///
+/// Not `@discardableResult`, for the reason given on the overload above.
 public func <- <each Input, Eff: Effect, Output>(
     _ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>,
     _ newValue: ArgMatcher<Output>
