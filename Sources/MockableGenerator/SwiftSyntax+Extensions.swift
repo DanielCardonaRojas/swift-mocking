@@ -29,6 +29,13 @@ extension VariableDeclSyntax {
     }
 }
 
+extension SubscriptDeclSyntax {
+    /// A boolean value indicating whether the subscript has a setter.
+    var hasSetter: Bool {
+        accessorBlock?.accessors.hasSetter ?? false
+    }
+}
+
 extension AccessorBlockSyntax.Accessors {
   /// The list of accessors, if the accessor block is of the `.accessors` case.
   var settersAndGetters: AccessorDeclListSyntax? {

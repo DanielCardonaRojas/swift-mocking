@@ -44,8 +44,7 @@ public extension MockableGenerator {
                 let stubFunctions = processVar(varDecl)
                 members.append(contentsOf: stubFunctions)
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
-                let stubFunction = processSubscript(subscriptDecl)
-                members.append(stubFunction)
+                members.append(contentsOf: processSubscript(subscriptDecl))
             }
         }
 
@@ -115,15 +114,34 @@ public extension MockableGenerator {
         return decls
     }
 
-    /// Processes a subscript declaration to generate an interaction function.
+    /// Processes a subscript declaration to generate interaction declarations.
     ///
-    /// For a subscript `subscript(index: Int) -> String`, this will generate:
+    /// For a subscript `subscript(index: Int) -> String { get }`, this will generate:
     /// ```swift
     /// subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String> {
     ///     get { ... }
     /// }
     /// ```
-    private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> DeclSyntax {
+    ///
+    /// If the subscript is settable, it also generates a setter interaction function
+    /// (see ``subscriptSetterInteraction(_:)``) that stubs and verifies writes.
+    private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> [DeclSyntax] {
+        var decls = [DeclSyntax(subscriptGetterInteraction(subscriptDecl))]
+        if subscriptDecl.hasSetter {
+            decls.append(DeclSyntax(subscriptSetterInteraction(subscriptDecl)))
+        }
+        return decls
+    }
+
+    /// Creates a getter interaction subscript mirroring the requirement's indices.
+    ///
+    /// For a subscript `subscript(index: Int) -> String`, this will generate:
+    /// ```swift
+    /// subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String> {
+    ///     get { Interaction(index, spy: super.subscript) }
+    /// }
+    /// ```
+    private static func subscriptGetterInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
         let subscriptDecl = SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
@@ -148,13 +166,72 @@ public extension MockableGenerator {
                             ).statements
                         }
                     )
-                    //
-
                 })
             )
         )
 
-        return DeclSyntax(subscriptDecl)
+        return subscriptDecl
+    }
+
+    /// Creates a setter interaction function for a settable subscript.
+    ///
+    /// For a settable subscript `subscript(index: Int) -> String { get set }`, this will generate:
+    /// ```swift
+    /// func setSubscript(index: ArgMatcher<Int>, newValue: ArgMatcher<String>) -> Interaction<Int, String, None, Void> {
+    ///     Interaction(index, newValue, spy: super.setSubscript)
+    /// }
+    /// ```
+    ///
+    /// The written value is recorded as a trailing argument on the `setSubscript` spy,
+    /// mirroring how `setName(newValue:)` records property writes. Reads keep using
+    /// the `subscript` spy, so get and set verifications stay independent.
+    private static func subscriptSetterInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> FunctionDeclSyntax {
+        let outputType = subscriptDecl.returnClause.type
+        let setterName = TokenSyntax.identifier("setSubscript")
+
+        let parameterClause = FunctionParameterClauseSyntax(
+            parameters: FunctionParameterListSyntax {
+                for parameter in createArgMatcherParameters(subscriptDecl.parameterClause).parameters {
+                    parameter
+                }
+                FunctionParameterSyntax(
+                    firstName: .identifier("newValue"),
+                    colon: .colonToken(trailingTrivia: .space),
+                    type: argMatcherType(outputType)
+                )
+            }
+        )
+        let interactionReturnType = createInteractionReturnType(
+            inputTypes: subscriptDecl.parameterClause.parameters.map(\.type) + [outputType],
+            outputType: TypeSyntax(stringLiteral: "Void"),
+            effectType: .none,
+            genericParameterClause: subscriptDecl.genericParameterClause
+        )
+        let body = createFunctionBody(
+            spyPropertyName: setterName.text,
+            parameterNames: FunctionParameterListSyntax {
+                for parameter in subscriptDecl.parameterClause.parameters {
+                    parameter
+                }
+                FunctionParameterSyntax(
+                    firstName: .identifier("newValue"),
+                    colon: .colonToken(trailingTrivia: .space),
+                    type: outputType
+                )
+            }
+        )
+
+        return FunctionDeclSyntax(
+            modifiers: subscriptDecl.modifiers.trimmed,
+            name: setterName,
+            genericParameterClause: subscriptDecl.genericParameterClause,
+            signature: FunctionSignatureSyntax(
+                parameterClause: parameterClause,
+                returnClause: interactionReturnType
+            ),
+            genericWhereClause: subscriptDecl.genericWhereClause,
+            body: body
+        )
     }
 
     /// Creates a getter interaction function for a variable.

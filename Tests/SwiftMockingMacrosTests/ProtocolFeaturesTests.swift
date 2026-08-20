@@ -121,6 +121,44 @@ final class ProtocolFeaturesTests: MacroTestCase {
         }
     }
 
+    func testProtocolWithSettableSubscript() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol MyService {
+                subscript(index: Int) -> String { get set }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                subscript(index: Int) -> String { get set }
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
+                    get {
+                        Interaction(index, spy: super.subscript)
+                    }
+                }
+                func setSubscript(index: ArgMatcher<Int>, newValue: ArgMatcher<String >) -> Interaction<Int, String , None, Void> {
+                    Interaction(index, newValue, spy: super.setSubscript)
+                }
+                subscript(index: Int) -> String {
+                    set {
+                        return adapt(super.setSubscript, index, newValue)
+                    }
+                    get {
+                        return adapt(super.subscript, index)
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     func testProtocolWithAssociatedType() {
         assertMacro {
             """
