@@ -68,24 +68,27 @@ public struct SettableInteraction<each Input, Output> {
     /// (`"subscript"` or the member name).
     public let get: Interaction<repeat each Input, None, Output>
 
-    /// Write spy — records `(Input..., newValue)` on
-    /// `"setSubscript"` or `"setValue"`.
-    private let setter: Spy<repeat each Input, Output, None, Void>
+    /// Builds the write interaction for a matched value. Injected by generated
+    /// code — appending a value after a pack expansion is not expressible in a
+    /// generic body on this toolchain, so the generated closure performs the
+    /// append concretely.
+    private let setInteraction: @Sendable (ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void>
 
-    /// The write interaction for a matched value. Composes with
-    /// `verifyInOrder`, `captured`, and `until` unchanged.
+    /// The write interaction for a matched value: composes with
+    /// verifyInOrder, captured, until.
     public func set(_ newValue: ArgMatcher<Output>)
         -> Interaction<repeat each Input, Output, None, Void>
-
-    public init(
-        get: Interaction<repeat each Input, None, Output>,
-        setter: Spy<repeat each Input, Output, None, Void>
-    )
 }
 
 extension SettableInteraction: Sendable
 where repeat each Input: Sendable, Output: Sendable
 ```
+
+(Amendment during implementation, 2026-08-20: the wrapper stores a
+`setInteraction` closure rather than the write `Spy` directly, for the reason
+stated above; public behavior is unchanged. For variables, `mock.value` is a
+function, so composing with `verifyInOrder` requires applying it first:
+`mock.value(()).set(.equal(7))`.)
 
 Instantiation packs by member kind:
 
