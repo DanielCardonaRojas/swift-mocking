@@ -34,11 +34,10 @@ public extension MockableGenerator {
     /// ```
     static func makeInteractions(protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
         var members = [DeclSyntax]()
-        var functionNames = [String: Int]()
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let stubFunction = processFunc(funcDecl, &functionNames)
+                let stubFunction = processFunc(funcDecl)
                 members.append(stubFunction)
             } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
                 let stubFunctions = processVar(varDecl)
@@ -59,7 +58,7 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: super.doSomething)
     /// }
     /// ```
-    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) -> DeclSyntax {
+    private static func processFunc(_ funcDecl: FunctionDeclSyntax) -> DeclSyntax {
         let funcName = funcDecl.name.text
         let spyPropertyName = funcDecl.name.text
 

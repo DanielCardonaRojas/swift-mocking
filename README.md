@@ -735,6 +735,22 @@ This approach eliminates the need for manual mock implementations and provides a
 In macro-generated mocks, stubbing zero-parameter methods (`when(mock.f()).thenReturn(v)`) and property getters (`when(mock.getX()).thenReturn(v)`) is silently ignored, and verification of those members always counts 0 — a parameter-pack shape mismatch creates a second, disconnected spy. Setters and members with one or more parameters are unaffected. Workaround: hand-write those members with the pinned-spy form documented in the [Agent Skill](#-agent-skill).
 
 
+### Colliding Spy Names
+
+Spies are keyed by a name derived from the requirement: a method uses its own name, a subscript uses its parameter names in camelCase (`subscript(row:column:)` → `rowColumn`), and a settable member adds a `set`-prefixed write spy. Argument labels do not contribute. When two requirements derive the same name **and** the same spy signature, they would share one spy — stubbing one would answer calls to the other.
+
+`@Mockable` rejects this at expansion time rather than generating a mock that misbehaves at runtime:
+
+```swift
+@Mockable
+protocol CollisionService {
+    func index(_ value: Int) -> String
+    subscript(index: Int) -> String { get }   // ❌ both derive the spy `index`
+}
+```
+
+Rename a parameter or member so the derived names differ. Overloads that share a name but differ in signature — `func fetch(_ id: Int)` and `func fetch(_ id: String)` — are fully supported and unaffected.
+
 ### Xcode Autocomplete
 
 Currently, Xcode's autocomplete feature may not work as expected when using the generated mock objects. This seems to be a known issue with Xcode. This limitation could be worked around by conforming to the mocked protocol within an extension. However due to limitations of Swift macros, generating this extension will result in an error.

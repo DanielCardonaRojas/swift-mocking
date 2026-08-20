@@ -156,6 +156,71 @@ final class GeneratorPipelineTests: XCTestCase {
         }
     }
 
+    /// A method and a subscript can derive the same spy name. When their spy
+    /// signatures also match, `Mock`'s dynamic-member lookup hands both the same
+    /// spy, so stubbing one answers calls to the other — silently, at runtime.
+    func testGenerateMocksThrowsWhenAMethodAndSubscriptShareASpy() {
+        XCTAssertThrowsError(
+            try MockableGenerator.generateMocks(
+                source: """
+                @Mockable()
+                protocol CollisionService {
+                    func index(_ value: Int) -> String
+                    subscript(index: Int) -> String { get }
+                }
+                """
+            )
+        ) { error in
+            guard case let .collidingSpyKeys(name, requirements) = error as? MockableGeneratorError else {
+                return XCTFail("expected collidingSpyKeys, got \(error)")
+            }
+            XCTAssertEqual(name, "index")
+            XCTAssertEqual(requirements.count, 2)
+        }
+    }
+
+    /// Argument labels do not reach the spy name, so these two subscripts
+    /// collide even though they are distinct requirements to the compiler.
+    func testGenerateMocksThrowsWhenSubscriptsDifferOnlyByArgumentLabel() {
+        XCTAssertThrowsError(
+            try MockableGenerator.generateMocks(
+                source: """
+                @Mockable()
+                protocol CollisionService {
+                    subscript(_ index: Int) -> String { get }
+                    subscript(index: Int) -> String { get }
+                }
+                """
+            )
+        ) { error in
+            guard case let .collidingSpyKeys(name, _) = error as? MockableGeneratorError else {
+                return XCTFail("expected collidingSpyKeys, got \(error)")
+            }
+            XCTAssertEqual(name, "index")
+        }
+    }
+
+    /// Overloads sharing a name but differing in spy signature are supported —
+    /// `Mock` stores a list per key and matches on type — so they must not trip
+    /// the collision check.
+    func testGenerateMocksAllowsOverloadsWithDistinctSpySignatures() throws {
+        let mocks = try MockableGenerator.generateMocks(
+            source: """
+            @Mockable()
+            protocol OverloadService {
+                func fetch(_ id: Int) -> String
+                func fetch(_ id: String) -> String
+                func fetch() -> Int
+                subscript(index: Int) -> String { get }
+                subscript(key: String) -> Int { get set }
+                var value: Int { get set }
+            }
+            """
+        )
+
+        XCTAssertEqual(mocks.count, 1)
+    }
+
     func testGenerateMocksWithoutDebugWrapperOmitsIfConfigAndKeepsMembers() throws {
         let mocks = try MockableGenerator.generateMocks(
             source: """

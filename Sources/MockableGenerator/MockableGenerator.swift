@@ -26,6 +26,16 @@ public enum MockableGenerator {
     /// }
     /// ```
     public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
+        // Reject requirements that would share a spy before emitting anything:
+        // the resulting mock compiles cleanly but routes both members to one
+        // spy, so stubs and verifications silently cross over.
+        if let collision = spyCollisions(in: protocolDecl).first {
+            throw MockableGeneratorError.collidingSpyKeys(
+                name: collision.identity.name,
+                requirements: collision.requirements
+            )
+        }
+
         let protocolName = protocolDecl.name.text
         let codeGenOptions = MockableGenerator.codeGenOptions(protocolDecl: protocolDecl)
         let mockName: String

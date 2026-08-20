@@ -37,12 +37,23 @@ public enum MockableGeneratorError: Error, Equatable, CustomStringConvertible {
     /// annotated diagnostics describing every parse error.
     case parseFailed(diagnostics: String)
 
+    /// Two or more requirements would record on the same spy, because they
+    /// derive the same dynamic-member key *and* the same spy signature.
+    case collidingSpyKeys(name: String, requirements: [String])
+
     public var description: String {
         switch self {
         case .noProtocolsFound:
             "no protocol declaration found in input"
         case .parseFailed(let diagnostics):
             "input failed to parse as Swift:\n\(diagnostics)"
+        case .collidingSpyKeys(let name, let requirements):
+            """
+            these requirements would share the spy '\(name)', so stubbing or \
+            verifying one would silently affect the other:
+            \(requirements.map { "  - \($0)" }.joined(separator: "\n"))
+            Rename a parameter or member so their generated spy names differ.
+            """
         }
     }
 }
