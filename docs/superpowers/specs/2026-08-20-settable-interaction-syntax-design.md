@@ -90,6 +90,34 @@ stated above; public behavior is unchanged. For variables, `mock.value` is a
 function, so composing with `verifyInOrder` requires applying it first:
 `mock.value(()).set(.equal(7))`.)
 
+## Amendment 2 (2026-08-20): effect threading and the `<-` operator
+
+After reviewing the initial implementation, two revisions:
+
+1. `SettableInteraction` threads the effect phantom type after all —
+   `SettableInteraction<repeat each Input, Eff, Output>` — mirroring
+   ``Interaction``'s shape. Both accessor directions are still `None` in
+   practice (Swift has no async/throws accessors), and the write interaction
+   remains `Interaction<repeat each Input, Output, None, Void>`; this is a
+   uniformity choice, not an expressiveness gain.
+2. The `assigned:` operator variants are replaced by an `<-` operator
+   (AssignmentPrecedence) returning the write `Interaction` directly:
+
+   ```swift
+   verify(mock[.equal(2)] <- "two").called(1)
+   when(mock.value <- 7).thenReturn { _, newValue in … }
+   verifyNever(mock[.any] <- "deleted")
+   verifyInOrder([mock[.any] <- "one", mock.fetch(.any)])
+   ```
+
+   Because the result is a plain `Interaction`, the existing
+   `when`/`verify`/`verifyNever` overloads consume writes unchanged: the six
+   `assigned:` overloads are deleted and replaced by two operator overloads
+   (value form for subscripts, function form for variables). Operator count:
+   12 → 8 (six getter-path wrapper overloads plus two `<-` forms).
+   `:=` was rejected as lexically impossible in Swift (`:` is not an
+   operator character). `set(_:)` remains as the method-spelled equivalent.
+
 Instantiation packs by member kind:
 
 | Member | `Input` | `get` type | `set` pack |
