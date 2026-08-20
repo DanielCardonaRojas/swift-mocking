@@ -104,6 +104,48 @@ final class ProtocolFeaturesTests: MacroTestCase {
         }
     }
 
+    /// Setter spy names uppercase only the first character. `String.capitalized`
+    /// would lowercase the tail — `setCachepolicy` — which still round-trips at
+    /// runtime (both sides agree) but reads as a typo in generated source.
+    func testProtocolWithSettableMultiWordProperty() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol MyService {
+                var cachePolicy: String { get set }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                var cachePolicy: String { get set }
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                func cachePolicy(_ void: Void) -> SettableInteraction<Void, None, String > {
+                    SettableInteraction(
+                        get: Interaction(.any, spy: super.cachePolicy),
+                        setInteraction: { newValue in
+                            Interaction(.any, newValue, spy: super.setCachePolicy)
+                        }
+                    )
+                }
+
+                    var cachePolicy: String {
+                    set {
+                        return adapt(super.setCachePolicy, (), newValue)
+                    }
+                    get {
+                        adapt(super.cachePolicy, ())
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     func testProtocolWithInitializer() {
         assertMacro {
             """

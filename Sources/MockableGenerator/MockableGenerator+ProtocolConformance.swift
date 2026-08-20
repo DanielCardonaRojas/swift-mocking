@@ -108,7 +108,7 @@ extension MockableGenerator {
                                                 ReturnStmtSyntax(
                                                     expression: adaptCall(
                                                         effectType: .none,
-                                                        requirementName: .identifier("set\(variableDecl.name.text.capitalized)"),
+                                                        requirementName: .identifier(variableDecl.name.text.setterSpyName),
                                                         parameters: [ExprSyntax(TupleExprSyntax(elements: LabeledExprListSyntax())), ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
                                                     )
                                                 )
@@ -160,7 +160,7 @@ extension MockableGenerator {
                                     ReturnStmtSyntax(
                                         expression: adaptCall(
                                             effectType: .none,
-                                            requirementName: .identifier("set" + subscriptDecl.name.capitalized),
+                                            requirementName: .identifier(subscriptDecl.name.setterSpyName),
                                             parameters: parameterNames + [ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
                                         )
                                     )

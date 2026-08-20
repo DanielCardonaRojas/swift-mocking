@@ -5,6 +5,7 @@ import SwiftMockingTestSupport
 @Mockable
 protocol MutableService {
     var value: Int { get set }
+    var cachePolicy: String { get set }
     func refresh()
 }
 
@@ -126,6 +127,21 @@ final class SettablePropertyInteractionTests: MockingTestCase {
         verify(mock.value <- .any).captured { _, newValue in
             XCTAssertEqual(newValue, 7)
         }
+    }
+
+    /// The read and write spies must agree on a camelCase name. `String.capitalized`
+    /// lowercases the tail (`cachePolicy` → `setCachepolicy`), which is self-consistent
+    /// and so invisible to a round-trip test — but wrong in generated source people read.
+    func testMultiWordProperty_ReadAndWriteSpiesRoundTrip() {
+        let mock = MockMutableService()
+        var service: MutableService = mock
+        when(mock.cachePolicy).thenReturn("none")
+
+        XCTAssertEqual(service.cachePolicy, "none")
+        service.cachePolicy = "aggressive"
+
+        verify(mock.cachePolicy).called(1)
+        verify(mock.cachePolicy <- "aggressive").called(1)
     }
 
     func testPropertyRead_VerifiedThroughWrapper() {

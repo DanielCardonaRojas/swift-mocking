@@ -200,7 +200,7 @@ public extension MockableGenerator {
                         bodyBuilder: {
                             createSettableFunctionBody(
                                 getterSpyName: subscriptDecl.name,
-                                setterSpyName: "set" + subscriptDecl.name.capitalized,
+                                setterSpyName: subscriptDecl.name.setterSpyName,
                                 parameterNames: subscriptDecl.parameterClause.parameters
                             ).statements
                         }
@@ -416,7 +416,7 @@ public extension MockableGenerator {
             ),
             body: createSettableFunctionBody(
                 getterSpyName: varName,
-                setterSpyName: "set" + varName.capitalized,
+                setterSpyName: varName.setterSpyName,
                 parameterNames: FunctionParameterListSyntax([])
             )
         )

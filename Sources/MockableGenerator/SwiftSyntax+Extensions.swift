@@ -36,6 +36,22 @@ extension SubscriptDeclSyntax {
     }
 }
 
+extension String {
+    /// The string with its first character uppercased and the rest left intact.
+    ///
+    /// Distinct from `capitalized`, which lowercases everything after the first
+    /// character and so mangles camelCase spy names — `cachePolicy` would yield
+    /// `setCachepolicy` rather than `setCachePolicy`.
+    var upperCamelCased: String {
+        prefix(1).uppercased() + dropFirst()
+    }
+
+    /// The name of the write spy paired with this read-spy name.
+    var setterSpyName: String {
+        "set" + upperCamelCased
+    }
+}
+
 extension SubscriptDeclSyntax {
     /// The interaction name for the subscript: its parameter names concatenated
     /// in camelCase — `subscript(row: Int, column: Int)` names `rowColumn` —
@@ -43,7 +59,7 @@ extension SubscriptDeclSyntax {
     ///
     /// Unlabeled parameters contribute their internal name; a subscript with no
     /// named parameter at all falls back to `subscript`. The write spy is
-    /// `"set" + name.capitalized`, matching variables (`setValue`).
+    /// ``Swift/String/setterSpyName``, matching variables (`setValue`).
     var name: String {
         let names = parameterClause.parameters
             .compactMap { parameter -> String? in
@@ -55,8 +71,7 @@ extension SubscriptDeclSyntax {
         guard let first = names.first else {
             return "subscript"
         }
-        return ([first] + names.dropFirst().map { $0.prefix(1).uppercased() + $0.dropFirst() })
-            .joined()
+        return ([first] + names.dropFirst().map(\.upperCamelCased)).joined()
     }
 }
 
