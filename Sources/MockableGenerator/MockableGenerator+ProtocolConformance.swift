@@ -109,7 +109,7 @@ extension MockableGenerator {
                                                     expression: adaptCall(
                                                         effectType: .none,
                                                         requirementName: .identifier(variableDecl.name.text.setterSpyName),
-                                                        parameters: [ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
+                                                        parameters: [ExprSyntax(TupleExprSyntax(elements: LabeledExprListSyntax())), ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
                                                     )
                                                 )
                                             }

@@ -65,6 +65,89 @@ final class ProtocolFeaturesTests: MacroTestCase {
         }
     }
 
+    func testProtocolWithSettableProperty() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol MyService {
+                var value: Int { get set }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                var value: Int { get set }
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                func value(_ void: Void) -> SettableInteraction<Void, None, Int > {
+                    SettableInteraction(
+                        get: Interaction(.any, spy: super.value),
+                        setInteraction: { newValue in
+                            let writeSpy: Spy<Void, Int, None, Void> = super.setValue
+                            return Interaction(.any, newValue, spy: writeSpy)
+                        }
+                    )
+                }
+
+                    var value: Int {
+                    set {
+                        return adapt(super.setValue, (), newValue)
+                    }
+                    get {
+                        adapt(super.value, ())
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// Setter spy names uppercase only the first character. `String.capitalized`
+    /// would lowercase the tail — `setCachepolicy` — which still round-trips at
+    /// runtime (both sides agree) but reads as a typo in generated source.
+    func testProtocolWithSettableMultiWordProperty() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol MyService {
+                var cachePolicy: String { get set }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                var cachePolicy: String { get set }
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                func cachePolicy(_ void: Void) -> SettableInteraction<Void, None, String > {
+                    SettableInteraction(
+                        get: Interaction(.any, spy: super.cachePolicy),
+                        setInteraction: { newValue in
+                            let writeSpy: Spy<Void, String, None, Void> = super.setCachePolicy
+                            return Interaction(.any, newValue, spy: writeSpy)
+                        }
+                    )
+                }
+
+                    var cachePolicy: String {
+                    set {
+                        return adapt(super.setCachePolicy, (), newValue)
+                    }
+                    get {
+                        adapt(super.cachePolicy, ())
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     func testProtocolWithInitializer() {
         assertMacro {
             """

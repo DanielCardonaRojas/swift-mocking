@@ -91,23 +91,20 @@ public extension MockableGenerator {
                 continue
             }
 
-            let hasSetter = varDecl.hasSetter
-
-            // Getter
-            let getter = createGetterInteraction(
-                varName: varName,
-                type: type,
-                modifiers: varDecl.modifiers
-            )
-            decls.append(DeclSyntax(getter))
-
-            if hasSetter {
-                let setter = createSetterInteraction(
+            if varDecl.hasSetter {
+                decls.append(DeclSyntax(createSettableGetterInteraction(
+                    varName: varName,
+                    type: type,
+                    modifiers: varDecl.modifiers
+                )))
+            } else {
+                // Getter
+                let getter = createGetterInteraction(
                     varName: varName,
                     type: type,
                     modifiers: varDecl.modifiers
                 )
-                decls.append(DeclSyntax(setter))
+                decls.append(DeclSyntax(getter))
             }
         }
         return decls
@@ -472,42 +469,6 @@ public extension MockableGenerator {
         )
     }
 
-    /// Creates a setter interaction function for a variable.
-    ///
-    /// For a variable `var name: String`, this will generate:
-    /// ```swift
-    /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
-    /// ```
-    private static func createSetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
-        let setterName = "set" + varName.capitalized
-        let parameter = FunctionParameterSyntax(
-            firstName: .identifier("newValue"),
-            colon: .colonToken(trailingTrivia: .space),
-            type: argMatcherType(type)
-        )
-        let parameterList = FunctionParameterListSyntax([parameter])
-        let interactionReturnType = createInteractionReturnType(inputTypes: [type], outputType: TypeSyntax(stringLiteral: "Void"), effectType: .none, genericParameterClause: nil)
-        let body = createFunctionBody(
-            spyPropertyName: setterName,
-            parameterNames: FunctionParameterListSyntax {
-                FunctionParameterSyntax.init(
-                    firstName: .identifier("newValue"),
-                    type: type
-                )
-            }
-        )
-
-        return FunctionDeclSyntax(
-            modifiers: modifiers.trimmed,
-            name: .identifier(setterName),
-            signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax(parameters: parameterList),
-                returnClause: interactionReturnType
-            ),
-            body: body
-        )
-    }
-
     /// Creates a settable interaction function for a variable.
     ///
     /// For a settable variable `var value: Int { get set }`, this will generate:
@@ -684,22 +645,6 @@ public extension MockableGenerator {
 
         return FunctionParameterClauseSyntax(parameters: paramList)
 
-    }
-
-    /// Wraps a type in `ArgMatcher<...>` for interaction parameter clauses.
-    private static func argMatcherType(_ type: TypeSyntax) -> TypeSyntax {
-        TypeSyntax(
-            IdentifierTypeSyntax(
-                name: .identifier("ArgMatcher"),
-                genericArgumentClause: GenericArgumentClauseSyntax {
-                    #if canImport(SwiftSyntax601)
-                    GenericArgumentSyntax(argument: .init(type))
-                    #else
-                    GenericArgumentSyntax(argument: (type))
-                    #endif
-                }
-            )
-        )
     }
 
     private static func removeAttributes(_ type: TypeSyntaxProtocol) -> TypeSyntax {
