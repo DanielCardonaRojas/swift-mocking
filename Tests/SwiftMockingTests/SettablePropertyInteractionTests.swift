@@ -46,6 +46,18 @@ final class SettablePropertyInteractionTests: MockingTestCase {
         verify(mock.value <- .greaterThan(8)).called(1)
     }
 
+    func testPropertyWrite_VerificationRespectsExplicitSetForm() {
+        let mock = MockMutableService()
+        var service: MutableService = mock
+
+        service.value = 7
+        service.value = 9
+        service.value = 9
+
+        verify(mock.value(()).set(.equal(7))).called(1)
+        verify(mock.value(()).set(.equal(9))).called(2)
+    }
+
     func testPropertyWrite_NeverAssigned() {
         let mock = MockMutableService()
 
@@ -100,7 +112,7 @@ final class SettablePropertyInteractionTests: MockingTestCase {
         service.refresh()
 
         verifyInOrder([
-            mock.value(()).set(.equal(7)),
+            mock.value <- 7,
             mock.refresh()
         ])
     }

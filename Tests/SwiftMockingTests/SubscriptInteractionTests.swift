@@ -137,7 +137,7 @@ final class SubscriptInteractionTests: MockingTestCase {
         // Bind first: forwarding a pack-rearranged result (`Interaction<I…, O,
         // None, Void>`) straight into another generic call does not infer for
         // multi-index packs on this toolchain. Single-index subscripts and
-        // variables ((Void) packs) chain fine: `verify(mock[.any] <- "one")`.
+        // variables ((Void) packs) chain fine: `verify(mock.value <- 7)`.
         let write = mock[.equal(1), .equal(2)] <- "written"
         verify(write).called(1)
         verifyNever(mock[.equal(2), .equal(1)])
