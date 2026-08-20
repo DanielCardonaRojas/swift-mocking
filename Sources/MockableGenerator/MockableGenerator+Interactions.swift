@@ -207,18 +207,7 @@ public extension MockableGenerator {
         let parameter = FunctionParameterSyntax(
             firstName: .identifier("newValue"),
             colon: .colonToken(trailingTrivia: .space),
-            type: TypeSyntax(
-                IdentifierTypeSyntax(
-                    name: .identifier("ArgMatcher"),
-                    genericArgumentClause: GenericArgumentClauseSyntax {
-                        #if canImport(SwiftSyntax601)
-                        GenericArgumentSyntax(argument: .init(type))
-                        #else
-                        GenericArgumentSyntax(argument: (type))
-                        #endif
-                    }
-                )
-            )
+            type: argMatcherType(type)
         )
         let parameterList = FunctionParameterListSyntax([parameter])
         let interactionReturnType = createInteractionReturnType(inputTypes: [type], outputType: TypeSyntax(stringLiteral: "Void"), effectType: .none, genericParameterClause: nil)
@@ -240,6 +229,22 @@ public extension MockableGenerator {
                 returnClause: interactionReturnType
             ),
             body: body
+        )
+    }
+
+    /// Wraps a type in `ArgMatcher<...>` for interaction parameter clauses.
+    private static func argMatcherType(_ type: TypeSyntax) -> TypeSyntax {
+        TypeSyntax(
+            IdentifierTypeSyntax(
+                name: .identifier("ArgMatcher"),
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                    #if canImport(SwiftSyntax601)
+                    GenericArgumentSyntax(argument: .init(type))
+                    #else
+                    GenericArgumentSyntax(argument: (type))
+                    #endif
+                }
+            )
         )
     }
 
