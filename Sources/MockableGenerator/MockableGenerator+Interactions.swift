@@ -135,6 +135,7 @@ public extension MockableGenerator {
         let subscriptDecl = SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
+            genericParameterClause: subscriptDecl.genericParameterClause,
             parameterClause: createArgMatcherParameters(
                 subscriptDecl.parameterClause
             ),
@@ -144,6 +145,7 @@ public extension MockableGenerator {
                 effectType: .none,
                 genericParameterClause: subscriptDecl.genericParameterClause
             ),
+            genericWhereClause: subscriptDecl.genericWhereClause,
             accessorBlock: AccessorBlockSyntax(
                 accessors: .accessors(AccessorDeclListSyntax {
                     // Get
@@ -185,6 +187,7 @@ public extension MockableGenerator {
         SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
+            genericParameterClause: subscriptDecl.genericParameterClause,
             parameterClause: createArgMatcherParameters(
                 subscriptDecl.parameterClause
             ),
@@ -193,6 +196,7 @@ public extension MockableGenerator {
                 outputType: subscriptDecl.returnClause.type,
                 effectType: .none
             ),
+            genericWhereClause: subscriptDecl.genericWhereClause,
             accessorBlock: AccessorBlockSyntax(
                 accessors: .accessors(AccessorDeclListSyntax {
                     AccessorDeclSyntax(

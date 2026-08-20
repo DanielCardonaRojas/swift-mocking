@@ -202,6 +202,41 @@ final class ProtocolFeaturesTests: MacroTestCase {
         }
     }
 
+    /// The generic clause must land on every generated declaration — both the
+    /// interaction subscript and the conformance subscript — or the expansion
+    /// references an undeclared type parameter.
+    func testProtocolWithGenericSubscript() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol MyService {
+                subscript<T: Hashable>(item: T) -> String { get }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                subscript<T: Hashable>(item: T) -> String { get }
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                subscript <T: Hashable>(item: ArgMatcher<T>) -> Interaction<T, None, String > {
+                    get {
+                        Interaction(item, spy: super.item)
+                    }
+                }
+                subscript <T: Hashable>(item: T) -> String {
+                    get {
+                        return adapt(super.item, item)
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     func testProtocolWithSettableSubscript() {
         assertMacro {
             """

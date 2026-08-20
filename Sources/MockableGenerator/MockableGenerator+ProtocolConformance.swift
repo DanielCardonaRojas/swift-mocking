@@ -156,6 +156,7 @@ extension MockableGenerator {
         return SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
+            genericParameterClause: subscriptDecl.genericParameterClause,
             parameterClause: subscriptDecl.parameterClause,
             returnClause: subscriptDecl.returnClause,
             genericWhereClause: subscriptDecl.genericWhereClause,
