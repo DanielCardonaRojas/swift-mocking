@@ -6,7 +6,7 @@ Type-safe mocking for Swift, powered by macros.
 
 SwiftMocking turns any protocol into a fully featured mock with a single
 `@Mockable` annotation. Describe calls with matchers, arrange behavior with
-``when(_:)``, assert interactions with ``verify(_:)`` — all statically typed,
+``when(_:)-1t69o``, assert interactions with ``verify(_:)-2pseu`` — all statically typed,
 all local, with no code-generation step in your build.
 
 ```swift
@@ -35,8 +35,8 @@ verification. Start with
 ### Essentials
 
 - ``Mock``
-- ``when(_:)``
-- ``verify(_:)``
+- ``when(_:)-1t69o``
+- ``verify(_:)-2pseu``
 - ``ArgMatcher``
 
 ### Stubbing
@@ -45,8 +45,18 @@ verification. Start with
 - ``Spy``
 - ``Stub``
 
+### Settable Requirements
+
+Settable properties and subscripts (`{ get set }`) record reads and writes on
+separate spies. Their interaction member returns a ``SettableInteraction``,
+which addresses reads directly and writes through the `<-` operator.
+
+- ``SettableInteraction``
+- ``<-(_:_:)-kz9a``
+- ``<-(_:_:)-67g91``
+
 ### Verification
 
 - ``verifyInOrder(_:file:line:)-7ca0p``
-- ``verifyNever(_:file:line:)``
+- ``verifyNever(_:file:line:)-14uw9``
 - ``verifyZeroInteractions(_:file:line:)``

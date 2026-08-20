@@ -206,7 +206,46 @@ class MockMyService: Mock, @unchecked Sendable, MyService {
 ```
 </details>
 
+### Protocol with Settable Property
+
+A settable requirement records reads and writes on two spies (`value` and `setValue`) — their input packs differ, since a write is the read pack plus the written value. One interaction member returns a `SettableInteraction` carrying both.
+
+```swift
+@Mockable
+protocol MyService {
+    var value: Int { get set }
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class MockMyService: Mock, @unchecked Sendable, MyService {
+    func value(_ void: Void) -> SettableInteraction<Void, None, Int > {
+        SettableInteraction(
+            get: Interaction(.any, spy: super.value),
+            setInteraction: { newValue in
+                Interaction(.any, newValue, spy: super.setValue)
+            }
+        )
+    }
+    var value: Int {
+        set {
+            return adapt(super.setValue, (), newValue)
+        }
+        get {
+            adapt(super.value, ())
+        }
+    }
+}
+```
+</details>
+
+Usage: `when(mock.value).thenReturn(7)` stubs reads, `verify(mock.value <- 7).called(1)` verifies writes.
+
 ### Protocol with Subscript
+
+The spy name comes from the parameter names in camelCase — `subscript(index:)` → `index`, `subscript(row:column:)` → `rowColumn`.
 
 ```swift
 @Mockable
@@ -218,20 +257,57 @@ protocol MyService {
 <summary>Generated Code</summary>
 
 ```swift
-class MyServiceMock: Mock, @unchecked Sendable, MyService {
-    subscript(index: Int) -> String {
-        get {
-            return adapt(super.subscript, index)
-        }
-    }
+class MockMyService: Mock, @unchecked Sendable, MyService {
     subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String > {
         get {
-            Interaction(index, spy: super.subscript)
+            Interaction(index, spy: super.index)
+        }
+    }
+    subscript(index: Int) -> String {
+        get {
+            return adapt(super.index, index)
         }
     }
 }
 ```
 </details>
+
+### Protocol with Settable Subscript
+
+```swift
+@Mockable
+protocol MyService {
+    subscript(index: Int) -> String { get set }
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class MockMyService: Mock, @unchecked Sendable, MyService {
+    subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, None, String > {
+        get {
+            SettableInteraction(
+                get: Interaction(index, spy: super.index),
+                setInteraction: { newValue in
+                    Interaction(index, newValue, spy: super.setIndex)
+                }
+            )
+        }
+    }
+    subscript(index: Int) -> String {
+        set {
+            return adapt(super.setIndex, index, newValue)
+        }
+        get {
+            return adapt(super.index, index)
+        }
+    }
+}
+```
+</details>
+
+Usage: `when(mock[.any]).thenReturn("v")` stubs reads, `verify(mock[.equal(1)] <- "v").called(1)` verifies writes.
 
 ### Public Protocol
 

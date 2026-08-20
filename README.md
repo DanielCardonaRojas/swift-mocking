@@ -304,6 +304,52 @@ verifyInOrder([
 ])
 ```
 
+### Properties and Subscripts
+
+Read-only requirements behave like any other member. **Settable** requirements (`{ get set }`) record reads and writes on two separate spies, because their argument lists differ — a write is the read's arguments plus the assigned value. Both are reached through a single interaction member:
+
+```swift
+@Mockable
+protocol Settings {
+    var isEnabled: Bool { get set }
+    subscript(key: String) -> Int { get set }
+}
+
+let mock = MockSettings()
+
+// Reads — stub and verify exactly like a method
+when(mock.isEnabled).thenReturn(true)
+when(mock[.any]).thenReturn(0)
+
+XCTAssertTrue(mock.isEnabled)
+verify(mock.isEnabled).called(1)
+
+// Writes — the `<-` operator turns the interaction into a write interaction
+mock.isEnabled = false
+mock["retries"] = 3
+
+verify(mock.isEnabled <- false).called(1)
+verify(mock[.equal("retries")] <- 3).called(1)
+verifyNever(mock.isEnabled <- true)
+```
+
+Reads and writes are counted independently: `verify(mock.isEnabled)` counts only reads, and a write never registers as a read.
+
+Because a write records the read's arguments followed by the assigned value, captured arguments and stub closures take the value last:
+
+```swift
+verify(mock[.any] <- .any).captured { key, newValue in
+    XCTAssertEqual(key, "retries")
+    XCTAssertEqual(newValue, 3)
+}
+
+when(mock.isEnabled <- .any).thenReturn { _, newValue in
+    print("isEnabled set to \(newValue)")
+}
+```
+
+Since `<-` yields an ordinary `Interaction`, writes compose with `verifyInOrder` too. One toolchain caveat: for a **multi-index** subscript, bind the write before verifying it — `let write = mock[.equal(1), .equal(2)] <- "v"; verify(write).called(1)` — as forwarding the result directly into `verify` fails to infer.
+
 ### Dynamic Stubbing
 
 
