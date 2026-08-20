@@ -67,9 +67,8 @@ verify(mock.isEnabled).called(1)
 verify(cache[.equal("key")]).called(1)
 
 // Writes — `<-` on the same expression
-var svc: Config = mock                       // protocol-typed reference (see note below)
-svc.isEnabled = false
-svc["key"] = "v"
+mock.isEnabled = false                       // properties: drive the mock directly
+svc["key"] = "v"                             // subscripts: via `var svc: Config = mock`
 verify(mock.isEnabled <- false).called(1)
 verify(cache[.equal("key")] <- "v").called(1)
 verifyNever(mock.isEnabled <- .any)
@@ -78,10 +77,12 @@ verifyNever(mock.isEnabled <- .any)
 Rules that trip people up:
 
 - **Reads and writes are separate spies.** `verify(mock.isEnabled)` counts reads only; `verify(mock.isEnabled <- .any)` counts writes only. A write does not register as a read.
-- **Assignment works on the mock type too** (`mock.isEnabled = false`, `mock["k"] = 5` both reach the write spy) — unlike *reads*, where `mock.isEnabled` yields the interaction. Driving the SUT through a protocol-typed reference is still the habit worth keeping, since it's reads that bite.
+- **Properties need no protocol-typed reference.** The runtime member is a `var` and the interaction member is a `func`, so `mock.isEnabled = false` and `_ = mock.isEnabled` both hit the property while `when(mock.isEnabled)` still resolves to the interaction. Tests read better driving the mock directly.
+- **Subscripts do need one for reads.** `mock[key]` (values) and `mock[.any]` (matchers) are a genuine overload pair — an unannotated `let v = mock[1]` is ambiguous. Use `let svc: Config = mock` for reads; writes (`mock["k"] = 5`) disambiguate on their own.
+- **Zero-arg methods always need one.** `mock.refresh()` is ambiguous between runtime and interaction members.
 - **The write pack is the read pack plus the written value** — so `captured` and stub closures take the indices first, value last: `verify(mock.isEnabled <- .any).captured { _, newValue in ... }`. For a property the read pack is `(Void)`, hence the leading `_`.
 - **Matchers work on both sides**: `verify(cache[.any] <- .equal("v"))`, `mock.count <- .greaterThan(8)`. Bare literals coerce to `.equal`.
-- **Stub write side effects** with `when(mock.value <- 7).thenReturn { _, newValue in ... }`.
+- **Stub write side effects** with `when(mock.value <- 7).thenReturn { _, newValue in ... }`. Handlers are `@Sendable`, so collect what they observe in a `CaptureBox<T>` (from `SwiftMockingTestSupport`) rather than a captured local `var`: `written.append(newValue)` then assert on `written.values`.
 - `<-` composes with `verifyInOrder`, since it yields an ordinary `Interaction`: `verifyInOrder([mock.value <- 7, mock.refresh()])`.
 - **Multi-index subscripts must bind first** — `let w = mock[.equal(1), .equal(2)] <- "x"; verify(w).called(1)`. Forwarding the pack-rearranged result straight into `verify` does not infer on current toolchains. Single-index subscripts and properties chain fine.
 - Explicit form if you prefer it over the operator: `mock.value(()).set(.equal(7))`, `mock[.any].set(.any)`.

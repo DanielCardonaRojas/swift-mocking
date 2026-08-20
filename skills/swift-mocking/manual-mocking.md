@@ -214,16 +214,17 @@ Reads and writes are **separate spies** — a write never registers as a read.
 
 ```swift
 let mock = ConfigMock()
-var svc: Config = mock                            // protocol-typed: keeps reads unambiguous
-when(mock.cachePolicy).thenReturn("none")         // stub the read
+when(mock.cachePolicy).thenReturn("none")          // stub the read
 
-XCTAssertEqual(svc.cachePolicy, "none")
-svc.cachePolicy = "aggressive"                    // routes to the write spy
+XCTAssertEqual(mock.cachePolicy, "none")           // property: no indirection needed
+mock.cachePolicy = "aggressive"                    // routes to the write spy
 
-verify(mock.cachePolicy).called(1)                // reads only
+verify(mock.cachePolicy).called(1)                 // reads only
 verify(mock.cachePolicy <- "aggressive").called(1) // writes only
 verifyNever(mock.cachePolicy <- .equal("never"))
 ```
+
+For a **property**, the runtime member is a `var` and the interaction member is a `func`, so both directions resolve unambiguously on the mock type — drive it directly. **Subscript reads** are the exception: `mock[key]` and `mock[.any]` are a real overload pair, so bind `let svc: Config = mock` and read through it (writes are fine either way). Zero-arg **methods** always need the protocol type.
 
 - **Captured values put the written value last**, after the read pack: `verify(mock.cachePolicy <- .any).captured { _, newValue in ... }` — the `_` is the property's `(Void)` read pack.
 - **Write side effects**: `when(mock.value <- 7).thenReturn { _, newValue in ... }`.
