@@ -84,15 +84,15 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func value(_ void: Void) -> SettableInteraction<Void, None, Int > {
                     SettableInteraction(
                         get: Interaction(.any, spy: super.value),
-                        setInteraction: { newValue in
-                            Interaction(.any, newValue, spy: super.setValue)
+                        setInteraction: { __mockableNewValue in
+                            Interaction(.any, __mockableNewValue, spy: super.setValue)
                         }
                     )
                 }
 
                     var value: Int {
-                    set {
-                        return adapt(super.setValue, (), newValue)
+                    set(__mockableNewValue) {
+                        return adapt(super.setValue, (), __mockableNewValue)
                     }
                     get {
                         adapt(super.value, ())
@@ -126,15 +126,15 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func cachePolicy(_ void: Void) -> SettableInteraction<Void, None, String > {
                     SettableInteraction(
                         get: Interaction(.any, spy: super.cachePolicy),
-                        setInteraction: { newValue in
-                            Interaction(.any, newValue, spy: super.setCachePolicy)
+                        setInteraction: { __mockableNewValue in
+                            Interaction(.any, __mockableNewValue, spy: super.setCachePolicy)
                         }
                     )
                 }
 
                     var cachePolicy: String {
-                    set {
-                        return adapt(super.setCachePolicy, (), newValue)
+                    set(__mockableNewValue) {
+                        return adapt(super.setCachePolicy, (), __mockableNewValue)
                     }
                     get {
                         adapt(super.cachePolicy, ())
@@ -222,15 +222,15 @@ final class ProtocolFeaturesTests: MacroTestCase {
                     get {
                         SettableInteraction(
                             get: Interaction(index, spy: super.index),
-                            setInteraction: { newValue in
-                                Interaction(index, newValue, spy: super.setIndex)
+                            setInteraction: { __mockableNewValue in
+                                Interaction(index, __mockableNewValue, spy: super.setIndex)
                             }
                         )
                     }
                 }
                 subscript(index: Int) -> String {
-                    set {
-                        return adapt(super.setIndex, index, newValue)
+                    set(__mockableNewValue) {
+                        return adapt(super.setIndex, index, __mockableNewValue)
                     }
                     get {
                         return adapt(super.index, index)

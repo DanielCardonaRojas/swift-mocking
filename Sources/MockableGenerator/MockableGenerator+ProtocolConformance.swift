@@ -7,6 +7,15 @@
 
 import SwiftSyntax
 
+/// The explicit `set(…)` parameter generated setters bind the written value to.
+///
+/// Naming it explicitly — rather than relying on the implicit `newValue` — keeps
+/// the binding from being shadowed by a requirement that declares a parameter
+/// called `newValue`, e.g. `subscript(newValue: Int) -> String { get set }`.
+let writtenValueAccessorParameter = AccessorParametersSyntax(
+    name: .identifier(writtenValueIdentifier)
+)
+
 extension MockableGenerator {
     /// Generates the necessary declarations to conform to a protocol.
     ///
@@ -104,12 +113,13 @@ extension MockableGenerator {
                                     if variableDecl.hasSetter {
                                         AccessorDeclSyntax(
                                             accessorSpecifier: .keyword(.set),
+                                            parameters: writtenValueAccessorParameter,
                                             bodyBuilder: {
                                                 ReturnStmtSyntax(
                                                     expression: adaptCall(
                                                         effectType: .none,
                                                         requirementName: .identifier(variableDecl.name.text.setterSpyName),
-                                                        parameters: [ExprSyntax(TupleExprSyntax(elements: LabeledExprListSyntax())), ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
+                                                        parameters: [ExprSyntax(TupleExprSyntax(elements: LabeledExprListSyntax())), ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(writtenValueIdentifier)))]
                                                     )
                                                 )
                                             }
@@ -156,12 +166,13 @@ extension MockableGenerator {
                         if subscriptDecl.hasSetter {
                             AccessorDeclSyntax(
                                 accessorSpecifier: .keyword(.set),
+                                parameters: writtenValueAccessorParameter,
                                 bodyBuilder: {
                                     ReturnStmtSyntax(
                                         expression: adaptCall(
                                             effectType: .none,
                                             requirementName: .identifier(subscriptDecl.name.setterSpyName),
-                                            parameters: parameterNames + [ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
+                                            parameters: parameterNames + [ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(writtenValueIdentifier)))]
                                         )
                                     )
                                 }
