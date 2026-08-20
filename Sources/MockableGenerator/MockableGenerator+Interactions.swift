@@ -169,9 +169,12 @@ public extension MockableGenerator {
     /// ```swift
     /// subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, String> {
     ///     get {
-    ///         SettableInteraction(get: Interaction(index, spy: super.index), setInteraction: { newValue in
-    ///             Interaction(index, newValue, spy: super.setIndex)
-    ///         })
+    ///         SettableInteraction(
+    ///             get: Interaction(index, spy: super.index),
+    ///             setInteraction: { newValue in
+    ///                 Interaction(index, newValue, spy: super.setIndex)
+    ///             }
+    ///         )
     ///     }
     /// }
     /// ```
@@ -257,10 +260,18 @@ public extension MockableGenerator {
     /// For `getterSpyName: "index"`, `setterSpyName: "setIndex"` and
     /// parameters `[index]`, this will generate:
     /// ```swift
-    /// SettableInteraction(get: Interaction(index, spy: super.index), setInteraction: { newValue in
-    ///     Interaction(index, newValue, spy: super.setIndex)
-    /// })
+    /// SettableInteraction(
+    ///     get: Interaction(index, spy: super.index),
+    ///     setInteraction: { newValue in
+    ///         Interaction(index, newValue, spy: super.setIndex)
+    ///     }
+    /// )
     /// ```
+    ///
+    /// Each argument goes on its own line with explicit trivia: the expansion is
+    /// user-facing (it appears in macro-expansion diffs and generated sources),
+    /// and SwiftSyntax does not re-indent nested nodes on its own — without this
+    /// the call collapses onto one line and the closure body drifts rightward.
     ///
     /// `newValue` is appended after the read arguments so the write pack is the
     /// read pack plus the written value. Empty parameter lists pass `.any` for
@@ -270,6 +281,11 @@ public extension MockableGenerator {
         setterSpyName: String,
         parameterNames: FunctionParameterListSyntax
     ) -> CodeBlockSyntax {
+        // Relative to the statement's own column: SwiftSyntax supplies the
+        // enclosing context's indentation when the body is placed, so these
+        // offsets must not restate it. That keeps one builder correct at both
+        // nesting depths — a variable's function body and a subscript's `get`.
+        let indent = { (level: Int) in Trivia.spaces(4 * level) }
         let getterCall = interactionCall(
             spyPropertyName: getterSpyName,
             parameterNames: parameterNames
@@ -279,7 +295,9 @@ public extension MockableGenerator {
             parameterNames: parameterNames,
             newValueName: "newValue"
         )
+        // { newValue in\n<indent+2>Interaction(…)\n<indent+1>}
         let setClosure = ClosureExprSyntax(
+            leftBrace: .leftBraceToken(),
             signature: ClosureSignatureSyntax(
                 parameterClause: .simpleInput(ClosureShorthandParameterListSyntax {
                     ClosureShorthandParameterSyntax(name: .identifier("newValue"))
@@ -287,15 +305,34 @@ public extension MockableGenerator {
                 inKeyword: .keyword(.in)
             ),
             statements: CodeBlockItemListSyntax([
-                CodeBlockItemSyntax(item: .expr(ExprSyntax(setterCall)))
-            ])
+                CodeBlockItemSyntax(
+                    leadingTrivia: .newline + indent(2),
+                    item: .expr(ExprSyntax(setterCall))
+                )
+            ]),
+            rightBrace: .rightBraceToken(leadingTrivia: .newline + indent(1))
         )
+        // SettableInteraction(\n<indent+1>get: …,\n<indent+1>setInteraction: …\n<indent>)
         let wrapperCall = FunctionCallExprSyntax(
-            callee: DeclReferenceExprSyntax(baseName: .identifier("SettableInteraction"))
-        ) {
-            LabeledExprSyntax(label: "get", expression: getterCall)
-            LabeledExprSyntax(label: "setInteraction", expression: setClosure)
-        }
+            calledExpression: DeclReferenceExprSyntax(baseName: .identifier("SettableInteraction")),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+                LabeledExprSyntax(
+                    leadingTrivia: .newline + indent(1),
+                    label: .identifier("get"),
+                    colon: .colonToken(trailingTrivia: .space),
+                    expression: getterCall,
+                    trailingComma: .commaToken()
+                )
+                LabeledExprSyntax(
+                    leadingTrivia: .newline + indent(1),
+                    label: .identifier("setInteraction"),
+                    colon: .colonToken(trailingTrivia: .space),
+                    expression: setClosure
+                )
+            },
+            rightParen: .rightParenToken(leadingTrivia: .newline + indent(0))
+        )
 
         return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(wrapperCall)))])
     }
@@ -344,9 +381,12 @@ public extension MockableGenerator {
     /// For a settable variable `var value: Int { get set }`, this will generate:
     /// ```swift
     /// func value(_ void: Void) -> SettableInteraction<Void, Int> {
-    ///     SettableInteraction(get: Interaction(.any, spy: super.value), setInteraction: { newValue in
-    ///         Interaction(.any, newValue, spy: super.setValue)
-    ///     })
+    ///     SettableInteraction(
+    ///         get: Interaction(.any, spy: super.value),
+    ///         setInteraction: { newValue in
+    ///             Interaction(.any, newValue, spy: super.setValue)
+    ///         }
+    ///     )
     /// }
     /// ```
     ///
