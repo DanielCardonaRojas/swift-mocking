@@ -109,7 +109,7 @@ extension MockableGenerator {
                                                     expression: adaptCall(
                                                         effectType: .none,
                                                         requirementName: .identifier("set\(variableDecl.name.text.capitalized)"),
-                                                        parameters: [.identifier("newValue")]
+                                                        parameters: [ExprSyntax(TupleExprSyntax(elements: LabeledExprListSyntax())), ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
                                                     )
                                                 )
                                             }
@@ -142,7 +142,7 @@ extension MockableGenerator {
     /// For a settable requirement, it also generates a setter that records the write —
     /// indices followed by `newValue` — on the `setSubscript` spy.
     static func subscriptRequirement(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
-        let parameterNames = subscriptDecl.parameterClause.parameters.map({ $0.secondName ?? $0.firstName })
+        let parameterNames = subscriptDecl.parameterClause.parameters.map({ ExprSyntax(DeclReferenceExprSyntax(baseName: $0.secondName ?? $0.firstName)) })
         return SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
@@ -161,7 +161,7 @@ extension MockableGenerator {
                                         expression: adaptCall(
                                             effectType: .none,
                                             requirementName: .identifier("setSubscript"),
-                                            parameters: parameterNames + [.identifier("newValue")]
+                                            parameters: parameterNames + [ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier("newValue")))]
                                         )
                                     )
                                 }
@@ -232,7 +232,7 @@ extension MockableGenerator {
             effectType: effectType,
             requirementName: functionDecl.name,
             parameters: functionDecl.signature.parameterClause.parameters
-                .map({ $0.secondName ?? $0.firstName})
+                .map({ ExprSyntax(DeclReferenceExprSyntax(baseName: $0.secondName ?? $0.firstName)) })
         )
     }
 
@@ -244,7 +244,7 @@ extension MockableGenerator {
     /// ```swift
     /// adapt(super.myMethod, param1)
     /// ```
-    private static func adaptCall(effectType: EffectType, requirementName: TokenSyntax, parameters: [TokenSyntax]) -> FunctionCallExprSyntax {
+    private static func adaptCall(effectType: EffectType, requirementName: TokenSyntax, parameters: [ExprSyntax]) -> FunctionCallExprSyntax {
         let adaptingName = "adapt" + (effectType.rawValue.contains("Throws") ? "Throwing" : "")
         return FunctionCallExprSyntax(
             calledExpression: DeclReferenceExprSyntax(
@@ -252,7 +252,7 @@ extension MockableGenerator {
             ),
             leftParen: .leftParenToken(),
             arguments: LabeledExprListSyntax {
-                // super.myMethoName
+                // super.myMethodName
                 LabeledExprSyntax(
                     expression: MemberAccessExprSyntax(
                         base: SuperExprSyntax(),
@@ -269,17 +269,12 @@ extension MockableGenerator {
                     )
                 } else {
                     for parameter in parameters {
-                        LabeledExprSyntax(
-                            expression: DeclReferenceExprSyntax.init(
-                                baseName: parameter
-                            )
-                        )
+                        LabeledExprSyntax(expression: parameter)
                     }
                 }
             },
             rightParen: .rightParenToken()
         )
-
     }
 }
 

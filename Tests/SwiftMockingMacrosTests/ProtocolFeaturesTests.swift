@@ -65,6 +65,42 @@ final class ProtocolFeaturesTests: MacroTestCase {
         }
     }
 
+    func testProtocolWithSettableProperty() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol MyService {
+                var value: Int { get set }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                var value: Int { get set }
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                func value(_ void: Void) -> SettableInteraction<Void, Int > {
+                    SettableInteraction(get: Interaction(.any, spy: super.value), setInteraction: { newValue in
+                            Interaction(.any, newValue, spy: super.setValue)
+                        })
+                }
+
+                    var value: Int {
+                    set {
+                        return adapt(super.setValue, (), newValue)
+                    }
+                    get {
+                        adapt(super.value, ())
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     func testProtocolWithInitializer() {
         assertMacro {
             """
