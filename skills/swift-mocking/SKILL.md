@@ -14,6 +14,7 @@ Mocking for Swift protocols: `@Mockable` generates mock classes; `when(...)` stu
 | Protocol has no inheritance; need a mock | `@Mockable protocol P {...}` → use `PMock()` |
 | Protocol inherits another protocol with members | **manual-mocking.md** (macro cannot do this) |
 | Mocking without any protocol (closure/TCA dependencies) | usage.md — `Spy` + `adapt` |
+| Stubbing/verifying settable properties or subscripts (`{ get set }`) | usage.md — *Properties & subscripts*; hand-written shape in manual-mocking.md |
 | Need mock source without the macro (plugin unavailable, codegen, review) | `mockable` CLI (below) when available; hand-writing per manual-mocking.md is always valid |
 | `@Sendable`/Swift 6 concurrency errors when stubbing | sendable.md |
 | Stubbing / matching / verifying API reference | usage.md |
@@ -73,6 +74,7 @@ verify(mock.price(.equal("apple"))).called(1)
 - `@Mockable` on `protocol B: A` → compile error `does not conform to protocol 'A'` (inherited requirements never generated). Hand-write per manual-mocking.md.
 - Zero-arg members (`func start()`, property getters): `when(mock.getX()).thenReturn(v)` does not reach the runtime member in macro-generated mocks. Manual mocks fix this with the pinned-spy pattern.
 - Stub API is `thenReturn` / `thenThrow` / `do` — there is no `.then`.
+- Settable members (`{ get set }`) record reads and writes on **separate spies**: `verify(mock.x)` counts reads, `verify(mock.x <- v)` counts writes. A write never registers as a read.
 - Bare `mock.start()` (zero-arg) is ambiguous on the mock type — call via a protocol-typed reference.
 - **Literal arguments on the mock type dispatch to the interaction member** (`mock.fetchUser(id: "1")` returns an `Interaction` instead of calling through) — call the mock via a protocol-typed reference.
 

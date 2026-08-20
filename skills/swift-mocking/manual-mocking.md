@@ -96,7 +96,7 @@ public class AuthorizingUserServiceMock: Mock, @unchecked Sendable, AuthorizingU
             let spy: Spy<Void, None, String> = super.cachePolicy
             return spy(())
         }
-        set { return adapt(super.setCachePolicy, newValue) }
+        set { return adapt(super.setCachePolicy, (), newValue) }
     }
     // Runtime — AuthorizingUserService requirements
     public func authorize(_ token: String) throws -> Bool {
@@ -106,11 +106,14 @@ public class AuthorizingUserServiceMock: Mock, @unchecked Sendable, AuthorizingU
     public func fetchUser(id: ArgMatcher<String>) -> Interaction<String, AsyncThrows, User> {
         Interaction(id, spy: super.fetchUser)
     }
-    public func cachePolicy(_ void: Void) -> Interaction<Void, None, String> {
-        Interaction(.any, spy: super.cachePolicy)
-    }
-    public func setCachePolicy(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> {
-        Interaction(newValue, spy: super.setCachePolicy)
+    // Settable → one member returning SettableInteraction (reads + writes)
+    public func cachePolicy(_ void: Void) -> SettableInteraction<Void, None, String> {
+        SettableInteraction(
+            get: Interaction(.any, spy: super.cachePolicy),
+            setInteraction: { newValue in
+                Interaction(.any, newValue, spy: super.setCachePolicy)
+            }
+        )
     }
     // Interactions — AuthorizingUserService
     public func authorize(_ token: ArgMatcher<String>) -> Interaction<String, Throws, Bool> {
@@ -126,41 +129,107 @@ Rules:
 
 ## Properties
 
-Getter interaction overloads the variable name with a `Void` parameter; setter is `set` + capitalized name. The `Void` parameter is required, not cosmetic: a niladic `func cachePolicy()` next to the `var cachePolicy` conformance is an `invalid redeclaration` (the property's getter accessor already owns that selector), and the unapplied reference `mock.cachePolicy` must have exactly type `(Void) -> Interaction<…>` for `when(mock.cachePolicy)` / `verify(mock.cachePolicy)` to infer their input pack.
+Getter interaction overloads the variable name with a `Void` parameter. The `Void` parameter is required, not cosmetic: a niladic `func cachePolicy()` next to the `var cachePolicy` conformance is an `invalid redeclaration` (the property's getter accessor already owns that selector), and the unapplied reference `mock.cachePolicy` must have exactly type `(Void) -> Interaction<…>` for `when(mock.cachePolicy)` / `verify(mock.cachePolicy)` to infer their input pack.
+
+**Read-only** property → runtime getter + the `x(_ void: Void)` interaction returning a plain `Interaction`:
+
+```swift
+// protocol: var readOnly: Int { get }
+var readOnly: Int {
+    get {
+        // Pass () explicitly — a bare `adapt(super.readOnly)` hits the
+        // zero-arg spy mismatch and getter stubs/verifies silently no-op.
+        adapt(super.readOnly, ())
+    }
+}
+func readOnly(_ void: Void) -> Interaction<Void, None, Int> {
+    Interaction(.any, spy: super.readOnly)
+}
+```
+
+**Settable** property → reads and writes record on *two* spies (`cachePolicy` and `setCachePolicy`), because their input packs differ. One interaction member returns a `SettableInteraction` carrying both:
 
 ```swift
 // protocol: var cachePolicy: String { get set }
 var cachePolicy: String {
-    get {
-        // Pass () explicitly — a bare `adapt(super.cachePolicy)` hits the
-        // zero-arg spy mismatch and getter stubs/verifies silently no-op.
-        adapt(super.cachePolicy, ())
-    }
-    set { return adapt(super.setCachePolicy, newValue) }
+    get { adapt(super.cachePolicy, ()) }
+    // The `return` pins Output == Void; see the errors table.
+    set { return adapt(super.setCachePolicy, (), newValue) }
 }
-func cachePolicy(_ void: Void) -> Interaction<Void, None, String> {
-    Interaction(.any, spy: super.cachePolicy)
-}
-func setCachePolicy(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> {
-    Interaction(newValue, spy: super.setCachePolicy)
+func cachePolicy(_ void: Void) -> SettableInteraction<Void, None, String> {
+    SettableInteraction(
+        get: Interaction(.any, spy: super.cachePolicy),
+        setInteraction: { newValue in
+            Interaction(.any, newValue, spy: super.setCachePolicy)
+        }
+    )
 }
 ```
 
-Read-only property → runtime getter + the `x(_ void: Void)` interaction only.
+Three details the compiler will not catch for you:
+
+1. **Write spy name is `set` + the name with only its first letter uppercased** — `setCachePolicy`, not `setCachepolicy`. Read and write sides must agree; if both are wrong in the same way tests still pass, so this only shows up as a typo in your source.
+2. **The write pack is the read pack plus the value**: the setter passes `(), newValue` and the write `Interaction` lists `.any, newValue`. Getting the order wrong misroutes matchers silently.
+3. **`setInteraction` is a closure**, not a stored `Interaction` — appending a value after a pack expansion isn't expressible in a generic body, so generated and hand-written mocks both inject it.
 
 ## Subscripts
+
+Spy name is the parameter names concatenated in camelCase — `subscript(key:)` → `key`, `subscript(row:column:)` → `rowColumn`; a subscript with no named parameter falls back to the literal `subscript`. Write spy is `set` + that name upper-camel-cased (`setRowColumn`).
 
 ```swift
 // protocol: subscript(key: String) -> Int { get }
 subscript(key: String) -> Int {
-    get { return adapt(super.subscript, key) }
+    get { return adapt(super.key, key) }
 }
 subscript(key: ArgMatcher<String>) -> Interaction<String, None, Int> {
-    get { Interaction(key, spy: super.subscript) }
+    get { Interaction(key, spy: super.key) }
 }
 ```
 
-Spy key is always the literal member name `subscript`. Usage: `when(mock[.any]).thenReturn(1)`.
+**Settable** subscript — same two-spy structure as a settable property, with the indices in place of the property's `(Void)` pack:
+
+```swift
+// protocol: subscript(key: String) -> Int { get set }
+subscript(key: String) -> Int {
+    get { return adapt(super.key, key) }
+    set { return adapt(super.setKey, key, newValue) }
+}
+subscript(key: ArgMatcher<String>) -> SettableInteraction<String, None, Int> {
+    get {
+        SettableInteraction(
+            get: Interaction(key, spy: super.key),
+            setInteraction: { newValue in
+                Interaction(key, newValue, spy: super.setKey)
+            }
+        )
+    }
+}
+```
+
+Usage: `when(mock[.any]).thenReturn(1)` stubs reads; `verify(mock[.equal("k")] <- 9).called(1)` verifies writes.
+
+## Testing settable members
+
+Reads and writes are **separate spies** — a write never registers as a read.
+
+```swift
+let mock = ConfigMock()
+var svc: Config = mock                            // protocol-typed: keeps reads unambiguous
+when(mock.cachePolicy).thenReturn("none")         // stub the read
+
+XCTAssertEqual(svc.cachePolicy, "none")
+svc.cachePolicy = "aggressive"                    // routes to the write spy
+
+verify(mock.cachePolicy).called(1)                // reads only
+verify(mock.cachePolicy <- "aggressive").called(1) // writes only
+verifyNever(mock.cachePolicy <- .equal("never"))
+```
+
+- **Captured values put the written value last**, after the read pack: `verify(mock.cachePolicy <- .any).captured { _, newValue in ... }` — the `_` is the property's `(Void)` read pack.
+- **Write side effects**: `when(mock.value <- 7).thenReturn { _, newValue in ... }`.
+- **`verifyInOrder` composes**, since `<-` yields an ordinary `Interaction`: `verifyInOrder([mock.cachePolicy <- "aggressive", mock[.any] <- 9])`.
+- **Multi-index subscripts must bind first** — `let w = mock[.equal(1), .equal(2)] <- "x"; verify(w).called(1)`. Forwarding a pack-rearranged result directly into `verify` does not infer on current toolchains; single-index subscripts and properties are fine.
+- Explicit alternative to the operator: `mock.cachePolicy(()).set(.equal("aggressive"))`, `mock[.any].set(.any)`.
 
 ## Variadic parameters
 
@@ -240,7 +309,9 @@ func execute(completion: ArgMatcher<(String) -> Void>) -> Interaction<(String) -
 | Zero-arg runtime member written as `adapt(super.f)` | Stub ignored; `verify(...)` always 0 (silent) | Pass `()`: `adapt(super.f, ())` — the form the macro emits |
 | Calling `mock.f()` bare on a zero-arg mock member | `ambiguous use of 'f()'` | Call through a protocol-typed reference |
 | Getter body `adapt(super.getX)` (wrong key or bare adapt) | Getter stubs/verifies silently no-op | Pin `Spy<Void, None, T>` keyed by the **property name** |
-| Setter body without `return` | `generic parameter 'Output' could not be inferred` | `set { return adapt(super.setX, newValue) }` — the `return` pins `Output == Void` |
+| Setter body without `return` | `generic parameter 'Output' could not be inferred` | `set { return adapt(super.setCachePolicy, (), newValue) }` — the `return` pins `Output == Void` |
+| Write verified but count is 0 | — | Read/write spy names disagree (e.g. setter uses `.capitalized` → `setCachepolicy` while the interaction uses `setCachePolicy`) |
+| `verify(mock[.a, .b] <- v)` won't compile | `cannot convert value` / inference failure | Multi-index subscript: bind first (`let w = mock[.a, .b] <- v`), then `verify(w)` |
 | Only implementing the derived protocol's members | Compile error (missing runtime witnesses) | Flatten the chain — runtime + interaction members for every ancestor requirement |
 | Runtime members only (no `ArgMatcher` overloads) | Compiles; `when`/`verify` can't reference the method | Every requirement gets both members |
 | Instantying `Spy()` manually inside the mock | Invocations not recorded where `when`/`verify` look | Always go through `super.<name>` |
