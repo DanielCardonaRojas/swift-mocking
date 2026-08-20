@@ -224,14 +224,14 @@ class MockMyService: Mock, @unchecked Sendable, MyService {
     func value(_ void: Void) -> SettableInteraction<Void, None, Int > {
         SettableInteraction(
             get: Interaction(.any, spy: super.value),
-            setInteraction: { __mockableNewValue in
-                Interaction(.any, __mockableNewValue, spy: super.setValue)
+            setInteraction: { newValue in
+                Interaction(.any, newValue, spy: super.setValue)
             }
         )
     }
     var value: Int {
-        set(__mockableNewValue) {
-            return adapt(super.setValue, (), __mockableNewValue)
+        set {
+            return adapt(super.setValue, (), newValue)
         }
         get {
             adapt(super.value, ())
@@ -289,15 +289,15 @@ class MockMyService: Mock, @unchecked Sendable, MyService {
         get {
             SettableInteraction(
                 get: Interaction(index, spy: super.index),
-                setInteraction: { __mockableNewValue in
-                    Interaction(index, __mockableNewValue, spy: super.setIndex)
+                setInteraction: { newValue in
+                    Interaction(index, newValue, spy: super.setIndex)
                 }
             )
         }
     }
     subscript(index: Int) -> String {
-        set(__mockableNewValue) {
-            return adapt(super.setIndex, index, __mockableNewValue)
+        set {
+            return adapt(super.setIndex, index, newValue)
         }
         get {
             return adapt(super.index, index)

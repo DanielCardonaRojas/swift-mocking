@@ -36,17 +36,6 @@ extension SubscriptDeclSyntax {
     }
 }
 
-/// The identifier generated code uses for the value being written.
-///
-/// Deliberately not the implicit `newValue`: a requirement may declare a
-/// parameter of that name — `subscript(newValue: Int) -> String { get set }` —
-/// in which case the setter's implicit binding and the write closure's
-/// parameter both shadow the index, silently dropping the index matcher and
-/// failing to compile. Backticks do not help (`` `newValue` `` is the same
-/// identifier), so generated code binds this reserved spelling explicitly and
-/// never relies on the implicit one.
-let writtenValueIdentifier = "__mockableNewValue"
-
 extension String {
     /// The string with its first character uppercased and the rest left intact.
     ///

@@ -172,8 +172,8 @@ public extension MockableGenerator {
     ///     get {
     ///         SettableInteraction(
     ///             get: Interaction(index, spy: super.index),
-    ///             setInteraction: { __mockableNewValue in
-    ///                 Interaction(index, __mockableNewValue, spy: super.setIndex)
+    ///             setInteraction: { newValue in
+    ///                 Interaction(index, newValue, spy: super.setIndex)
     ///             }
     ///         )
     ///     }
@@ -265,8 +265,8 @@ public extension MockableGenerator {
     /// ```swift
     /// SettableInteraction(
     ///     get: Interaction(index, spy: super.index),
-    ///     setInteraction: { __mockableNewValue in
-    ///         Interaction(index, __mockableNewValue, spy: super.setIndex)
+    ///     setInteraction: { newValue in
+    ///         Interaction(index, newValue, spy: super.setIndex)
     ///     }
     /// )
     /// ```
@@ -296,14 +296,14 @@ public extension MockableGenerator {
         let setterCall = interactionCall(
             spyPropertyName: setterSpyName,
             parameterNames: parameterNames,
-            newValueName: writtenValueIdentifier
+            newValueName: "newValue"
         )
         // { newValue in\n<indent+2>Interaction(…)\n<indent+1>}
         let setClosure = ClosureExprSyntax(
             leftBrace: .leftBraceToken(),
             signature: ClosureSignatureSyntax(
                 parameterClause: .simpleInput(ClosureShorthandParameterListSyntax {
-                    ClosureShorthandParameterSyntax(name: .identifier(writtenValueIdentifier))
+                    ClosureShorthandParameterSyntax(name: .identifier("newValue"))
                 }),
                 inKeyword: .keyword(.in)
             ),
@@ -386,8 +386,8 @@ public extension MockableGenerator {
     /// func value(_ void: Void) -> SettableInteraction<Void, Int> {
     ///     SettableInteraction(
     ///         get: Interaction(.any, spy: super.value),
-    ///         setInteraction: { __mockableNewValue in
-    ///             Interaction(.any, __mockableNewValue, spy: super.setValue)
+    ///         setInteraction: { newValue in
+    ///             Interaction(.any, newValue, spy: super.setValue)
     ///         }
     ///     )
     /// }
@@ -395,7 +395,7 @@ public extension MockableGenerator {
     ///
     /// The read pack is `(Void)`, matching the conformance getter's
     /// `adapt(super.value, ())`; the write pack is `(Void, newValue)`, matching
-    /// the conformance setter's `adapt(super.setValue, (), __mockableNewValue)` — writes
+    /// the conformance setter's `adapt(super.setValue, (), newValue)` — writes
     /// record the read pack plus the written value.
     private static func createSettableGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
         let voidParameter = FunctionParameterSyntax(
