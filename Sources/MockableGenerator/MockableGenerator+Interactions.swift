@@ -34,11 +34,10 @@ public extension MockableGenerator {
     /// ```
     static func makeInteractions(protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
         var members = [DeclSyntax]()
-        var functionNames = [String: Int]()
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let stubFunction = processFunc(funcDecl, &functionNames)
+                let stubFunction = processFunc(funcDecl)
                 members.append(stubFunction)
             } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
                 let stubFunctions = processVar(varDecl)
@@ -59,7 +58,7 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: super.doSomething)
     /// }
     /// ```
-    private static func processFunc(_ funcDecl: FunctionDeclSyntax, _ functionNames: inout [String: Int]) -> DeclSyntax {
+    private static func processFunc(_ funcDecl: FunctionDeclSyntax) -> DeclSyntax {
         let funcName = funcDecl.name.text
         let spyPropertyName = funcDecl.name.text
 
@@ -114,23 +113,16 @@ public extension MockableGenerator {
         return decls
     }
 
-    /// Processes a subscript declaration to generate interaction declarations.
+    /// Processes a subscript declaration to generate the interaction declaration.
     ///
-    /// For a subscript `subscript(index: Int) -> String { get }`, this will generate:
-    /// ```swift
-    /// subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String> {
-    ///     get { ... }
-    /// }
-    /// ```
-    ///
-    /// If the subscript is settable, it also generates a setter interaction function
-    /// (see ``subscriptSetterInteraction(_:)``) that stubs and verifies writes.
+    /// Get-only requirements generate an `Interaction` subscript; settable
+    /// requirements generate a `SettableInteraction` subscript exposing reads
+    /// (`when`/`verify`) and writes (`assigned:`) through one surface.
     private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> [DeclSyntax] {
-        var decls = [DeclSyntax(subscriptGetterInteraction(subscriptDecl))]
         if subscriptDecl.hasSetter {
-            decls.append(DeclSyntax(subscriptSetterInteraction(subscriptDecl)))
+            return [DeclSyntax(subscriptSettableInteraction(subscriptDecl))]
         }
-        return decls
+        return [DeclSyntax(subscriptGetterInteraction(subscriptDecl))]
     }
 
     /// Creates a getter interaction subscript mirroring the requirement's indices.
@@ -138,13 +130,14 @@ public extension MockableGenerator {
     /// For a subscript `subscript(index: Int) -> String`, this will generate:
     /// ```swift
     /// subscript(index: ArgMatcher<Int>) -> Interaction<Int, None, String> {
-    ///     get { Interaction(index, spy: super.subscript) }
+    ///     get { Interaction(index, spy: super.index) }
     /// }
     /// ```
     private static func subscriptGetterInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
         let subscriptDecl = SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
+            genericParameterClause: subscriptDecl.genericParameterClause,
             parameterClause: createArgMatcherParameters(
                 subscriptDecl.parameterClause
             ),
@@ -154,6 +147,7 @@ public extension MockableGenerator {
                 effectType: .none,
                 genericParameterClause: subscriptDecl.genericParameterClause
             ),
+            genericWhereClause: subscriptDecl.genericWhereClause,
             accessorBlock: AccessorBlockSyntax(
                 accessors: .accessors(AccessorDeclListSyntax {
                     // Get
@@ -161,7 +155,7 @@ public extension MockableGenerator {
                         accessorSpecifier: .keyword(.get),
                         bodyBuilder: {
                             createFunctionBody(
-                                spyPropertyName: "subscript",
+                                spyPropertyName: subscriptDecl.name,
                                 parameterNames: subscriptDecl.parameterClause.parameters
                             ).statements
                         }
@@ -173,65 +167,224 @@ public extension MockableGenerator {
         return subscriptDecl
     }
 
-    /// Creates a setter interaction function for a settable subscript.
+    /// Creates a settable interaction subscript exposing both directions.
     ///
     /// For a settable subscript `subscript(index: Int) -> String { get set }`, this will generate:
     /// ```swift
-    /// func setSubscript(index: ArgMatcher<Int>, newValue: ArgMatcher<String>) -> Interaction<Int, String, None, Void> {
-    ///     Interaction(index, newValue, spy: super.setSubscript)
+    /// subscript(index: ArgMatcher<Int>) -> SettableInteraction<Int, String> {
+    ///     get {
+    ///         SettableInteraction(
+    ///             get: Interaction(index, spy: super.index),
+    ///             setInteraction: { newValue in
+    ///                 Interaction(index, newValue, spy: super.setIndex)
+    ///             }
+    ///         )
+    ///     }
     /// }
     /// ```
     ///
-    /// The written value is recorded as a trailing argument on the `setSubscript` spy,
-    /// mirroring how `setName(newValue:)` records property writes. Reads keep using
-    /// the `subscript` spy, so get and set verifications stay independent.
-    private static func subscriptSetterInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> FunctionDeclSyntax {
-        let outputType = subscriptDecl.returnClause.type
-        let setterName = TokenSyntax.identifier("setSubscript")
-
-        let parameterClause = FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax {
-                for parameter in createArgMatcherParameters(subscriptDecl.parameterClause).parameters {
-                    parameter
-                }
-                FunctionParameterSyntax(
-                    firstName: .identifier("newValue"),
-                    colon: .colonToken(trailingTrivia: .space),
-                    type: argMatcherType(outputType)
-                )
-            }
-        )
-        let interactionReturnType = createInteractionReturnType(
-            inputTypes: subscriptDecl.parameterClause.parameters.map(\.type) + [outputType],
-            outputType: TypeSyntax(stringLiteral: "Void"),
-            effectType: .none,
-            genericParameterClause: subscriptDecl.genericParameterClause
-        )
-        let body = createFunctionBody(
-            spyPropertyName: setterName.text,
-            parameterNames: FunctionParameterListSyntax {
-                for parameter in subscriptDecl.parameterClause.parameters {
-                    parameter
-                }
-                FunctionParameterSyntax(
-                    firstName: .identifier("newValue"),
-                    colon: .colonToken(trailingTrivia: .space),
-                    type: outputType
-                )
-            }
-        )
-
-        return FunctionDeclSyntax(
-            modifiers: subscriptDecl.modifiers.trimmed,
-            name: setterName,
+    /// Reads record on the `subscript` spy, writes on the `setSubscript` spy with
+    /// the written value as a trailing argument.
+    private static func subscriptSettableInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
+        SubscriptDeclSyntax(
+            attributes: subscriptDecl.attributes,
+            modifiers: subscriptDecl.modifiers,
             genericParameterClause: subscriptDecl.genericParameterClause,
-            signature: FunctionSignatureSyntax(
-                parameterClause: parameterClause,
-                returnClause: interactionReturnType
+            parameterClause: createArgMatcherParameters(
+                subscriptDecl.parameterClause
+            ),
+            returnClause: createSettableInteractionReturnType(
+                inputTypes: subscriptDecl.parameterClause.parameters.map(\.type),
+                outputType: subscriptDecl.returnClause.type,
+                effectType: .none
             ),
             genericWhereClause: subscriptDecl.genericWhereClause,
-            body: body
+            accessorBlock: AccessorBlockSyntax(
+                accessors: .accessors(AccessorDeclListSyntax {
+                    AccessorDeclSyntax(
+                        accessorSpecifier: .keyword(.get),
+                        bodyBuilder: {
+                            createSettableFunctionBody(
+                                getterSpyName: subscriptDecl.name,
+                                setterSpyName: subscriptDecl.name.setterSpyName,
+                                parameterNames: subscriptDecl.parameterClause.parameters,
+                                writeSpyType: writeSpyType(
+                                    inputTypes: subscriptDecl.parameterClause.parameters
+                                        .map { removeAttributes($0.type) },
+                                    outputType: subscriptDecl.returnClause.type
+                                )
+                            ).statements
+                        }
+                    )
+                })
+            )
         )
+    }
+
+    /// Creates a return type for a settable interaction subscript.
+    ///
+    /// For input types `[Int]`, output type `String`, and effect `None`, this will generate:
+    /// ```swift
+    /// -> SettableInteraction<Int, None, String>
+    /// ```
+    private static func createSettableInteractionReturnType(inputTypes: [TypeSyntax], outputType: TypeSyntax, effectType: EffectType) -> ReturnClauseSyntax {
+        var genericArgs = [GenericArgumentSyntax]()
+        for inputType in inputTypes {
+            #if canImport(SwiftSyntax601)
+            genericArgs.append(GenericArgumentSyntax(argument: .init(removeAttributes(inputType))))
+            #else
+            genericArgs.append(GenericArgumentSyntax(argument: removeAttributes(inputType)))
+            #endif
+        }
+        #if canImport(SwiftSyntax601)
+        genericArgs.append(GenericArgumentSyntax(argument: .init(TypeSyntax(stringLiteral: effectType.rawValue))))
+        genericArgs.append(GenericArgumentSyntax(argument: .init(outputType)))
+        #else
+        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.rawValue)))
+        genericArgs.append(GenericArgumentSyntax(argument: outputType))
+        #endif
+
+        let genericStubType = IdentifierTypeSyntax(
+            name: .identifier("SettableInteraction"),
+            genericArgumentClause: GenericArgumentClauseSyntax(
+                leftAngle: .leftAngleToken(),
+                arguments: GenericArgumentListSyntax(
+                    genericArgs.enumerated().map { (index, arg) in
+                        GenericArgumentSyntax(
+                            argument: arg.argument,
+                            trailingComma: index == genericArgs.count - 1 ? nil : .commaToken()
+                        )
+                    }
+                ),
+                rightAngle: .rightAngleToken()
+            )
+        )
+
+        return ReturnClauseSyntax(
+            arrow: .arrowToken(leadingTrivia: .space, trailingTrivia: .space),
+            type: TypeSyntax(genericStubType)
+        )
+    }
+
+    /// Creates the body of a settable interaction member, wiring both spies.
+    ///
+    /// For `getterSpyName: "index"`, `setterSpyName: "setIndex"` and
+    /// parameters `[index]`, this will generate:
+    /// ```swift
+    /// SettableInteraction(
+    ///     get: Interaction(index, spy: super.index),
+    ///     setInteraction: { newValue in
+    ///         Interaction(index, newValue, spy: super.setIndex)
+    ///     }
+    /// )
+    /// ```
+    ///
+    /// Each argument goes on its own line with explicit trivia: the expansion is
+    /// user-facing (it appears in macro-expansion diffs and generated sources),
+    /// and SwiftSyntax does not re-indent nested nodes on its own — without this
+    /// the call collapses onto one line and the closure body drifts rightward.
+    ///
+    /// `newValue` is appended after the read arguments so the write pack is the
+    /// read pack plus the written value. Empty parameter lists pass `.any` for
+    /// the read's `(Void)` pack, matching `createFunctionBody`.
+    /// - Parameter writeSpyType: The write spy's fully spelled type, used to
+    ///   anchor inference inside the set closure.
+    private static func createSettableFunctionBody(
+        getterSpyName: String,
+        setterSpyName: String,
+        parameterNames: FunctionParameterListSyntax,
+        writeSpyType: TypeSyntax
+    ) -> CodeBlockSyntax {
+        // Relative to the statement's own column: SwiftSyntax supplies the
+        // enclosing context's indentation when the body is placed, so these
+        // offsets must not restate it. That keeps one builder correct at both
+        // nesting depths — a variable's function body and a subscript's `get`.
+        let indent = { (level: Int) in Trivia.spaces(4 * level) }
+        let getterCall = interactionCall(
+            spyPropertyName: getterSpyName,
+            parameterNames: parameterNames
+        )
+        let setterCall = interactionCall(
+            spyPropertyName: writeSpyBindingName,
+            parameterNames: parameterNames,
+            newValueName: "newValue",
+            spyIsLocalBinding: true
+        )
+        // Bind the write spy to an explicitly typed local first.
+        //
+        // `super.<spy>` is a generic @dynamicMemberLookup subscript and
+        // `Interaction.init` is generic over Eff/Output, so with two or more
+        // indices neither side anchors those parameters and the closure's
+        // contextual result type is not enough to recover them:
+        //   error: generic parameter 'Eff' could not be inferred
+        // Swift 6.3 happens to solve it; 5.9 and 6.0 (both on CI) do not.
+        // Spelling the spy's type removes the ambiguity on every toolchain.
+        let spyBinding = VariableDeclSyntax(
+            bindingSpecifier: .keyword(.let),
+            bindings: PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier(writeSpyBindingName)),
+                    typeAnnotation: TypeAnnotationSyntax(
+                        colon: .colonToken(trailingTrivia: .space),
+                        type: writeSpyType
+                    ),
+                    initializer: InitializerClauseSyntax(
+                        equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
+                        value: MemberAccessExprSyntax(
+                            base: SuperExprSyntax(),
+                            name: .identifier(setterSpyName)
+                        )
+                    )
+                )
+            }
+        )
+        // { newValue in\n<indent+2>let spy: …\n<indent+2>return Interaction(…)\n<indent+1>}
+        let setClosure = ClosureExprSyntax(
+            leftBrace: .leftBraceToken(),
+            signature: ClosureSignatureSyntax(
+                parameterClause: .simpleInput(ClosureShorthandParameterListSyntax {
+                    ClosureShorthandParameterSyntax(name: .identifier("newValue"))
+                }),
+                inKeyword: .keyword(.in)
+            ),
+            statements: CodeBlockItemListSyntax([
+                CodeBlockItemSyntax(
+                    leadingTrivia: .newline + indent(2),
+                    item: .decl(DeclSyntax(spyBinding))
+                ),
+                CodeBlockItemSyntax(
+                    leadingTrivia: .newline + indent(2),
+                    item: .stmt(StmtSyntax(ReturnStmtSyntax(
+                        returnKeyword: .keyword(.return, trailingTrivia: .space),
+                        expression: ExprSyntax(setterCall)
+                    )))
+                )
+            ]),
+            rightBrace: .rightBraceToken(leadingTrivia: .newline + indent(1))
+        )
+        // SettableInteraction(\n<indent+1>get: …,\n<indent+1>setInteraction: …\n<indent>)
+        let wrapperCall = FunctionCallExprSyntax(
+            calledExpression: DeclReferenceExprSyntax(baseName: .identifier("SettableInteraction")),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+                LabeledExprSyntax(
+                    leadingTrivia: .newline + indent(1),
+                    label: .identifier("get"),
+                    colon: .colonToken(trailingTrivia: .space),
+                    expression: getterCall,
+                    trailingComma: .commaToken()
+                )
+                LabeledExprSyntax(
+                    leadingTrivia: .newline + indent(1),
+                    label: .identifier("setInteraction"),
+                    colon: .colonToken(trailingTrivia: .space),
+                    expression: setClosure
+                )
+            },
+            rightParen: .rightParenToken(leadingTrivia: .newline + indent(0))
+        )
+
+        return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(wrapperCall)))])
     }
 
     /// Creates a getter interaction function for a variable.
@@ -309,18 +462,53 @@ public extension MockableGenerator {
         )
     }
 
-    /// Wraps a type in `ArgMatcher<...>` for interaction parameter clauses.
-    private static func argMatcherType(_ type: TypeSyntax) -> TypeSyntax {
-        TypeSyntax(
-            IdentifierTypeSyntax(
-                name: .identifier("ArgMatcher"),
-                genericArgumentClause: GenericArgumentClauseSyntax {
-                    #if canImport(SwiftSyntax601)
-                    GenericArgumentSyntax(argument: .init(type))
-                    #else
-                    GenericArgumentSyntax(argument: (type))
-                    #endif
-                }
+    /// Creates a settable interaction function for a variable.
+    ///
+    /// For a settable variable `var value: Int { get set }`, this will generate:
+    /// ```swift
+    /// func value(_ void: Void) -> SettableInteraction<Void, Int> {
+    ///     SettableInteraction(
+    ///         get: Interaction(.any, spy: super.value),
+    ///         setInteraction: { newValue in
+    ///             Interaction(.any, newValue, spy: super.setValue)
+    ///         }
+    ///     )
+    /// }
+    /// ```
+    ///
+    /// The read pack is `(Void)`, matching the conformance getter's
+    /// `adapt(super.value, ())`; the write pack is `(Void, newValue)`, matching
+    /// the conformance setter's `adapt(super.setValue, (), newValue)` — writes
+    /// record the read pack plus the written value.
+    private static func createSettableGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+        let voidParameter = FunctionParameterSyntax(
+            firstName: .wildcardToken(),
+            secondName: .identifier("void"),
+            colon: .colonToken(trailingTrivia: .space),
+            type: IdentifierTypeSyntax(name: .identifier("Void"))
+        )
+        return FunctionDeclSyntax(
+            modifiers: modifiers.trimmed,
+            name: .identifier(varName),
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parameters: FunctionParameterListSyntax([voidParameter])
+                ),
+                returnClause: createSettableInteractionReturnType(
+                    inputTypes: [TypeSyntax(stringLiteral: "Void")],
+                    outputType: type,
+                    effectType: .none
+                )
+            ),
+            body: createSettableFunctionBody(
+                getterSpyName: varName,
+                setterSpyName: varName.setterSpyName,
+                parameterNames: FunctionParameterListSyntax([]),
+                // A variable's read pack is (Void), so the write pack is (Void, T).
+                writeSpyType: writeSpyType(
+                    inputTypes: [TypeSyntax(stringLiteral: "Void")],
+                    outputType: type
+                )
             )
         )
     }
@@ -448,6 +636,22 @@ public extension MockableGenerator {
 
     }
 
+    /// Wraps a type in `ArgMatcher<...>` for interaction parameter clauses.
+    private static func argMatcherType(_ type: TypeSyntax) -> TypeSyntax {
+        TypeSyntax(
+            IdentifierTypeSyntax(
+                name: .identifier("ArgMatcher"),
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                    #if canImport(SwiftSyntax601)
+                    GenericArgumentSyntax(argument: .init(type))
+                    #else
+                    GenericArgumentSyntax(argument: (type))
+                    #endif
+                }
+            )
+        )
+    }
+
     private static func removeAttributes(_ type: TypeSyntaxProtocol) -> TypeSyntax {
         guard let attributedType = type.as(AttributedTypeSyntax.self) else {
             return TypeSyntax(fromProtocol: type)
@@ -530,7 +734,25 @@ public extension MockableGenerator {
     /// }
     /// ```
     private static func createFunctionBody(spyPropertyName: String, parameterNames: FunctionParameterListSyntax) -> CodeBlockSyntax {
-        let interactionCall = FunctionCallExprSyntax(
+        return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(interactionCall(spyPropertyName: spyPropertyName, parameterNames: parameterNames))))])
+    }
+
+    /// Creates an `Interaction(…, spy: super.<spy>)` call expression.
+    ///
+    /// Arguments are the read parameters (`.any` for an empty read pack, `.variadic(…)`
+    /// for variadic parameters), optionally followed by `newValueName` so the write
+    /// pack is the read pack plus the written value.
+    ///
+    /// - Parameter spyIsLocalBinding: When `true`, `spyPropertyName` names a local
+    ///   constant rather than a member, so the call passes it directly instead of
+    ///   through `super.`.
+    private static func interactionCall(
+        spyPropertyName: String,
+        parameterNames: FunctionParameterListSyntax,
+        newValueName: String? = nil,
+        spyIsLocalBinding: Bool = false
+    ) -> FunctionCallExprSyntax {
+        FunctionCallExprSyntax(
             callee: DeclReferenceExprSyntax(baseName: .identifier("Interaction"))
         ) {
             for parameter in parameterNames {
@@ -563,16 +785,35 @@ public extension MockableGenerator {
                 )
             }
 
+            if let newValueName {
+                LabeledExprSyntax(
+                    expression: DeclReferenceExprSyntax(baseName: .identifier(newValueName))
+                )
+            }
+
             LabeledExprSyntax(
                 label: "spy",
-                expression: MemberAccessExprSyntax(
-                    base: SuperExprSyntax(),
-                    name: .identifier(spyPropertyName)
-                )
+                expression: spyIsLocalBinding
+                    ? ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(spyPropertyName)))
+                    : ExprSyntax(MemberAccessExprSyntax(
+                        base: SuperExprSyntax(),
+                        name: .identifier(spyPropertyName)
+                    ))
             )
 
         }
+    }
 
-        return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(interactionCall)))])
+    /// The local constant generated set closures bind the write spy to.
+    static let writeSpyBindingName = "writeSpy"
+
+    /// Spells the write spy's type: `Spy<indices…, Output, None, Void>`.
+    ///
+    /// The write pack is the read pack plus the written value, and writes are
+    /// always non-effectful and return `Void`.
+    static func writeSpyType(inputTypes: [TypeSyntax], outputType: TypeSyntax) -> TypeSyntax {
+        let arguments = inputTypes.map(\.trimmedDescription)
+            + [outputType.trimmedDescription, "None", "Void"]
+        return TypeSyntax(stringLiteral: "Spy<\(arguments.joined(separator: ", "))>")
     }
 }
