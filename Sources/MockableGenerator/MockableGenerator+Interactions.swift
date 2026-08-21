@@ -212,6 +212,11 @@ public extension MockableGenerator {
                                     inputTypes: subscriptDecl.parameterClause.parameters
                                         .map { removeAttributes($0.type) },
                                     outputType: subscriptDecl.returnClause.type
+                                ),
+                                writeInteractionType: writeInteractionType(
+                                    inputTypes: subscriptDecl.parameterClause.parameters
+                                        .map { removeAttributes($0.type) },
+                                    outputType: subscriptDecl.returnClause.type
                                 )
                             ).statements
                         }
@@ -289,11 +294,14 @@ public extension MockableGenerator {
     /// the read's `(Void)` pack, matching `createFunctionBody`.
     /// - Parameter writeSpyType: The write spy's fully spelled type, used to
     ///   anchor inference inside the set closure.
+    /// - Parameter writeInteractionType: The write interaction's fully spelled
+    ///   type, used to anchor the returned value's pack.
     private static func createSettableFunctionBody(
         getterSpyName: String,
         setterSpyName: String,
         parameterNames: FunctionParameterListSyntax,
-        writeSpyType: TypeSyntax
+        writeSpyType: TypeSyntax,
+        writeInteractionType: TypeSyntax
     ) -> CodeBlockSyntax {
         // Relative to the statement's own column: SwiftSyntax supplies the
         // enclosing context's indentation when the body is placed, so these
@@ -310,7 +318,8 @@ public extension MockableGenerator {
             newValueName: "newValue",
             spyIsLocalBinding: true
         )
-        // Bind the write spy to an explicitly typed local first.
+        // Bind both the write spy and the resulting interaction to explicitly
+        // typed locals.
         //
         // `super.<spy>` is a generic @dynamicMemberLookup subscript and
         // `Interaction.init` is generic over Eff/Output, so with two or more
@@ -318,7 +327,22 @@ public extension MockableGenerator {
         // contextual result type is not enough to recover them:
         //   error: generic parameter 'Eff' could not be inferred
         // Swift 6.3 happens to solve it; 5.9 and 6.0 (both on CI) do not.
-        // Spelling the spy's type removes the ambiguity on every toolchain.
+        // Spelling the spy's type removes that ambiguity.
+        //
+        // The interaction needs the same treatment for a further reason. Its
+        // declared result pack is `(repeat each Input, Output)`, so returning
+        // `Interaction(row, column, newValue, spy:)` directly asks the solver to
+        // split a concrete `Int, Int, String` back into a two-element `each
+        // Input` plus `Output`. Pack suffix splitting is not inferable: 5.9/6.0
+        // bind `each Input` to a single unsolved element and fail with
+        //   error: pack expansion requires that '_' and 'Int, Int' have the
+        //          same shape
+        //   error: cannot convert value of type 'Interaction<_, String, None,
+        //          Void>' to closure result type 'Interaction<Int, Int, String,
+        //          None, Void>'
+        // Spelling the interaction's type states the pack instead of deriving
+        // it. Single-index subscripts and variables never hit this, since a
+        // one-element pack has only one possible split.
         let spyBinding = VariableDeclSyntax(
             bindingSpecifier: .keyword(.let),
             bindings: PatternBindingListSyntax {
@@ -338,7 +362,23 @@ public extension MockableGenerator {
                 )
             }
         )
-        // { newValue in\n<indent+2>let spy: …\n<indent+2>return Interaction(…)\n<indent+1>}
+        let interactionBinding = VariableDeclSyntax(
+            bindingSpecifier: .keyword(.let),
+            bindings: PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: .identifier(writeInteractionBindingName)),
+                    typeAnnotation: TypeAnnotationSyntax(
+                        colon: .colonToken(trailingTrivia: .space),
+                        type: writeInteractionType
+                    ),
+                    initializer: InitializerClauseSyntax(
+                        equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
+                        value: setterCall
+                    )
+                )
+            }
+        )
+        // { newValue in\n<indent+2>let writeSpy: …\n<indent+2>let interaction: …\n<indent+2>return interaction\n<indent+1>}
         let setClosure = ClosureExprSyntax(
             leftBrace: .leftBraceToken(),
             signature: ClosureSignatureSyntax(
@@ -354,9 +394,15 @@ public extension MockableGenerator {
                 ),
                 CodeBlockItemSyntax(
                     leadingTrivia: .newline + indent(2),
+                    item: .decl(DeclSyntax(interactionBinding))
+                ),
+                CodeBlockItemSyntax(
+                    leadingTrivia: .newline + indent(2),
                     item: .stmt(StmtSyntax(ReturnStmtSyntax(
                         returnKeyword: .keyword(.return, trailingTrivia: .space),
-                        expression: ExprSyntax(setterCall)
+                        expression: ExprSyntax(DeclReferenceExprSyntax(
+                            baseName: .identifier(writeInteractionBindingName)
+                        ))
                     )))
                 )
             ]),
@@ -506,6 +552,10 @@ public extension MockableGenerator {
                 parameterNames: FunctionParameterListSyntax([]),
                 // A variable's read pack is (Void), so the write pack is (Void, T).
                 writeSpyType: writeSpyType(
+                    inputTypes: [TypeSyntax(stringLiteral: "Void")],
+                    outputType: type
+                ),
+                writeInteractionType: writeInteractionType(
                     inputTypes: [TypeSyntax(stringLiteral: "Void")],
                     outputType: type
                 )
@@ -807,6 +857,9 @@ public extension MockableGenerator {
     /// The local constant generated set closures bind the write spy to.
     static let writeSpyBindingName = "writeSpy"
 
+    /// The local constant generated set closures bind the write interaction to.
+    static let writeInteractionBindingName = "writeInteraction"
+
     /// Spells the write spy's type: `Spy<indices…, Output, None, Void>`.
     ///
     /// The write pack is the read pack plus the written value, and writes are
@@ -815,5 +868,14 @@ public extension MockableGenerator {
         let arguments = inputTypes.map(\.trimmedDescription)
             + [outputType.trimmedDescription, "None", "Void"]
         return TypeSyntax(stringLiteral: "Spy<\(arguments.joined(separator: ", "))>")
+    }
+
+    /// Spells the write interaction's type: `Interaction<indices…, Output, None, Void>`.
+    ///
+    /// Mirrors ``writeSpyType`` — same pack, different generic.
+    static func writeInteractionType(inputTypes: [TypeSyntax], outputType: TypeSyntax) -> TypeSyntax {
+        let arguments = inputTypes.map(\.trimmedDescription)
+            + [outputType.trimmedDescription, "None", "Void"]
+        return TypeSyntax(stringLiteral: "Interaction<\(arguments.joined(separator: ", "))>")
     }
 }

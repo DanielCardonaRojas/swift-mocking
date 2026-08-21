@@ -143,11 +143,17 @@ final class SubscriptInteractionTests: MockingTestCase {
         service[1, 2] = "written"
 
         verify(mock[.equal(1), .equal(2)]).called(1)
-        // Bind first: forwarding a pack-rearranged result (`Interaction<I…, O,
-        // None, Void>`) straight into another generic call does not infer for
-        // multi-index packs on this toolchain. Single-index subscripts and
-        // variables ((Void) packs) chain fine: `verify(mock.value <- 7)`.
-        let write = mock[.equal(1), .equal(2)] <- "written"
+        // `<-` returns `Interaction<repeat each Input, Output, None, Void>`, so
+        // feeding it straight to `verify` asks the solver to split a concrete
+        // `Int, Int, String` back into `each Input` plus `Output`. Pack suffix
+        // splitting is not inferable, on any toolchain through at least 6.3:
+        //   error: pack expansion requires that 'Int, Int' and '_' have the
+        //          same shape
+        // Annotating the local states the pack. Single-index subscripts and
+        // variables are unaffected — a one-element pack has one possible split
+        // — so `verify(mock[.equal(1)] <- "one")` above needs no annotation.
+        let write: Interaction<Int, Int, String, None, Void> =
+            mock[.equal(1), .equal(2)] <- "written"
         verify(write).called(1)
         verifyNever(mock[.equal(2), .equal(1)])
     }

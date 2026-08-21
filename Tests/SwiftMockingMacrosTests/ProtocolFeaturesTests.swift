@@ -143,7 +143,8 @@ final class ProtocolFeaturesTests: MacroTestCase {
                             get: Interaction(index, spy: super.subscriptIndex),
                             setInteraction: { newValue in
                                 let writeSpy: Spy<Int, String, None, Void> = super.setSubscriptIndex
-                                return Interaction(index, newValue, spy: writeSpy)
+                                let writeInteraction: Interaction<Int, String, None, Void> = Interaction(index, newValue, spy: writeSpy)
+                                return writeInteraction
                             }
                         )
                     }
