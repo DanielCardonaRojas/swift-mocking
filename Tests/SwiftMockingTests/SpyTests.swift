@@ -1,6 +1,7 @@
 
 import XCTest
 @testable import SwiftMocking
+import SwiftMockingTestSupport
 
 final class SpyTests: XCTestCase {
 
@@ -195,22 +196,8 @@ final class SpyTests: XCTestCase {
     }
 
     func test_whenHelperFiltersSpecificInteraction() {
-        final class CaptureBox: @unchecked Sendable {
-            private let lock = NSLock()
-            private var items: [String] = []
-            func append(_ item: String) {
-                lock.lock()
-                items.append(item)
-                lock.unlock()
-            }
-            var values: [String] {
-                lock.lock()
-                defer { lock.unlock() }
-                return items
-            }
-        }
         let spy = Spy<String, None, Void>()
-        let captured = CaptureBox()
+        let captured = CaptureBox<String>()
 
         when(spy(.equal("track"))).do({ value in
             captured.append(value)

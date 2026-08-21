@@ -77,7 +77,7 @@ public extension MockableGenerator {
     ///
     /// For a variable `var name: String { get set }`, this will generate:
     /// ```swift
-    /// func name(_ void: Void) -> Interaction<Void, None, String> { ... }
+    /// func name(_ void: Void = ()) -> Interaction<Void, None, String> { ... }
     /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
     /// ```
     private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
@@ -91,23 +91,20 @@ public extension MockableGenerator {
                 continue
             }
 
-            let hasSetter = varDecl.hasSetter
-
-            // Getter
-            let getter = createGetterInteraction(
-                varName: varName,
-                type: type,
-                modifiers: varDecl.modifiers
-            )
-            decls.append(DeclSyntax(getter))
-
-            if hasSetter {
-                let setter = createSetterInteraction(
+            if varDecl.hasSetter {
+                decls.append(DeclSyntax(createSettableGetterInteraction(
+                    varName: varName,
+                    type: type,
+                    modifiers: varDecl.modifiers
+                )))
+            } else {
+                // Getter
+                let getter = createGetterInteraction(
                     varName: varName,
                     type: type,
                     modifiers: varDecl.modifiers
                 )
-                decls.append(DeclSyntax(setter))
+                decls.append(DeclSyntax(getter))
             }
         }
         return decls
@@ -437,7 +434,7 @@ public extension MockableGenerator {
     ///
     /// For a variable `var name: String`, this will generate:
     /// ```swift
-    /// func name(_ void: Void) -> Interaction<Void, None, String> { ... }
+    /// func name(_ void: Void = ()) -> Interaction<Void, None, String> { ... }
     /// ```
     ///
     /// The `Void` parameter is load-bearing, not cosmetic:
@@ -453,12 +450,6 @@ public extension MockableGenerator {
     private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
         let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
         let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])
-        let voidParameter = FunctionParameterSyntax(
-            firstName: .wildcardToken(),
-            secondName: .identifier("void"),
-            colon: .colonToken(trailingTrivia: .space),
-            type: IdentifierTypeSyntax(name: .identifier("Void"))
-        )
         return FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
             name: .identifier(varName),
@@ -472,47 +463,11 @@ public extension MockableGenerator {
         )
     }
 
-    /// Creates a setter interaction function for a variable.
-    ///
-    /// For a variable `var name: String`, this will generate:
-    /// ```swift
-    /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
-    /// ```
-    private static func createSetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
-        let setterName = "set" + varName.capitalized
-        let parameter = FunctionParameterSyntax(
-            firstName: .identifier("newValue"),
-            colon: .colonToken(trailingTrivia: .space),
-            type: argMatcherType(type)
-        )
-        let parameterList = FunctionParameterListSyntax([parameter])
-        let interactionReturnType = createInteractionReturnType(inputTypes: [type], outputType: TypeSyntax(stringLiteral: "Void"), effectType: .none, genericParameterClause: nil)
-        let body = createFunctionBody(
-            spyPropertyName: setterName,
-            parameterNames: FunctionParameterListSyntax {
-                FunctionParameterSyntax.init(
-                    firstName: .identifier("newValue"),
-                    type: type
-                )
-            }
-        )
-
-        return FunctionDeclSyntax(
-            modifiers: modifiers.trimmed,
-            name: .identifier(setterName),
-            signature: FunctionSignatureSyntax(
-                parameterClause: FunctionParameterClauseSyntax(parameters: parameterList),
-                returnClause: interactionReturnType
-            ),
-            body: body
-        )
-    }
-
     /// Creates a settable interaction function for a variable.
     ///
     /// For a settable variable `var value: Int { get set }`, this will generate:
     /// ```swift
-    /// func value(_ void: Void) -> SettableInteraction<Void, Int> {
+    /// func value(_ void: Void = ()) -> SettableInteraction<Void, Int> {
     ///     SettableInteraction(
     ///         get: Interaction(.any, spy: super.value),
     ///         setInteraction: { newValue in
@@ -527,13 +482,7 @@ public extension MockableGenerator {
     /// the conformance setter's `adapt(super.setValue, (), newValue)` — writes
     /// record the read pack plus the written value.
     private static func createSettableGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
-        let voidParameter = FunctionParameterSyntax(
-            firstName: .wildcardToken(),
-            secondName: .identifier("void"),
-            colon: .colonToken(trailingTrivia: .space),
-            type: IdentifierTypeSyntax(name: .identifier("Void"))
-        )
-        return FunctionDeclSyntax(
+        FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
             name: .identifier(varName),
             signature: FunctionSignatureSyntax(
@@ -559,6 +508,25 @@ public extension MockableGenerator {
                     inputTypes: [TypeSyntax(stringLiteral: "Void")],
                     outputType: type
                 )
+            )
+        )
+    }
+
+    /// The placeholder parameter variable interactions take in place of arguments: `_ void: Void = ()`.
+    ///
+    /// The parameter itself is load-bearing (see `createGetterInteraction`); the
+    /// default value keeps direct calls reading like the property they stand for —
+    /// `mock.name()` rather than `mock.name(())` — without disturbing the unapplied
+    /// reference `mock.name`, which `when`/`verify` still see as `(Void) -> …`.
+    private static var voidParameter: FunctionParameterSyntax {
+        FunctionParameterSyntax(
+            firstName: .wildcardToken(),
+            secondName: .identifier("void"),
+            colon: .colonToken(trailingTrivia: .space),
+            type: IdentifierTypeSyntax(name: .identifier("Void")),
+            defaultValue: InitializerClauseSyntax(
+                equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
+                value: TupleExprSyntax(elements: LabeledExprListSyntax([]))
             )
         )
     }
@@ -684,22 +652,6 @@ public extension MockableGenerator {
 
         return FunctionParameterClauseSyntax(parameters: paramList)
 
-    }
-
-    /// Wraps a type in `ArgMatcher<...>` for interaction parameter clauses.
-    private static func argMatcherType(_ type: TypeSyntax) -> TypeSyntax {
-        TypeSyntax(
-            IdentifierTypeSyntax(
-                name: .identifier("ArgMatcher"),
-                genericArgumentClause: GenericArgumentClauseSyntax {
-                    #if canImport(SwiftSyntax601)
-                    GenericArgumentSyntax(argument: .init(type))
-                    #else
-                    GenericArgumentSyntax(argument: (type))
-                    #endif
-                }
-            )
-        )
     }
 
     private static func removeAttributes(_ type: TypeSyntaxProtocol) -> TypeSyntax {

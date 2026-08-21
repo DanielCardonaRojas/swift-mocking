@@ -47,7 +47,7 @@ final class GeneratorPipelineTests: XCTestCase {
             """
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
-                func value(_ void: Void) -> Interaction<Void, None, Int > {
+                func value(_ void: Void = ()) -> Interaction<Void, None, Int > {
                     Interaction(.any, spy: super.value)
                 }
 
