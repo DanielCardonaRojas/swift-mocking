@@ -77,7 +77,7 @@ public extension MockableGenerator {
     ///
     /// For a variable `var name: String { get set }`, this will generate:
     /// ```swift
-    /// func name(_ void: Void) -> Interaction<Void, None, String> { ... }
+    /// func name(_ void: Void = ()) -> Interaction<Void, None, String> { ... }
     /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
     /// ```
     private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
@@ -434,7 +434,7 @@ public extension MockableGenerator {
     ///
     /// For a variable `var name: String`, this will generate:
     /// ```swift
-    /// func name(_ void: Void) -> Interaction<Void, None, String> { ... }
+    /// func name(_ void: Void = ()) -> Interaction<Void, None, String> { ... }
     /// ```
     ///
     /// The `Void` parameter is load-bearing, not cosmetic:
@@ -450,12 +450,6 @@ public extension MockableGenerator {
     private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
         let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
         let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])
-        let voidParameter = FunctionParameterSyntax(
-            firstName: .wildcardToken(),
-            secondName: .identifier("void"),
-            colon: .colonToken(trailingTrivia: .space),
-            type: IdentifierTypeSyntax(name: .identifier("Void"))
-        )
         return FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
             name: .identifier(varName),
@@ -473,7 +467,7 @@ public extension MockableGenerator {
     ///
     /// For a settable variable `var value: Int { get set }`, this will generate:
     /// ```swift
-    /// func value(_ void: Void) -> SettableInteraction<Void, Int> {
+    /// func value(_ void: Void = ()) -> SettableInteraction<Void, Int> {
     ///     SettableInteraction(
     ///         get: Interaction(.any, spy: super.value),
     ///         setInteraction: { newValue in
@@ -488,13 +482,7 @@ public extension MockableGenerator {
     /// the conformance setter's `adapt(super.setValue, (), newValue)` — writes
     /// record the read pack plus the written value.
     private static func createSettableGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
-        let voidParameter = FunctionParameterSyntax(
-            firstName: .wildcardToken(),
-            secondName: .identifier("void"),
-            colon: .colonToken(trailingTrivia: .space),
-            type: IdentifierTypeSyntax(name: .identifier("Void"))
-        )
-        return FunctionDeclSyntax(
+        FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
             name: .identifier(varName),
             signature: FunctionSignatureSyntax(
@@ -520,6 +508,25 @@ public extension MockableGenerator {
                     inputTypes: [TypeSyntax(stringLiteral: "Void")],
                     outputType: type
                 )
+            )
+        )
+    }
+
+    /// The placeholder parameter variable interactions take in place of arguments: `_ void: Void = ()`.
+    ///
+    /// The parameter itself is load-bearing (see `createGetterInteraction`); the
+    /// default value keeps direct calls reading like the property they stand for —
+    /// `mock.name()` rather than `mock.name(())` — without disturbing the unapplied
+    /// reference `mock.name`, which `when`/`verify` still see as `(Void) -> …`.
+    private static var voidParameter: FunctionParameterSyntax {
+        FunctionParameterSyntax(
+            firstName: .wildcardToken(),
+            secondName: .identifier("void"),
+            colon: .colonToken(trailingTrivia: .space),
+            type: IdentifierTypeSyntax(name: .identifier("Void")),
+            defaultValue: InitializerClauseSyntax(
+                equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
+                value: TupleExprSyntax(elements: LabeledExprListSyntax([]))
             )
         )
     }

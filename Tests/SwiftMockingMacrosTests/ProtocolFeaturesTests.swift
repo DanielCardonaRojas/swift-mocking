@@ -50,7 +50,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
-                func value(_ void: Void) -> Interaction<Void, None, Int > {
+                func value(_ void: Void = ()) -> Interaction<Void, None, Int > {
                     Interaction(.any, spy: super.value)
                 }
 
@@ -81,12 +81,13 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
-                func value(_ void: Void) -> SettableInteraction<Void, None, Int > {
+                func value(_ void: Void = ()) -> SettableInteraction<Void, None, Int > {
                     SettableInteraction(
                         get: Interaction(.any, spy: super.value),
                         setInteraction: { newValue in
                             let writeSpy: Spy<Void, Int, None, Void> = super.setValue
-                            return Interaction(.any, newValue, spy: writeSpy)
+                            let writeInteraction: Interaction<Void, Int, None, Void> = Interaction(.any, newValue, spy: writeSpy)
+                            return writeInteraction
                         }
                     )
                 }
@@ -124,12 +125,13 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
-                func cachePolicy(_ void: Void) -> SettableInteraction<Void, None, String > {
+                func cachePolicy(_ void: Void = ()) -> SettableInteraction<Void, None, String > {
                     SettableInteraction(
                         get: Interaction(.any, spy: super.cachePolicy),
                         setInteraction: { newValue in
                             let writeSpy: Spy<Void, String, None, Void> = super.setCachePolicy
-                            return Interaction(.any, newValue, spy: writeSpy)
+                            let writeInteraction: Interaction<Void, String, None, Void> = Interaction(.any, newValue, spy: writeSpy)
+                            return writeInteraction
                         }
                     )
                 }
