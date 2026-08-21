@@ -41,6 +41,28 @@ public func when<each Input, Eff: Effect, Output>(_ interaction: (()) -> Interac
     return interaction.spy.when(calledWith: interaction.invocationMatcher)
 }
 
+/// Configures a stub for the reads of a settable requirement.
+///
+/// ```swift
+/// when(mock[.any]).thenReturn("mocked_value")
+/// ```
+public func when<each Input, Eff: Effect, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Eff, Output>
+) -> Arrange<repeat each Input, Eff, Output> {
+    when(interaction.get)
+}
+
+/// Configures a stub for the reads of a settable variable, accepting an
+/// unapplied reference to its interaction member:
+/// ```swift
+/// when(mock.value).thenReturn("mocked_value")
+/// ```
+public func when<each Input, Eff: Effect, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>
+) -> Arrange<repeat each Input, Eff, Output> {
+    when(interaction(()).get)
+}
+
 /// Verifies that a specific interaction with a mock object has occurred.
 ///
 /// This function is used to assert that a mocked method was called with arguments
@@ -74,6 +96,21 @@ public func verify<each Input, Eff: Effect, Output>(
 ) -> Assert<repeat each Input, Eff, Output> {
     let interaction = interaction(())
     return Assert(invocationMatcher: interaction.invocationMatcher, spy: interaction.spy)
+}
+
+/// Verifies the reads of a settable requirement.
+public func verify<each Input, Eff: Effect, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Eff, Output>
+) -> Assert<repeat each Input, Eff, Output> {
+    verify(interaction.get)
+}
+
+/// Verifies the reads of a settable variable, accepting an unapplied
+/// reference to its interaction member: `verify(mock.value).called(1)`.
+public func verify<each Input, Eff: Effect, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>
+) -> Assert<repeat each Input, Eff, Output> {
+    verify(interaction(()).get)
 }
 
 /// Verifies that a sequence of interactions across multiple mock objects occurred in the specified order.
@@ -161,6 +198,61 @@ public func verifyNever<each Input, Eff: Effect, Output>(
     line: UInt = #line
 ) {
     verify(interaction).neverCalled(file: file, line: line)
+}
+
+/// Verifies that a settable requirement was never read.
+public func verifyNever<each Input, Eff: Effect, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Eff, Output>,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    verify(interaction.get).neverCalled(file: file, line: line)
+}
+
+/// Verifies that a settable variable was never read, accepting an unapplied
+/// reference to its interaction member: `verifyNever(mock.value)`.
+public func verifyNever<each Input, Eff: Effect, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    verify(interaction(()).get).neverCalled(file: file, line: line)
+}
+
+infix operator <- : AssignmentPrecedence
+
+
+/// Builds the write interaction for a settable requirement.
+///
+/// The result is a plain ``Interaction``, so `when`, `verify`, `verifyNever`,
+/// and `verifyInOrder` consume writes through their existing overloads:
+/// ```swift
+/// verify(mock[.equal(2)] <- "two").called(1)
+/// when(mock.value <- 7).thenReturn { _, newValue in … }
+/// verifyNever(mock[.any] <- "deleted")
+/// ```
+///
+/// The result is deliberately not `@discardableResult`: this operator only
+/// *builds* an interaction, it records nothing. A bare `mock.value <- 7`
+/// statement looks like it performs a write but is a no-op, so the unused-result
+/// warning is what surfaces that mistake. To perform an actual write, assign to
+/// the requirement (`mock.value = 7`).
+public func <- <each Input, Eff: Effect, Output>(
+    _ interaction: SettableInteraction<repeat each Input, Eff, Output>,
+    _ newValue: ArgMatcher<Output>
+) -> Interaction<repeat each Input, Output, None, Void> {
+    interaction.set(newValue)
+}
+
+/// Builds the write interaction for a settable variable, accepting an
+/// unapplied reference to its interaction member: `mock.value <- 7`.
+///
+/// Not `@discardableResult`, for the reason given on the overload above.
+public func <- <each Input, Eff: Effect, Output>(
+    _ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>,
+    _ newValue: ArgMatcher<Output>
+) -> Interaction<repeat each Input, Output, None, Void> {
+    interaction(()).set(newValue)
 }
 
 /// Verifies that a mock object has had zero interactions.

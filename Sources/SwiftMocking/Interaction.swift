@@ -7,14 +7,14 @@
 
 /// Represents a specific interaction with a mock object, combining an ``InvocationMatcher`` and a ``Spy``.
 ///
-/// This struct is primarily used internally by the Mockable framework and in conjunction with the ``when(_:)`` and ``verify(_:)`` functions
+/// This struct is primarily used internally by the Mockable framework and in conjunction with the ``when(_:)-1t69o`` and ``verify(_:)-2pseu`` functions
 /// to define stubbing behavior or verify method calls.
 ///
 /// ## Usage
 /// Interactions are typically created by generated mock methods and used with:
-/// - ``when(_:)`` - For stubbing method behavior
-/// - ``verify(_:)`` - For verifying method calls
-/// - ``verifyNever(_:file:line:)`` - For ensuring methods were not called
+/// - ``when(_:)-1t69o`` - For stubbing method behavior
+/// - ``verify(_:)-2pseu`` - For verifying method calls
+/// - ``verifyNever(_:file:line:)-14uw9`` - For ensuring methods were not called
 ///
 /// ## Related Types
 /// - ``Spy`` - The spy that records invocations for this interaction
