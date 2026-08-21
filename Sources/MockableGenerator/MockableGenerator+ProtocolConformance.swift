@@ -138,9 +138,12 @@ extension MockableGenerator {
     
     /// Generates a subscript declaration that fulfills a protocol requirement.
     ///
-    /// For a subscript `subscript(index: Int) -> String`, this will generate a subscript with a getter that calls the mock's `adapt` function.
+    /// For a subscript `subscript(index: Int) -> String { get }`, this will generate a subscript with a getter that calls the mock's `adapt` function.
+    /// For a settable requirement, it also generates a setter that records the write —
+    /// indices followed by `newValue` — on the `setSubscript` spy.
     static func subscriptRequirement(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
-        SubscriptDeclSyntax(
+        let parameterNames = subscriptDecl.parameterClause.parameters.map({ $0.secondName ?? $0.firstName })
+        return SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
             parameterClause: subscriptDecl.parameterClause,
@@ -149,6 +152,22 @@ extension MockableGenerator {
             accessorBlock: AccessorBlockSyntax(
                 accessors: .accessors(
                     AccessorDeclListSyntax {
+                        // Setter
+                        if subscriptDecl.hasSetter {
+                            AccessorDeclSyntax(
+                                accessorSpecifier: .keyword(.set),
+                                bodyBuilder: {
+                                    ReturnStmtSyntax(
+                                        expression: adaptCall(
+                                            effectType: .none,
+                                            requirementName: .identifier("setSubscript"),
+                                            parameters: parameterNames + [.identifier("newValue")]
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                        // Getter
                         AccessorDeclSyntax(
                             accessorSpecifier: .keyword(.get),
                             bodyBuilder: {
@@ -156,7 +175,7 @@ extension MockableGenerator {
                                     expression: adaptCall(
                                         effectType: .none,
                                         requirementName: .identifier("subscript"),
-                                        parameters: subscriptDecl.parameterClause.parameters.map({ $0.secondName ?? $0.firstName })
+                                        parameters: parameterNames
                                     )
                                 )
                             }
