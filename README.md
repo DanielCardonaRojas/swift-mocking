@@ -75,7 +75,7 @@
 To add `SwiftMocking` to your Swift package, add it as a dependency in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.5.0"),
+.package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.7.2"),
 ```
 
 Then, add `SwiftMocking` to your target's dependencies:
