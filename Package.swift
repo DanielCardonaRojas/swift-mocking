@@ -18,6 +18,15 @@ var swiftSettings: [SwiftSetting] = [
 swiftSettings.append(.unsafeFlags(["-O"]))
 #endif
 
+// Opt-in emission of `.swiftinterface` files for the library targets, used by
+// Scripts/generate-interface.sh to refresh the agent skill's API reference.
+// Off by default: library evolution cannot be applied package-wide because the
+// swift-syntax dependency does not build under it.
+let emitInterface = Context.environment["SWIFTMOCKING_EMIT_INTERFACE"] != nil
+let interfaceSettings: [SwiftSetting] = emitInterface
+    ? [.unsafeFlags(["-enable-library-evolution", "-emit-module-interface"])]
+    : []
+
 let package = Package(
     name: "swift-mocking",
     platforms: [
@@ -58,14 +67,14 @@ let package = Package(
                 "MockableGenerator",
                 .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
             ],
-            swiftSettings: swiftSettings
+            swiftSettings: swiftSettings + interfaceSettings
         ),
         .target(
             name: "SwiftMockingTestSupport",
             dependencies: [
                 "SwiftMocking"
             ],
-            swiftSettings: [.swiftLanguageMode(.v6)]
+            swiftSettings: [.swiftLanguageMode(.v6)] + interfaceSettings
         ),
         .target(name: "SwiftMockingOptions"),
         .target(

@@ -18,6 +18,20 @@ Mocking for Swift protocols: `@Mockable` generates mock classes; `when(...)` stu
 | Need mock source without the macro (plugin unavailable, codegen, review) | `mockable` CLI (below) when available; hand-writing per manual-mocking.md is always valid |
 | `@Sendable`/Swift 6 concurrency errors when stubbing | sendable.md |
 | Stubbing / matching / verifying API reference | usage.md |
+| Exact signature of a public API (overloads, constraints, defaults) | `references/interface/` (below) |
+
+## API interface
+
+Machine-generated from the compiled modules — the authoritative signature
+reference. Check these before guessing at an overload or a generic constraint:
+
+* Core library: `references/interface/SwiftMocking.swiftinterface`
+* XCTest/swift-testing helpers: `references/interface/SwiftMockingTestSupport.swiftinterface`
+
+One caveat: `Sendable` is a marker protocol and the compiler **elides it from
+`where` clauses** in emitted interfaces — `thenThrow<E: Error & Sendable>` prints
+as `where E : Error`. The constraint is still enforced. For Sendable questions
+trust sendable.md, not these files.
 
 
 ## Deterministic generation: the `mockable` CLI

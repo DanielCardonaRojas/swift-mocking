@@ -1,0 +1,20 @@
+import Foundation
+import Swift
+import SwiftMocking
+import XCTest
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+final public class CaptureBox<Value> : @unchecked Sendable {
+  public init()
+  final public func append(_ value: Value)
+  final public var values: [Value] {
+    get
+  }
+}
+@objc @_inheritsConvenienceInitializers open class MockingTestCase : XCTest.XCTestCase {
+  @objc override dynamic open func invokeTest()
+  @objc override dynamic public init(invocation: Foundation.NSInvocation?)
+  @objc override dynamic public init(selector: ObjectiveC.Selector)
+  @objc override dynamic public init()
+}

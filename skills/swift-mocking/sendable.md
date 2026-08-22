@@ -47,6 +47,13 @@ when(mock.send(.any)).thenReturn { _ in NonSendableReceipt(code: 42) }
 when(mock.validate(.any)).thenReturn { _ in throw NonSendableValidationError(reason: "invalid") }
 ```
 
+⚠️ **Boundary:** the handler overloads for `throws`/`async`/`async throws` spies are
+declared `where repeat each I: Sendable` (they defer the invocation), so the
+*arguments* must be Sendable as well. The two workarounds above compile as written
+only for **synchronous, non-throwing** requirements. A requirement that both throws
+(or is async) *and* takes a non-Sendable parameter has no working handler form —
+make the parameter `Sendable`, or have it take an ID instead of the object.
+
 **Match a non-Sendable argument**: `.any` and `.any(that:)` are fine — the predicate may *take* non-Sendable params; only its *captures* must be Sendable. Compare identity by capturing a Sendable stand-in:
 ```swift
 let targetID = target.id  // UUID is Sendable
