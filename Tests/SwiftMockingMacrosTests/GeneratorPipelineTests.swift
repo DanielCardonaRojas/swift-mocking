@@ -50,8 +50,7 @@ final class GeneratorPipelineTests: XCTestCase {
                 func value(_ void: Void = ()) -> Interaction<Void, None, Int > {
                     Interaction(.any, spy: super.value)
                 }
-
-                    var value: Int {
+                var value: Int {
                     get {
                         adapt(super.value, ())
                     }
