@@ -53,8 +53,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func value(_ void: Void = ()) -> Interaction<Void, None, Int > {
                     Interaction(.any, spy: super.value)
                 }
-
-                    var value: Int {
+                var value: Int {
                     get {
                         adapt(super.value, ())
                     }
@@ -91,8 +90,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         }
                     )
                 }
-
-                    var value: Int {
+                var value: Int {
                     set {
                         return adapt(super.setValue, (), newValue)
                     }
@@ -135,8 +133,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         }
                     )
                 }
-
-                    var cachePolicy: String {
+                var cachePolicy: String {
                     set {
                         return adapt(super.setCachePolicy, (), newValue)
                     }

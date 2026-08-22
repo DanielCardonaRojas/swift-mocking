@@ -86,10 +86,13 @@ extension MockableGenerator {
     /// For a variable `var value: Int { get }`, this will generate a computed property with a getter that calls the mock's `adapt` function.
     static func variableRequirement(_ variableDecl: VariableDeclSyntax) -> VariableDeclSyntax {
         return VariableDeclSyntax(
-            leadingTrivia: .newline,
             attributes: variableDecl.attributes,
             modifiers: variableDecl.modifiers.trimmed,
-            bindingSpecifier: variableDecl.bindingSpecifier,
+            // Trimmed so the `var` keyword does not carry the protocol's source
+            // indentation: BasicFormat infers a block's indentation by *adding*
+            // the first token's existing leading trivia to the enclosing level,
+            // which would double-indent the generated property.
+            bindingSpecifier: variableDecl.bindingSpecifier.trimmed,
             bindings: PatternBindingListSyntax {
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(
