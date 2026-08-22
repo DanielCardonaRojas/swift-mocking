@@ -1,0 +1,575 @@
+import Foundation
+import IssueReporting
+import Swift
+import SwiftMockingOptions
+import Testing
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+final public class Action<each I, Eff> : @unchecked Sendable where Eff : Effect {
+  final public let invocationMatcher: InvocationMatcher<repeat each I>
+  final public var precedence: MatcherPrecedence {
+    get
+  }
+}
+extension Action where Eff == None {
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) -> Void)
+}
+extension Action where Eff == Throws {
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) throws -> Void)
+}
+extension Action where Eff == Async {
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) async -> Void)
+}
+extension Action where Eff == AsyncThrows {
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws -> Void)
+}
+public protocol AnySpy : AnyObject, Sendable {
+  var defaultProviderRegistry: DefaultProvidableRegistry? { get set }
+  var invocationCount: Int { get }
+  var isLoggingEnabled: Bool { get set }
+  func clear()
+}
+public struct ArgMatcher<Argument> : Sendable {
+  public init(precedence: MatcherPrecedence = .typeMatch, matcher: @escaping @Sendable (Argument) -> Bool)
+  public func callAsFunction(_ value: Argument) -> Bool
+  public static var any: ArgMatcher<Argument> {
+    get
+  }
+  public static func any<T>(_ type: T.Type) -> ArgMatcher<T>
+  public static func any(that predicate: @escaping @Sendable (Argument) -> Bool) -> ArgMatcher<Argument>
+  public static func type<T>(_ type: T.Type) -> ArgMatcher<T.Type>
+  public static func `as`<T>(_ type: T.Type) -> ArgMatcher<Argument>
+  public static func `is`<T>(_ type: T.Type) -> ArgMatcher<Argument>
+  public static func variadic<Element>(_ matchers: ArgMatcher<Element>...) -> ArgMatcher<[Element]>
+  public static func variadic<Element>(_ matchers: [ArgMatcher<Element>]) -> ArgMatcher<[Element]>
+}
+extension ArgMatcher where Argument : Equatable, Argument : Sendable {
+  public static func equal(_ value: Argument) -> ArgMatcher<Argument>
+}
+extension ArgMatcher where Argument : Comparable, Argument : Sendable {
+  public static func lessThan(_ value: Argument) -> ArgMatcher<Argument>
+  public static func greaterThan(_ value: Argument) -> ArgMatcher<Argument>
+  public static func between(_ lowerBound: Argument, _ upperBound: Argument) -> ArgMatcher<Argument>
+  public static func `in`(_ range: ClosedRange<Argument>) -> ArgMatcher<Argument>
+  public static func `in`(_ range: PartialRangeFrom<Argument>) -> ArgMatcher<Argument>
+  public static func `in`(_ range: PartialRangeThrough<Argument>) -> ArgMatcher<Argument>
+}
+extension ArgMatcher where Argument : FloatingPoint, Argument : Sendable {
+  public static func approximately(_ value: Argument, tolerance: Argument? = nil) -> ArgMatcher<Argument>
+}
+extension ArgMatcher where Argument : AnyObject, Argument : Sendable {
+  public static func identical(_ value: Argument) -> ArgMatcher<Argument>
+}
+extension ArgMatcher {
+  public static func notNil<T>() -> ArgMatcher<Argument> where Argument == T?
+  public static func `nil`<T>() -> ArgMatcher<Argument> where Argument == T?
+  public static func anyError() -> ArgMatcher<Argument>
+}
+extension ArgMatcher where Argument : Error {
+  public static func error<E>(_ type: E.Type) -> ArgMatcher<Argument> where E : Error
+}
+extension ArgMatcher {
+  public static func any<Property>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> ArgMatcher<Argument> where Argument : Sendable, Property : Equatable, Property : Sendable
+}
+extension ArgMatcher : ExpressibleByIntegerLiteral where Argument == Int {
+  public init(integerLiteral value: IntegerLiteralType)
+  public typealias IntegerLiteralType = IntegerLiteralType
+}
+extension ArgMatcher : ExpressibleByFloatLiteral where Argument == Double {
+  public init(floatLiteral value: FloatLiteralType)
+  public typealias FloatLiteralType = FloatLiteralType
+}
+extension ArgMatcher : ExpressibleByBooleanLiteral where Argument == Bool {
+  public init(booleanLiteral value: BooleanLiteralType)
+  public typealias BooleanLiteralType = BooleanLiteralType
+}
+extension ArgMatcher : ExpressibleByUnicodeScalarLiteral where Argument == String {
+  public init(unicodeScalarLiteral value: Argument)
+  public typealias UnicodeScalarLiteralType = String
+}
+extension ArgMatcher : ExpressibleByExtendedGraphemeClusterLiteral where Argument == String {
+  public init(extendedGraphemeClusterLiteral value: Argument)
+  public typealias ExtendedGraphemeClusterLiteralType = String
+}
+extension ArgMatcher : ExpressibleByStringLiteral where Argument == String {
+  public init(stringLiteral value: Argument)
+  public typealias StringLiteralType = String
+}
+extension ArgMatcher where Argument == String {
+  public static func contains(_ substring: String) -> ArgMatcher<Argument>
+  public static func startsWith(_ prefix: String) -> ArgMatcher<Argument>
+  public static func endsWith(_ suffix: String) -> ArgMatcher<Argument>
+  public static func matches(_ pattern: String) -> ArgMatcher<Argument>
+}
+extension ArgMatcher {
+  public static func success<T, E>(_ valueMatcher: ArgMatcher<T>) -> ArgMatcher<Result<T, E>> where E : Error
+  public static func failure<T, E>(_ errorMatcher: ArgMatcher<E>) -> ArgMatcher<Result<T, E>> where E : Error
+}
+extension ArgMatcher {
+  public static func some<V>(_ valueMatcher: ArgMatcher<V>) -> ArgMatcher<Optional<V>>
+}
+extension ArgMatcher where Argument : Collection, Argument : Sendable {
+  public static func isEmpty() -> ArgMatcher<Argument>
+  public static func hasCount(_ count: Int) -> ArgMatcher<Argument>
+  public static func hasCountBetween(_ lowerBound: Int, _ upperBound: Int) -> ArgMatcher<Argument>
+  public static func hasCount(in range: ClosedRange<Int>) -> ArgMatcher<Argument>
+  public static func hasCount(in range: PartialRangeFrom<Int>) -> ArgMatcher<Argument>
+  public static func hasCount(in range: PartialRangeThrough<Int>) -> ArgMatcher<Argument>
+}
+extension ArgMatcher where Argument : Collection, Argument : Sendable, Argument.Element : Equatable, Argument.Element : Sendable {
+  public static func contains(_ element: Argument.Element) -> ArgMatcher<Argument>
+}
+public struct MatcherPrecedence : Comparable, Hashable, Sendable {
+  public static let any: MatcherPrecedence
+  public static let typeMatch: MatcherPrecedence
+  public static let predicate: MatcherPrecedence
+  public static let equalTo: MatcherPrecedence
+  public static let identicalTo: MatcherPrecedence
+  public static let customHigh: MatcherPrecedence
+  public static let customExtreme: MatcherPrecedence
+  public var value: Int
+  public init(value: Int)
+  public static func < (lhs: MatcherPrecedence, rhs: MatcherPrecedence) -> Bool
+  public static func == (a: MatcherPrecedence, b: MatcherPrecedence) -> Bool
+  public func hash(into hasher: inout Hasher)
+  public var hashValue: Int {
+    get
+  }
+}
+final public class Arrange<each I, Eff, Output> where Eff : Effect {
+  final public var invocationMatcher: InvocationMatcher<repeat each I> {
+    get
+  }
+}
+extension Arrange where Eff == None {
+  final public func thenReturn(_ output: Output) where Output : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> Output)
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) -> Void)
+}
+extension Arrange where Eff == Throws {
+  final public func thenReturn(_ output: Output) where Output : Sendable
+  final public func thenThrow<E>(_ error: E) where E : Error
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws -> Output) where repeat each I : Sendable
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) throws -> Void)
+}
+extension Arrange where Eff == Async {
+  final public func thenReturn(_ output: Output) where Output : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> Output)
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> Output) where repeat each I : Sendable
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) async -> Void)
+}
+extension Arrange where Eff == AsyncThrows {
+  final public func thenReturn(_ output: Output) where Output : Sendable
+  final public func thenThrow<E>(_ error: E) where E : Error
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws -> Output) where repeat each I : Sendable
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws -> Void)
+}
+public class Assert<each Input, Eff, Output> where Eff : Effect {
+  public init(invocationMatcher: InvocationMatcher<repeat each Input>? = nil, spy: Spy<repeat each Input, Eff, Output>)
+  public func assert(_ matcher: ArgMatcher<Int>?) throws
+  public func neverCalled(file: StaticString = #filePath, line: UInt = #line)
+}
+extension Assert where Eff == Throws {
+  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws
+}
+extension Assert where Eff == AsyncThrows {
+  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) async throws
+}
+public protocol CrossSpyVerifiable {
+  var spyID: Foundation.UUID { get }
+  var methodLabel: String? { get }
+  func matches(_ recorded: Recorded) -> Bool
+}
+public enum CrossSpyVerification {
+  public struct Result {
+    public let matched: [Recorded]
+    public let expectedRemaining: Int
+  }
+  public static func verifyInOrder(_ verifiables: [any CrossSpyVerifiable]) -> CrossSpyVerification.Result?
+}
+extension Interaction : CrossSpyVerifiable {
+  public var spyID: Foundation.UUID {
+    get
+  }
+  public var methodLabel: String? {
+    get
+  }
+  public func matches(_ recorded: Recorded) -> Bool
+}
+@_functionBuilder public struct CrossSpyVerificationBuilder {
+  public static func buildBlock(_ components: [any CrossSpyVerifiable]...) -> [any CrossSpyVerifiable]
+  public static func buildExpression(_ expression: any CrossSpyVerifiable) -> [any CrossSpyVerifiable]
+  public static func buildEither(first component: [any CrossSpyVerifiable]) -> [any CrossSpyVerifiable]
+  public static func buildEither(second component: [any CrossSpyVerifiable]) -> [any CrossSpyVerifiable]
+  public static func buildOptional(_ component: [any CrossSpyVerifiable]?) -> [any CrossSpyVerifiable]
+}
+public protocol DefaultProvider {
+  var defaultProviderRegistry: DefaultProvidableRegistry { get set }
+}
+public struct DefaultProvidableRegistry : Sendable {
+  public static let `default`: DefaultProvidableRegistry
+  public init()
+  public func getDefaultForType<T>(_ type: T.Type) -> T?
+  public mutating func register(_ providing: DefaultProviding)
+  public mutating func deregister(_ providing: DefaultProviding)
+}
+public struct DefaultProviding : Sendable {
+  public init<T>(_ type: T.Type, create: @escaping @Sendable () -> T)
+}
+extension DefaultProviding {
+  public static func numeric<T>(_ type: T.Type) -> DefaultProviding where T : Numeric, T : Sendable
+  public static func array() -> DefaultProviding
+  public static func void() -> DefaultProviding
+  public static func set() -> DefaultProviding
+  public static func dictionary() -> DefaultProviding
+  public static func optional() -> DefaultProviding
+  public static func bool() -> DefaultProviding
+  public static func string() -> DefaultProviding
+  public static func valueProvider<T>(_ value: T) -> DefaultProviding where T : Sendable
+}
+public struct DefaultValuesTrait : Testing.TestTrait, Testing.SuiteTrait, Testing.TestScoping {
+  public init(_ values: [DefaultProviding])
+  public func provideScope(for test: Testing.Test, testCase: Testing.Test.Case?, performing function: @Sendable () async throws -> Void) async throws
+  public typealias TestScopeProvider = DefaultValuesTrait
+}
+extension Testing.Trait where Self == DefaultValuesTrait {
+  public static func withDefaults<each Value>(_ values: repeat each Value) -> DefaultValuesTrait where repeat each Value : Sendable
+}
+public protocol Effect : Sendable {
+}
+public enum Throws : Effect, Sendable {
+}
+public enum Async : Effect, Sendable {
+}
+public enum AsyncThrows : Effect, Sendable {
+}
+public enum None : Effect, Sendable {
+}
+public struct Interaction<each Input, Eff, Output> where Eff : Effect {
+  public let invocationMatcher: InvocationMatcher<repeat each Input>
+  public let spy: Spy<repeat each Input, Eff, Output>
+  public init(_ matchers: repeat ArgMatcher<each Input>, spy: Spy<repeat each Input, Eff, Output>)
+  public func invocations() -> [(repeat each Input)]
+}
+extension Interaction : Sendable where repeat each Input : Sendable {
+}
+public struct Invocation<each Input> : CustomDebugStringConvertible {
+  public let invocationID: Foundation.UUID
+  public var debugDescription: String {
+    get
+  }
+  public let arguments: (repeat each Input)
+}
+extension Invocation : Sendable where repeat each Input : Sendable {
+}
+public struct InvocationMatcher<each I> {
+  public init(matchers: repeat ArgMatcher<each I>)
+  public func isMatchedBy(_ invocation: Invocation<repeat each I>) -> Bool
+  public var precedence: Int {
+    get
+  }
+}
+extension InvocationMatcher : Sendable where repeat each I : Sendable {
+}
+public struct Recorded {
+  public let index: Int
+  public let spyID: Foundation.UUID
+  public let invocationID: Foundation.UUID
+  public let methodLabel: String?
+  public let arguments: [Any]
+}
+final public class InvocationRecorder : @unchecked Sendable {
+  public static let shared: InvocationRecorder
+  public init()
+  @discardableResult
+  final public func record(spyID: Foundation.UUID, invocationID: Foundation.UUID, methodLabel: String?, arguments: [Any]) -> Recorded
+  final public func snapshot() -> [Recorded]
+  final public func clear()
+  final public var count: Int {
+    get
+  }
+}
+public struct ParsedType : Hashable, Sendable {
+  public let name: String
+  public let genericArguments: [ParsedType]
+  public static func == (a: ParsedType, b: ParsedType) -> Bool
+  public func hash(into hasher: inout Hasher)
+  public var hashValue: Int {
+    get
+  }
+}
+public struct MetatypeParser {
+  public static func parse(_ type: any Any.Type) -> ParsedType
+}
+extension Mock {
+  @inline(__always) public static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
+        do {
+            return try spy.process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
+    }
+  @inline(__always) public func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
+        do {
+            return try spy.process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
+    }
+  @inline(__always) public static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
+        do {
+            return try await spy.process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
+    }
+  @inline(__always) public func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
+        do {
+            return try await spy.process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
+    }
+  public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O
+  public func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O
+  public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O
+  public func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O
+}
+@dynamicMemberLookup open class Mock : DefaultProvider, @unchecked Sendable {
+  public var Super: Mock.Type {
+    get
+  }
+  public var defaultProviderRegistry: DefaultProvidableRegistry {
+    get
+    set
+  }
+  public static var defaultProviderRegistry: DefaultProvidableRegistry {
+    get
+  }
+  public var isLoggingEnabled: Bool {
+    get
+    set
+  }
+  public static var isLoggingEnabled: Bool {
+    get
+    set
+  }
+  public init()
+  public subscript<each Input, Eff, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> where Eff : Effect {
+    get
+  }
+  public static subscript<each Input, Eff, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> where Eff : Effect {
+    get
+  }
+  public func clear()
+  public static func clear()
+}
+public enum MockScope {
+  public static let $invocationRecorder: TaskLocal<InvocationRecorder>
+  public static var invocationRecorder: InvocationRecorder {
+    get
+  }
+  public static var currentStorage: SpyStorageProvider {
+    get
+  }
+  public static func withStorage<R>(_ provider: SpyStorageProvider = .init(), body: () throws -> R) rethrows -> R
+  public static func withStorage<R>(_ provider: SpyStorageProvider = .init(), body: () async throws -> R) async rethrows -> R
+  public static func withInvocationRecorder<R>(_ recorder: InvocationRecorder = .init(), body: () throws -> R) rethrows -> R
+  public static func withInvocationRecorder<R>(_ recorder: InvocationRecorder = .init(), body: () async throws -> R) async rethrows -> R
+  public static func withCleanEnvironment<R>(body: () async throws -> R) async rethrows -> R
+}
+public struct MockScopeTrait : Testing.TestTrait, Testing.TestScoping {
+  public func provideScope(for test: Testing.Test, testCase: Testing.Test.Case?, performing function: @Sendable () async throws -> Void) async throws
+  public typealias TestScopeProvider = MockScopeTrait
+}
+extension Testing.Trait where Self == MockScopeTrait {
+  public static var mocking: MockScopeTrait {
+    get
+  }
+}
+@attached(peer, names: suffixed(Mock), prefixed(Mock), suffixed(Witness)) public macro Mockable(_ options: SwiftMockingOptions.MockableOptions = .default) = #externalMacro(module: "SwiftMockingMacros", type: "MockableMacro")
+public struct MockingError : Error, Equatable, Sendable {
+  public static func == (lhs: MockingError, rhs: MockingError) -> Bool
+  public let message: String
+  public static func unStubbed(_ name: String? = nil, inputs: String? = nil) -> MockingError
+  public static let didNotThrow: MockingError
+  public static func didNotMatchThrown(_ thrown: [any Error]) -> MockingError
+  public static func unfulfilledCallCount(_ actual: Int) -> MockingError
+  public static let noMatchingInvocations: MockingError
+}
+public enum UntilError : Error, Sendable {
+  case timeout
+  public static func == (a: UntilError, b: UntilError) -> Bool
+  public func hash(into hasher: inout Hasher)
+  public var hashValue: Int {
+    get
+  }
+}
+}
+extension Return where Effects == None {
+}
+extension Return where Effects == Async {
+}
+public struct SettableInteraction<each Input, Eff, Output> where Eff : Effect {
+  public let get: Interaction<repeat each Input, Eff, Output>
+  public init(get: Interaction<repeat each Input, Eff, Output>, setInteraction: @escaping @Sendable (ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void>)
+  public func set(_ newValue: ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void>
+}
+extension SettableInteraction : Sendable where repeat each Input : Sendable, Output : Sendable {
+}
+public class Spy<each Input, Effects, Output> : AnySpy, @unchecked Sendable where Effects : Effect {
+  public var invocations: [Invocation<repeat each Input>] {
+    get
+  }
+  public var isLoggingEnabled: Bool {
+    get
+    set
+  }
+  final public let spyID: Foundation.UUID
+  public var methodLabel: String? {
+    get
+  }
+  public var defaultProviderRegistry: DefaultProvidableRegistry? {
+    get
+    set
+  }
+  public var invocationCount: Int {
+    get
+  }
+  public init(label: String? = nil)
+  public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Arrange<repeat each Input, Effects, Output>
+  public func when(calledWith invocationMatcher: InvocationMatcher<repeat each Input>) -> Arrange<repeat each Input, Effects, Output>
+  public func callAsFunction(_ matchingInput: repeat ArgMatcher<each Input>) -> Interaction<repeat each Input, Effects, Output>
+  public func verifyCalled(_ countMatcher: ArgMatcher<Int>? = nil) -> Bool
+  public func verify(calledWith arguments: repeat ArgMatcher<each Input>, count countMatcher: ArgMatcher<Int>) -> Bool
+  public func verify(calledWith invocationMatcher: InvocationMatcher<repeat each Input>, count countMatcher: ArgMatcher<Int>) -> Bool
+  public func clear()
+}
+extension Spy where Effects == Throws {
+  @discardableResult
+  public func callAsFunction(_ input: repeat each Input) throws -> Output
+  public func asFunction() -> @Sendable (repeat each Input) throws -> Output
+  public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
+  public func verifyThrows() -> Bool
+}
+extension Spy where Effects == None {
+  @discardableResult
+  @inline(__always) public func callAsFunction(_ input: repeat each Input) -> Output {
+        do {
+            return try process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
+    }
+  public func asFunction() -> @Sendable (repeat each Input) -> Output
+}
+extension Spy where Effects == Async {
+  @discardableResult
+  @inline(__always) public func callAsFunction(_ input: repeat each Input) async -> Output {
+        do {
+            return try await process(repeat each input)
+        } catch let error as MockingError {
+            fatalError("MockingError: \(error.message)")
+        } catch {
+            fatalError("\(error.localizedDescription)")
+        }
+    }
+  public func asFunction() -> @Sendable (repeat each Input) async -> Output
+}
+extension Spy where Effects == AsyncThrows {
+  @discardableResult
+  public func callAsFunction(_ input: repeat each Input) async throws -> Output
+  public func asFunction() -> @Sendable (repeat each Input) async throws -> Output
+  public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
+  public func verifyThrows() async -> Bool
+}
+public func adapt<Output>(_ spy: Spy<Void, Async, Output>) -> @Sendable () async -> Output
+public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> @Sendable () async throws -> Output
+public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> @Sendable () throws -> Output
+public func adapt<Output>(_ spy: Spy<Void, None, Output>) -> @Sendable () -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Async, Output>) -> @Sendable (repeat each Input) async -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> @Sendable (repeat each Input) throws -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> @Sendable (repeat each Input) async throws -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, None, Output>) -> @Sendable (repeat each Input) -> Output
+final public class SpyStorageProvider : @unchecked Sendable {
+  public typealias Storage = [String : [String : [any AnySpy]]]
+  final public var storage: SpyStorageProvider.Storage {
+    get
+    set
+  }
+  public init(storage: SpyStorageProvider.Storage = [:])
+}
+public class Stub<each I, Effects, O> where Effects : Effect {
+  final public let invocationMatcher: InvocationMatcher<repeat each I>
+  public var precedence: MatcherPrecedence {
+    get
+  }
+}
+extension Stub where Effects == None {
+  public func thenReturn(_ output: O) where O : Sendable
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+}
+extension Stub where Effects == Throws {
+  public func thenReturn(_ output: O) where O : Sendable
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  public func thenThrow<E>(_ error: E) where E : Error
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws -> O) where repeat each I : Sendable
+}
+extension Stub where Effects == Async {
+  public func thenReturn(_ output: O) where O : Sendable
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
+}
+extension Stub where Effects == AsyncThrows {
+  public func thenReturn(_ output: O) where O : Sendable
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  public func thenThrow<E>(_ error: E) where E : Error
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws -> O) where repeat each I : Sendable
+}
+public func when<each Input, Eff, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>) -> Arrange<repeat each Input, Eff, Output> where Eff : Effect
+public func when<each Input, Eff, Output>(_ interaction: (()) -> Interaction<repeat each Input, Eff, Output>) -> Arrange<repeat each Input, Eff, Output> where Eff : Effect
+public func when<each Input, Eff, Output>(_ interaction: SettableInteraction<repeat each Input, Eff, Output>) -> Arrange<repeat each Input, Eff, Output> where Eff : Effect
+public func when<each Input, Eff, Output>(_ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>) -> Arrange<repeat each Input, Eff, Output> where Eff : Effect
+public func verify<each Input, Eff, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>) -> Assert<repeat each Input, Eff, Output> where Eff : Effect
+public func verify<each Input, Eff, Output>(_ interaction: (()) -> Interaction<repeat each Input, Eff, Output>) -> Assert<repeat each Input, Eff, Output> where Eff : Effect
+public func verify<each Input, Eff, Output>(_ interaction: SettableInteraction<repeat each Input, Eff, Output>) -> Assert<repeat each Input, Eff, Output> where Eff : Effect
+public func verify<each Input, Eff, Output>(_ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>) -> Assert<repeat each Input, Eff, Output> where Eff : Effect
+public func verifyInOrder(_ verifiables: [any CrossSpyVerifiable], file: StaticString = #filePath, line: UInt = #line)
+public func verifyInOrder(@CrossSpyVerificationBuilder _ builder: () -> [any CrossSpyVerifiable], file: StaticString = #filePath, line: UInt = #line)
+public func verifyNever<each Input, Eff, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>, file: StaticString = #filePath, line: UInt = #line) where Eff : Effect
+public func verifyNever<each Input, Eff, Output>(_ interaction: (()) -> Interaction<repeat each Input, Eff, Output>, file: StaticString = #filePath, line: UInt = #line) where Eff : Effect
+public func verifyNever<each Input, Eff, Output>(_ interaction: SettableInteraction<repeat each Input, Eff, Output>, file: StaticString = #filePath, line: UInt = #line) where Eff : Effect
+public func verifyNever<each Input, Eff, Output>(_ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>, file: StaticString = #filePath, line: UInt = #line) where Eff : Effect
+infix operator <- : AssignmentPrecedence
+public func <- <each Input, Eff, Output>(interaction: SettableInteraction<repeat each Input, Eff, Output>, newValue: ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void> where Eff : Effect
+public func <- <each Input, Eff, Output>(interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>, newValue: ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void> where Eff : Effect
+public func verifyZeroInteractions(_ mock: Mock, file: StaticString = #filePath, line: UInt = #line)
+public func until<each Input, Output>(_ interaction: Interaction<repeat each Input, None, Output>, timeout: Duration = .seconds(1)) async throws where repeat each Input : Sendable
+public func until<each Input, Output>(_ interaction: Interaction<repeat each Input, Async, Output>, timeout: Duration = .seconds(1)) async throws where repeat each Input : Sendable
+public func until<each Input, Output>(_ interaction: Interaction<repeat each Input, AsyncThrows, Output>, timeout: Duration = .seconds(1)) async throws where repeat each Input : Sendable
+extension Assert {
+  public func called(_ countMatcher: ArgMatcher<Int>? = nil, file: StaticString = #filePath, line: UInt = #line)
+}
+extension Assert {
+  public func captured(_ inspector: @escaping (repeat each Input) throws -> Void, file: StaticString = #filePath, line: UInt = #line)
+}
+extension Assert where Eff == Throws {
+  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, file: StaticString = #filePath, line: UInt = #line)
+}
+extension Assert where Eff == AsyncThrows {
+  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, file: StaticString = #filePath, line: UInt = #line) async
+}
+extension UntilError : Equatable {}
+extension UntilError : Hashable {}
