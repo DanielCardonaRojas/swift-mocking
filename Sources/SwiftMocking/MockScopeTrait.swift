@@ -5,9 +5,9 @@
 //  Created by Daniel Cardona on 18/10/25.
 //
 
+#if swift(>=6.1) && canImport(Testing)
 import Testing
 
-#if swift(>=6.1)
 /// A swift-testing trait that provides isolated mock scope and invocation recording.
 ///
 /// Use this trait to ensure static spies and invocation recordings remain isolated

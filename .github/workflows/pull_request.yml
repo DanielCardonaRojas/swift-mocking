@@ -13,12 +13,16 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        swift-version: ['5.9', '6.0']
+        # The toolchain floor is Swift 6.0 (Xcode 16+). Both lanes exercise a
+        # Swift 6 compiler; Swift 5 *language mode* is covered separately by the
+        # Swift5CompatTests target, which builds with .swiftLanguageMode(.v5).
+        swift-version: ['6.0', '6.1']
         include:
-          - swift-version: '5.9'
-            xcode-version: 'Xcode_16.0.app'
           - swift-version: '6.0'
+            xcode-version: 'Xcode_16.0.app'
+          - swift-version: '6.1'
             xcode-version: 'Xcode_16.4.app'
 
     runs-on: macos-15

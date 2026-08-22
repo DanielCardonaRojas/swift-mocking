@@ -5,10 +5,10 @@
 //  Created by Daniel Cardona on 18/10/25.
 //
 
+#if swift(>=6.1)
 import Testing
 import SwiftMocking
 
-#if swift(>=6.1)
 // Tests run in parallel
 struct StaticTests {
     let callCount = 1000

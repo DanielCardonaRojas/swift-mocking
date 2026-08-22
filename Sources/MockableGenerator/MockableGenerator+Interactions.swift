@@ -323,7 +323,7 @@ public extension MockableGenerator {
         // indices neither side anchors those parameters and the closure's
         // contextual result type is not enough to recover them:
         //   error: generic parameter 'Eff' could not be inferred
-        // Swift 6.3 happens to solve it; 5.9 and 6.0 (both on CI) do not.
+        // Swift 6.3 happens to solve it; 6.0 and 6.1 (both on CI) do not.
         // Spelling the spy's type removes that ambiguity.
         //
         // The interaction needs the same treatment for a further reason. Its
