@@ -4,19 +4,19 @@
 [![swift-version](https://img.shields.io/badge/swift-6.0-orange.svg)](https://img.shields.io/badge/swift-6.0-orange.svg)
 [![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-blue.svg)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://img.shields.io/badge/license-MIT-lightgrey.svg)
-[![CI Status](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml/badge.svg)](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml)
+[![CI Status](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml/badge.svg?branch=main)](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml?query=branch%3Amain)
 
 
 `SwiftMocking` is a modern, type-safe mocking library for Swift that provides a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) and `@dynamicMemberLookup`.
 
-**Macros are optional.** The `@Mockable` macro is the most convenient way to get a mock, but it is not required — mocks are ordinary Swift classes. You can generate them as written source with the [`mockable` CLI](#mock-generation-cli), or have an AI assistant write them for you with the [agent skill](#-agent-skill). Both produce the same code the macro does, without the compile-time plugin, and both handle cases the macro cannot (notably protocol inheritance).
+**Macros are optional.** The `@Mockable` macro is the most convenient way to get a mock, but it is not required, since mocks are ordinary Swift classes. You can generate them as written source with the [`mockable` CLI](#mock-generation-cli), or have an AI assistant write them for you with the [agent skill](#-agent-skill). Both produce the same code the macro does, without the compile-time plugin, and both handle cases the macro cannot (notably protocol inheritance).
 
 ---
 
-*   [Agent Skill & CLI](#-agent-skill)
 *   [Features](#-features)
 *   [Protocol Feature Support](#-protocol-feature-support)
 *   [Installation](#-installation)
+*   [Agent Skill & CLI](#-agent-skill)
 *   [Example](#-example)
 *   [Documentation](#-documentation)
 *   [Usage](#️-usage)
@@ -34,79 +34,6 @@
 *   [How it Works](#️-how-it-works)
 *   [Generated Code Examples](GENERATED_CODE_EXAMPLES.md)
 *   [Known Limitations](#️-known-limitations)
-
----
-
-## 🤖 Agent Skill
-
-SwiftMocking ships an installable **agent skill** (`skills/swift-mocking/`) that teaches AI coding assistants (Claude Code, Codex, Cursor, ...) to write correct SwiftMocking tests — including **hand-writing mock classes for protocols with inheritance**, which the `@Mockable` macro does not support (inherited requirements are dropped and the mock fails to conform).
-
-The skill covers:
-
-- Manual mock generation mirroring `MockableGenerator` output (inheritance chains, properties, subscripts, variadics, associated types, statics, initializers)
-- `when`/`verify` stubbing and verification patterns with argument matchers
-- Swift 6 `Sendable`/concurrency contract and workarounds
-- A generated `.swiftinterface` API reference (`references/interface/`) so the agent checks exact signatures instead of guessing
-
-### Install
-
-Using the [Skills CLI](https://skills.sh/) (recommended — works with Claude Code, Codex, and other agents):
-
-```bash
-npx skills add DanielCardonaRojas/swift-mocking@swift-mocking -g
-```
-
-Or manually, copy or symlink the skill directory into your agent's skills folder:
-
-```bash
-# Claude Code
-git clone https://github.com/DanielCardonaRojas/swift-mocking.git
-ln -s "$(pwd)/swift-mocking/skills/swift-mocking" ~/.claude/skills/swift-mocking
-
-# Codex (and other agents using ~/.agents)
-ln -s "$(pwd)/swift-mocking/skills/swift-mocking" ~/.agents/skills/swift-mocking
-```
-
-Once installed, the skill activates automatically when the agent works on Swift tests that use SwiftMocking (or needs a mock the macro can't generate). No prompt changes required.
-
-### Mock Generation CLI
-
-The package includes a `mockable` executable that runs the same code generation as the `@Mockable` macro, outside the compiler. It reads a protocol definition from stdin and writes the generated mock class to stdout — useful for agents and codegen pipelines, or when you want the mock source materialized.
-
-Together, the skill and the CLI are a complete workflow on their own: **you never have to apply the macro** (or even depend on the macro plugin) to use this library — only `import SwiftMocking` for the runtime types.
-
-**Install (recommended):** build the release binary once from a clone of this repository — startup is near-instant on every subsequent run:
-
-```bash
-swift build -c release --product mockable   # → .build/release/mockable
-```
-
-Then pipe protocol definitions through it:
-
-```bash
-echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | .build/release/mockable
-```
-
-To make the tool available everywhere (recommended for agents), copy the binary onto your `PATH`:
-
-```bash
-cp .build/release/mockable /opt/homebrew/bin/   # or any dir on your PATH
-```
-
-For one-off use without building first, `swift run mockable` works the same way but pays SwiftPM planning overhead on each invocation.
-
-- Default output keeps the `#if DEBUG` wrapper the macro emits; pass `--no-debug-wrap` to emit the mock bare — the right choice when pasting into a test target, since `DEBUG` is defined per build configuration (a wrapped mock would vanish under `swift test -c release`).
-- Every top-level protocol declaration in the input gets a mock, emitted in declaration order.
-- Warnings go to stderr (e.g. a protocol that inherits another protocol — inherited requirements are not implemented); stdout only ever contains generated code.
-- Exits non-zero, with annotated diagnostics on stderr, when the input does not parse as Swift or declares no protocol.
-
-### Regenerating the API reference
-
-The skill's `.swiftinterface` files are generated from the compiled modules; refresh them after changing public API:
-
-```bash
-./Scripts/generate-interface.sh
-```
 
 ---
 
@@ -161,6 +88,39 @@ Then, add `SwiftMocking` to your target's dependencies:
     ]
 ),
 ```
+
+---
+
+## 🤖 Agent Skill
+
+An installable **agent skill** (`skills/swift-mocking/`) teaches AI coding assistants (Claude Code, Codex, Cursor, ...) to write correct SwiftMocking tests, including hand-written mocks for protocols with inheritance, which `@Mockable` does not support. It covers manual mock generation, `when`/`verify` patterns, the Swift 6 `Sendable` contract, and ships a generated `.swiftinterface` reference so the agent checks signatures instead of guessing.
+
+Install with the [Skills CLI](https://skills.sh/):
+
+```bash
+npx skills add DanielCardonaRojas/swift-mocking@swift-mocking -g
+```
+
+Or symlink the directory into your agent's skills folder (`~/.claude/skills/` for Claude Code, `~/.agents/skills/` for Codex). Once installed it activates automatically; no prompt changes required.
+
+### Mock Generation CLI
+
+The `mockable` executable runs the same code generation as the `@Mockable` macro, outside the compiler. It reads protocol definitions from stdin and writes mock classes to stdout, which is useful for agents, codegen pipelines, or whenever you want the mock source materialized. Together with the skill, this means **you never have to apply the macro** to use this library, only `import SwiftMocking` for the runtime types.
+
+Build the release binary once so startup is near-instant on every subsequent run:
+
+```bash
+swift build -c release --product mockable   # → .build/release/mockable
+echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | .build/release/mockable
+```
+
+Copy it onto your `PATH` (`cp .build/release/mockable /opt/homebrew/bin/`) to make it available everywhere. `swift run mockable` works too, but pays SwiftPM planning overhead each invocation.
+
+- Output keeps the `#if DEBUG` wrapper the macro emits; pass `--no-debug-wrap` when pasting into a test target, since a wrapped mock would vanish under `swift test -c release`.
+- Every top-level protocol in the input gets a mock, in declaration order.
+- Warnings go to stderr; stdout only ever contains generated code. Exits non-zero with annotated diagnostics when the input does not parse or declares no protocol.
+
+The skill's `.swiftinterface` files are generated from the compiled modules. Refresh them after changing public API with `./Scripts/generate-interface.sh`.
 
 ---
 
@@ -383,7 +343,7 @@ verifyInOrder([
 
 ### Properties and Subscripts
 
-Read-only requirements behave like any other member. **Settable** requirements (`{ get set }`) record reads and writes on two separate spies, because their argument lists differ — a write is the read's arguments plus the assigned value. Both are reached through a single interaction member:
+Read-only requirements behave like any other member. **Settable** requirements (`{ get set }`) record reads and writes on two separate spies, because their argument lists differ: a write is the read's arguments plus the assigned value. Both are reached through a single interaction member:
 
 ```swift
 @Mockable
@@ -394,14 +354,14 @@ protocol Settings {
 
 let mock = MockSettings()
 
-// Reads — stub and verify exactly like a method
+// Reads: stub and verify exactly like a method
 when(mock.isEnabled).thenReturn(true)
 when(mock[.any]).thenReturn(0)
 
 XCTAssertTrue(mock.isEnabled)
 verify(mock.isEnabled).called(1)
 
-// Writes — the `<-` operator turns the interaction into a write interaction
+// Writes: the `<-` operator turns the interaction into a write interaction
 mock.isEnabled = false
 mock["retries"] = 3
 
@@ -425,7 +385,7 @@ when(mock.isEnabled <- .any).thenReturn { _, newValue in
 }
 ```
 
-Since `<-` yields an ordinary `Interaction`, writes compose with `verifyInOrder` too. One toolchain caveat: for a **multi-index** subscript, bind the write before verifying it — `let write = mock[.equal(1), .equal(2)] <- "v"; verify(write).called(1)` — as forwarding the result directly into `verify` fails to infer.
+Since `<-` yields an ordinary `Interaction`, writes compose with `verifyInOrder` too. One toolchain caveat: for a **multi-index** subscript, bind the write before verifying it (`let write = mock[.equal(1), .equal(2)] <- "v"; verify(write).called(1)`), as forwarding the result directly into `verify` fails to infer.
 
 ### Dynamic Stubbing
 
@@ -723,7 +683,7 @@ error: Unfulfilled call count. Actual: 2
 
 ### Mocks are Sendable
 
-`Mock` and `Spy` are `@unchecked Sendable`, backed by real `NSLock` synchronization rather than annotation alone — all spy storage, stubs, invocations, and configuration are locked on both read and write paths. Generated mocks inherit the conformance, so:
+`Mock` and `Spy` are `@unchecked Sendable`, backed by real `NSLock` synchronization rather than annotation alone. All spy storage, stubs, invocations, and configuration are locked on both read and write paths. Generated mocks inherit the conformance, so:
 
 ```swift
 @Mockable
@@ -734,7 +694,7 @@ protocol Loader: Sendable {          // ✅ a mock satisfies a `: Sendable` requ
 let mock = MockLoader()
 when(mock.load(.any)).thenReturn("value")
 
-// Share the mock across isolation domains — no warnings in Swift 6 mode
+// Share the mock across isolation domains, no warnings in Swift 6 mode
 await withTaskGroup(of: String.self) { group in
     for id in 0..<10 {
         group.addTask { await mock.load(id) }   // ✅ captured in a @Sendable closure
@@ -752,9 +712,9 @@ Value-based stubbing constrains its values; closure-based stubbing constrains it
 | --- | --- |
 | `thenReturn(value)` | `Output: Sendable` |
 | `thenThrow(error)` | `E: Error & Sendable` |
-| `thenReturn { ... }` / `.do { ... }` | closure is `@Sendable` — **captures** must be Sendable |
+| `thenReturn { ... }` / `.do { ... }` | closure is `@Sendable`, so **captures** must be Sendable |
 | Value-capturing matchers (`.equal`, `.identical`, `.contains`, `.in`, `.approximately`) | argument type `: Sendable` |
-| `.any`, `.any(that:)` | unconstrained — predicates may *take* non-Sendable values |
+| `.any`, `.any(that:)` | unconstrained; predicates may *take* non-Sendable values |
 | Default values for unstubbed returns | unconstrained |
 
 ### Working with non-Sendable types
@@ -765,7 +725,7 @@ A `@Sendable` closure may *return* a non-Sendable value; it just cannot *capture
 // ❌ requires Receipt: Sendable
 when(mock.send(.any)).thenReturn(receipt)
 
-// ✅ constructed inside the handler — no capture
+// ✅ constructed inside the handler, no capture
 when(mock.send(.any)).thenReturn { _ in Receipt(code: 42) }
 
 // ✅ same trick for throwing a non-Sendable error
@@ -779,9 +739,9 @@ let targetID = target.id                      // UUID is Sendable
 when(mock.send(.any(that: { $0.id == targetID }))).thenReturn { _ in Receipt(code: 0) }
 ```
 
-**One boundary to know:** the handler overloads for `throws`, `async`, and `async throws` spies are declared `where repeat each I: Sendable` — they defer the invocation, so the *arguments* must be Sendable too. The handler workarounds above therefore apply as written only to synchronous, non-throwing requirements. If a requirement both `throws` (or is `async`) **and** takes a non-Sendable parameter, no handler form compiles; make the parameter type `Sendable`, or restructure the requirement to take a Sendable stand-in (an ID) instead of the object.
+**One boundary to know:** the handler overloads for `throws`, `async`, and `async throws` spies are declared `where repeat each I: Sendable`, because they defer the invocation, so the *arguments* must be Sendable too. The handler workarounds above therefore apply as written only to synchronous, non-throwing requirements. If a requirement both `throws` (or is `async`) **and** takes a non-Sendable parameter, no handler form compiles; make the parameter type `Sendable`, or restructure the requirement to take a Sendable stand-in (an ID) instead of the object.
 
-Mocking protocols whose requirements use non-Sendable types is otherwise fully supported — the constraints above apply only to what you hand the stubbing APIs.
+Mocking protocols whose requirements use non-Sendable types is otherwise fully supported; the constraints above apply only to what you hand the stubbing APIs.
 
 ### Swift 5 consumers
 
@@ -791,9 +751,9 @@ The toolchain floor is Swift 6.0 (Xcode 16+), unchanged. Language mode is per-mo
 
 If you are upgrading from a pre-Sendable version:
 
-1. Handler closures capturing non-Sendable state no longer compile in Swift 6 mode — construct values inside the handler, or wrap shared state in a lock or actor.
+1. Handler closures capturing non-Sendable state no longer compile in Swift 6 mode. Construct values inside the handler, or wrap shared state in a lock or actor.
 2. `thenReturn(value)`/`thenThrow` on non-Sendable types: switch to the handler form above.
-3. `.any(that: { ... })` may need an explicit `@Sendable` in some positions — inference does not always propagate through the member chain.
+3. `.any(that: { ... })` may need an explicit `@Sendable` in some positions, since inference does not always propagate through the member chain.
 4. `Recorded` is no longer `Sendable` (its `arguments: [Any]` payload cannot soundly claim transfer); consume `InvocationRecorder.snapshot()` within a single isolation domain.
 
 ---
@@ -824,11 +784,11 @@ This approach eliminates the need for manual mock implementations and provides a
 
 ### Protocol Inheritance
 
-`@Mockable` does not generate inherited requirements. For `protocol B: A` where `A` declares members, the generated mock fails to conform (`error: type 'BMock' does not conform to protocol 'A'`). Workaround: hand-write the mock — the [Agent Skill](#-agent-skill) teaches the exact recipe, or see [GENERATED_CODE_EXAMPLES.md](GENERATED_CODE_EXAMPLES.md) for the code shapes to mirror.
+`@Mockable` does not generate inherited requirements. For `protocol B: A` where `A` declares members, the generated mock fails to conform (`error: type 'BMock' does not conform to protocol 'A'`). Workaround: hand-write the mock. The [Agent Skill](#-agent-skill) teaches the exact recipe, or see [GENERATED_CODE_EXAMPLES.md](GENERATED_CODE_EXAMPLES.md) for the code shapes to mirror.
 
 ### Zero-Parameter Members and Property Getters
 
-In macro-generated mocks, stubbing zero-parameter methods (`when(mock.f()).thenReturn(v)`) and property getters (`when(mock.getX()).thenReturn(v)`) is silently ignored, and verification of those members always counts 0 — a parameter-pack shape mismatch creates a second, disconnected spy. Setters and members with one or more parameters are unaffected. Workaround: hand-write those members with the pinned-spy form documented in the [Agent Skill](#-agent-skill).
+In macro-generated mocks, stubbing zero-parameter methods (`when(mock.f()).thenReturn(v)`) and property getters (`when(mock.getX()).thenReturn(v)`) is silently ignored, and verification of those members always counts 0, because a parameter-pack shape mismatch creates a second, disconnected spy. Setters and members with one or more parameters are unaffected. Workaround: hand-write those members with the pinned-spy form documented in the [Agent Skill](#-agent-skill).
 
 
 ### Colliding Spy Names
@@ -847,9 +807,9 @@ protocol CollisionService {
 }
 ```
 
-This is legal Swift, but because labels do not reach the spy name and both have the same signature, the two requirements share one spy: stubbing one answers calls to the other, and verification counts both. Nothing fails — the test quietly tests the wrong thing. Workaround: rename one method, or give the parameters distinct types so the spy signatures differ.
+This is legal Swift, but because labels do not reach the spy name and both have the same signature, the two requirements share one spy: stubbing one answers calls to the other, and verification counts both. Nothing fails; the test quietly tests the wrong thing. Workaround: rename one method, or give the parameters distinct types so the spy signatures differ.
 
-Overloads that differ in signature (`func fetch(_ id: Int)` and `func fetch(_ id: String)`) are **not** a collision and work fine — `Mock` stores a list per key and matches on type. A method and a subscript sharing a name (`func index(_:)` alongside `subscript(index:)`) are separated by the prefix.
+Overloads that differ in signature (`func fetch(_ id: Int)` and `func fetch(_ id: String)`) are **not** a collision and work fine: `Mock` stores a list per key and matches on type. A method and a subscript sharing a name (`func index(_:)` alongside `subscript(index:)`) are separated by the prefix.
 
 ### Xcode Autocomplete
 

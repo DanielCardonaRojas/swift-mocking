@@ -3,7 +3,7 @@
 //  SwiftMockingTests
 //
 //  Locks in the documented workarounds for mocking non-Sendable types under the
-//  Mandatory @Sendable policy (see SWIFT6_AUDIT.md section 4):
+//  Mandatory @Sendable policy (see README.md, "Swift 6 and Sendable"):
 //  - construct non-Sendable values inside handler closures instead of capturing them
 //  - match non-Sendable arguments via .any / .any(that:) with Sendable captures
 //    (e.g. ObjectIdentifier)
