@@ -57,16 +57,40 @@ verifyInOrder([mock.auth(.any), mock.data(.any)])  // call order across spies
 
 ## Properties & subscripts
 
-```swift
-when(mock.isEnabled).thenReturn(true)       // getter interaction — reads like the property itself
-mock.isEnabled = false
-verify(mock.setIsEnabled(newValue: .equal(false))).called(1)
+Read-only members expose a plain `Interaction`. **Settable** members (`{ get set }`) expose a `SettableInteraction`: the same expression stubs/verifies reads, and `<- value` turns it into the write interaction.
 
-when(cache[.any]).thenReturn("cached")       // subscript interactions via matcher subscript
-verify(cache[.equal("key")]).called(1)
+```swift
+let mock = MyServiceMock()
+let svc: MyService = mock                    // protocol-typed reference, for subscript reads
+
+// Reads — unchanged by settability
+when(mock.isEnabled).thenReturn(true)        // property getter
+when(mock[.any]).thenReturn("cached")        // subscript getter
+verify(mock.isEnabled).called(1)
+verify(mock[.equal("key")]).called(1)
+
+// Writes — `<-` on the same expression
+mock.isEnabled = false                       // properties: drive the mock directly
+svc["key"] = "v"                             // subscripts: via the protocol-typed `svc`
+verify(mock.isEnabled <- false).called(1)
+verify(mock[.equal("key")] <- "v").called(1)
+verifyNever(mock.isEnabled <- .any)
 ```
 
-Getter verification mirrors a read too: `verify(mock.isEnabled).called(1)` (also `verifyNever(mock.isEnabled)`). The getter interaction is an overload on the variable name taking `Void` — the parameter is required: a niladic form would be an `invalid redeclaration` against the property's getter accessor, and it's what lets `when(mock.x)` infer its input pack. Setter interactions keep the `setX(newValue:)` form. Bare zero-arg calls (`mock.f()`) on the mock type can be ambiguous between the runtime and interaction members — call through the protocol type.
+Rules that trip people up:
+
+- **Reads and writes are separate spies.** `verify(mock.isEnabled)` counts reads only; `verify(mock.isEnabled <- .any)` counts writes only. A write does not register as a read.
+- **Properties need no protocol-typed reference.** The runtime member is a `var` and the interaction member is a `func`, so `mock.isEnabled = false` and `_ = mock.isEnabled` both hit the property while `when(mock.isEnabled)` still resolves to the interaction. Tests read better driving the mock directly.
+- **Subscripts do need one for reads.** `mock[key]` (values) and `mock[.any]` (matchers) are a genuine overload pair — an unannotated `let v = mock[1]` is ambiguous. Use a protocol-typed reference (`let svc: MyService = mock`) for reads; writes (`mock["k"] = 5`) disambiguate on their own.
+- **Zero-arg methods always need one.** `mock.refresh()` is ambiguous between runtime and interaction members.
+- **The write pack is the read pack plus the written value** — so `captured` and stub closures take the indices first, value last: `verify(mock.isEnabled <- .any).captured { _, newValue in ... }`. For a property the read pack is `(Void)`, hence the leading `_`.
+- **Matchers work on both sides**: `verify(cache[.any] <- .equal("v"))`, `mock.count <- .greaterThan(8)`. Bare literals coerce to `.equal`.
+- **Stub write side effects** with `when(mock.value <- 7).thenReturn { _, newValue in ... }`. Handlers are `@Sendable`, so collect what they observe in a `CaptureBox<T>` (from `SwiftMockingTestSupport`) rather than a captured local `var`: `written.append(newValue)` then assert on `written.values`.
+- `<-` composes with `verifyInOrder`, since it yields an ordinary `Interaction`: `verifyInOrder([mock.value <- 7, mock.refresh()])`.
+- **Multi-index subscripts must bind first** — `let w = mock[.equal(1), .equal(2)] <- "x"; verify(w).called(1)`. Forwarding the pack-rearranged result straight into `verify` does not infer on current toolchains. Single-index subscripts and properties chain fine.
+- Explicit form if you prefer it over the operator: `mock.value(()).set(.equal(7))`, `mock[.any].set(.any)`.
+
+The getter interaction is an overload on the variable name taking `Void` — the parameter is required: a niladic form would be an `invalid redeclaration` against the property's getter accessor, and it's what lets `when(mock.x)` infer its input pack. Bare zero-arg calls (`mock.f()`) on the mock type can be ambiguous between the runtime and interaction members — call through the protocol type.
 
 ## Closure-based dependencies (TCA pattern)
 

@@ -304,6 +304,52 @@ verifyInOrder([
 ])
 ```
 
+### Properties and Subscripts
+
+Read-only requirements behave like any other member. **Settable** requirements (`{ get set }`) record reads and writes on two separate spies, because their argument lists differ — a write is the read's arguments plus the assigned value. Both are reached through a single interaction member:
+
+```swift
+@Mockable
+protocol Settings {
+    var isEnabled: Bool { get set }
+    subscript(key: String) -> Int { get set }
+}
+
+let mock = MockSettings()
+
+// Reads — stub and verify exactly like a method
+when(mock.isEnabled).thenReturn(true)
+when(mock[.any]).thenReturn(0)
+
+XCTAssertTrue(mock.isEnabled)
+verify(mock.isEnabled).called(1)
+
+// Writes — the `<-` operator turns the interaction into a write interaction
+mock.isEnabled = false
+mock["retries"] = 3
+
+verify(mock.isEnabled <- false).called(1)
+verify(mock[.equal("retries")] <- 3).called(1)
+verifyNever(mock.isEnabled <- true)
+```
+
+Reads and writes are counted independently: `verify(mock.isEnabled)` counts only reads, and a write never registers as a read.
+
+Because a write records the read's arguments followed by the assigned value, captured arguments and stub closures take the value last:
+
+```swift
+verify(mock[.any] <- .any).captured { key, newValue in
+    XCTAssertEqual(key, "retries")
+    XCTAssertEqual(newValue, 3)
+}
+
+when(mock.isEnabled <- .any).thenReturn { _, newValue in
+    print("isEnabled set to \(newValue)")
+}
+```
+
+Since `<-` yields an ordinary `Interaction`, writes compose with `verifyInOrder` too. One toolchain caveat: for a **multi-index** subscript, bind the write before verifying it — `let write = mock[.equal(1), .equal(2)] <- "v"; verify(write).called(1)` — as forwarding the result directly into `verify` fails to infer.
+
 ### Dynamic Stubbing
 
 
@@ -688,6 +734,26 @@ This approach eliminates the need for manual mock implementations and provides a
 
 In macro-generated mocks, stubbing zero-parameter methods (`when(mock.f()).thenReturn(v)`) and property getters (`when(mock.getX()).thenReturn(v)`) is silently ignored, and verification of those members always counts 0 — a parameter-pack shape mismatch creates a second, disconnected spy. Setters and members with one or more parameters are unaffected. Workaround: hand-write those members with the pinned-spy form documented in the [Agent Skill](#-agent-skill).
 
+
+### Colliding Spy Names
+
+Spies are keyed by a name derived from the requirement: a method uses its own name, a subscript is namespaced as `subscript` + its parameter names in camelCase (`subscript(row:column:)` → `subscriptRowColumn`), and a settable member adds a `set`-prefixed write spy. Argument labels do not contribute.
+
+The subscript prefix means a subscript never collides with a method or variable of the same name. Most ways two requirements could derive the same key are already rejected by the compiler: two subscripts differing only by argument label are an `invalid redeclaration of 'subscript(_:)'`, since subscript labels do not participate in the signature, and a `var value` alongside a `func value()` is an `invalid redeclaration of 'value'`.
+
+The case that compiles but does not mock correctly is two **methods** that differ only by argument label:
+
+```swift
+@Mockable
+protocol CollisionService {
+    func fetch(id: Int) -> String
+    func fetch(name: Int) -> String   // ⚠️ both derive the spy `fetch`
+}
+```
+
+This is legal Swift, but because labels do not reach the spy name and both have the same signature, the two requirements share one spy: stubbing one answers calls to the other, and verification counts both. Nothing fails — the test quietly tests the wrong thing. Workaround: rename one method, or give the parameters distinct types so the spy signatures differ.
+
+Overloads that differ in signature (`func fetch(_ id: Int)` and `func fetch(_ id: String)`) are **not** a collision and work fine — `Mock` stores a list per key and matches on type. A method and a subscript sharing a name (`func index(_:)` alongside `subscript(index:)`) are separated by the prefix.
 
 ### Xcode Autocomplete
 
