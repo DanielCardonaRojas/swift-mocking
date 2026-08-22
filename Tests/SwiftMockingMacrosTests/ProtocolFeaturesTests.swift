@@ -25,6 +25,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
                 }
+
                 func doSomething() {
                     return adapt(super.doSomething, ())
                 }
@@ -53,6 +54,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 func value(_ void: Void = ()) -> Interaction<Void, None, Int > {
                     Interaction(.any, spy: super.value)
                 }
+
                 var value: Int {
                     get {
                         adapt(super.value, ())
@@ -90,6 +92,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         }
                     )
                 }
+
                 var value: Int {
                     set {
                         return adapt(super.setValue, (), newValue)
@@ -133,6 +136,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         }
                     )
                 }
+
                 var cachePolicy: String {
                     set {
                         return adapt(super.setCachePolicy, (), newValue)
@@ -192,6 +196,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         Interaction(index, spy: super.subscriptIndex)
                     }
                 }
+
                 subscript(index: Int) -> String {
                     get {
                         return adapt(super.subscriptIndex, index)
@@ -231,6 +236,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         )
                     }
                 }
+
                 subscript(index: Int) -> String {
                     set {
                         return adapt(super.setSubscriptIndex, index, newValue)
@@ -269,6 +275,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         Interaction(item, spy: super.subscriptItem)
                     }
                 }
+
                 subscript <T: Hashable>(item: T) -> String {
                     get {
                         return adapt(super.subscriptItem, item)
@@ -301,6 +308,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         Interaction(row, column, spy: super.subscriptRowColumn)
                     }
                 }
+
                 subscript(row: Int, column: Int) -> String {
                     get {
                         return adapt(super.subscriptRowColumn, row, column)
@@ -333,6 +341,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                         Interaction(position, spy: super.subscriptPosition)
                     }
                 }
+
                 subscript(_ position: Int) -> String {
                     get {
                         return adapt(super.subscriptPosition, position)
@@ -363,9 +372,11 @@ final class ProtocolFeaturesTests: MacroTestCase {
             #if DEBUG
             class MockMyService<Item>: Mock, @unchecked Sendable, MyService {
                 typealias Item = Item
+
                 func item() -> Interaction<Void, None, Item> {
                     Interaction(.any, spy: super.item)
                 }
+
                 func item() -> Item {
                     return adapt(super.item, ())
                 }

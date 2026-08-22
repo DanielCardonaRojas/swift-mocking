@@ -24,6 +24,7 @@ final class GeneratorPipelineTests: XCTestCase {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)
                 }
+
                 func price(_ item: String) -> Int {
                     return adapt(super.price, item)
                 }
@@ -50,6 +51,7 @@ final class GeneratorPipelineTests: XCTestCase {
                 func value(_ void: Void = ()) -> Interaction<Void, None, Int > {
                     Interaction(.any, spy: super.value)
                 }
+
                 var value: Int {
                     get {
                         adapt(super.value, ())
@@ -78,6 +80,7 @@ final class GeneratorPipelineTests: XCTestCase {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
                 }
+
                 func doSomething() {
                     return adapt(super.doSomething, ())
                 }
@@ -172,6 +175,7 @@ final class GeneratorPipelineTests: XCTestCase {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)
                 }
+
                 func price(_ item: String) -> Int {
                     return adapt(super.price, item)
                 }

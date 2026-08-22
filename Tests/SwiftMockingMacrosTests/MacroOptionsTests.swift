@@ -24,6 +24,7 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
                 }
+
                 func doSomething() {
                     return adapt(super.doSomething, ())
                 }
@@ -52,6 +53,7 @@ final class MacroOptionsTests: MacroTestCase {
                 func doSomething() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: super.doSomething)
                 }
+
                 func doSomething() {
                     return adapt(super.doSomething, ())
                 }

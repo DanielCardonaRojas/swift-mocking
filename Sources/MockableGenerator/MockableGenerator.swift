@@ -46,10 +46,8 @@ public enum MockableGenerator {
         let interactions = makeInteractions(protocolDecl: protocolDecl)
         let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
 
-        var members = [MemberBlockItemSyntax]()
-        members.append(contentsOf: typeAliases.map { MemberBlockItemSyntax(decl: $0) })
-        members.append(contentsOf: interactions.map { MemberBlockItemSyntax(decl: $0) })
-        members.append(contentsOf: conformanceRequirements.map { MemberBlockItemSyntax(decl: $0) })
+        let members = separatedByBlankLines(typeAliases + interactions + conformanceRequirements)
+            .map { MemberBlockItemSyntax(decl: $0) }
 
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
@@ -88,6 +86,26 @@ public enum MockableGenerator {
         })
 
         return [DeclSyntax(ifConfigDecl)]
+    }
+
+    /// Inserts a blank line before every member but the first.
+    ///
+    /// Members come from three independent builders (type aliases,
+    /// interactions, conformance requirements), none of which knows what
+    /// precedes it, so separation is applied once here where the whole list is
+    /// known.
+    ///
+    /// The newline goes on the member's *first token* rather than on the
+    /// enclosing `MemberBlockItemSyntax`, because that is the trivia
+    /// `BasicFormat` reads: it prepends a newline only when the token does not
+    /// already start with one, and re-indents whatever newlines it finds. A
+    /// newline parked on the member block item instead lands ahead of the
+    /// declaration's own indentation and leaves the line misindented.
+    static func separatedByBlankLines(_ decls: [DeclSyntax]) -> [DeclSyntax] {
+        decls.enumerated().map { index, decl in
+            guard index > 0 else { return decl }
+            return DeclSyntax(decl.with(\.leadingTrivia, .newlines(2) + decl.leadingTrivia))
+        }
     }
 
     /// Checks if a protocol has any static members.
