@@ -24,6 +24,7 @@ final class BasicTests: MacroTestCase {
                 func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
                     Interaction(item, spy: super.price)
                 }
+
                 func price(_ item: String) -> Int {
                     return adapt(super.price, item)
                 }

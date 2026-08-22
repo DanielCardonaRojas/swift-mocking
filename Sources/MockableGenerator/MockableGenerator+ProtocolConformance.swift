@@ -73,7 +73,10 @@ extension MockableGenerator {
     static func functionRequirement(_ functionDecl: FunctionDeclSyntax) -> FunctionDeclSyntax {
         return FunctionDeclSyntax(
             attributes: functionDecl.attributes,
-            modifiers: functionDecl.modifiers,
+            // Trimmed because modifiers copied from the protocol carry the
+            // source's leading trivia; that stale newline and indentation would
+            // otherwise survive into the generated member and misindent it.
+            modifiers: functionDecl.modifiers.trimmed,
             name: functionDecl.name,
             genericParameterClause: functionDecl.genericParameterClause,
             signature: functionDecl.signature,
