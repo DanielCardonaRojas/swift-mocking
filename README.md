@@ -9,7 +9,7 @@
 
 `SwiftMocking` is a modern, type-safe mocking library for Swift that provides a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) and `@dynamicMemberLookup`.
 
-**Macros are optional.** The `@Mockable` macro is the most convenient way to get a mock, but it is not required, since mocks are ordinary Swift classes. You can generate them as written source with the [`mockable` CLI](#mock-generation-cli), or have an AI assistant write them for you with the [agent skill](#-agent-skill). Both produce the same code the macro does, without the compile-time plugin, and both handle cases the macro cannot (notably protocol inheritance).
+**Macros are optional.** The `@Mockable` macro is the most convenient way to get a mock, but it is not required, since mocks are ordinary Swift classes. You can generate them as written source with the [`mockable` CLI](#mock-generation-cli), or have an AI assistant write them for you with the [agent skill](#-agent-skill), with surprisingly short code. Both produce the same code the macro does, without the compile-time plugin, and both handle cases the macro cannot (notably protocol inheritance).
 
 ---
 
@@ -101,14 +101,6 @@ Build the release binary once so startup is near-instant on every subsequent run
 swift build -c release --product mockable   # → .build/release/mockable
 echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | .build/release/mockable
 ```
-
-Copy it onto your `PATH` (`cp .build/release/mockable /opt/homebrew/bin/`) to make it available everywhere. `swift run mockable` works too, but pays SwiftPM planning overhead each invocation.
-
-- Output keeps the `#if DEBUG` wrapper the macro emits; pass `--no-debug-wrap` when pasting into a test target, since a wrapped mock would vanish under `swift test -c release`.
-- Every top-level protocol in the input gets a mock, in declaration order.
-- Warnings go to stderr; stdout only ever contains generated code. Exits non-zero with annotated diagnostics when the input does not parse or declares no protocol.
-
-The skill's `.swiftinterface` files are generated from the compiled modules. Refresh them after changing public API with `./Scripts/generate-interface.sh`.
 
 ---
 
@@ -219,7 +211,7 @@ The [API documentation](https://danielcardonarojas.github.io/swift-mocking/docum
 
 ---
 
-## ⚠️ Protocol Inheritance Is Not Supported by the Macro
+## ⚠️ Protocol Inheritance Is Not Supported by Macros
 
 **`@Mockable` does not generate inherited requirements.** For `protocol B: A`, the generated mock implements only `B`'s own members and fails to compile:
 
@@ -259,9 +251,9 @@ The stubbing APIs carry `Sendable` constraints, and non-Sendable types have docu
 
 ## ⚙️ How it Works
 
-`SwiftMocking` leverages the power of Swift macros to generate mock implementations of your protocols. When you apply the `@Mockable` macro to a protocol, it generates a new class that inherits from a `Mock` base class. This generated mock class conforms to the original protocol.
+`SwiftMocking` leverages the power of Swift macros to generate mock implementations of your protocols. When you apply the `@Mockable` macro to a protocol, it generates a new class that inherits from a `Mock` base class that acts as a factory for spies. This generated mock class conforms to the original protocol.
 
-A Spy has this structure:
+At the heart of the system is the Spy type, which uses parameter packs to model any function signature and protocol requirement:
 
 ```swift
 let spy = Spy<ParamType1, ParamType2, ParamTypeN, Effect, ReturnType>()
@@ -273,9 +265,12 @@ let methodSpy = Spy<Bool, Int, AsyncThrows, Optional<String>>()
 
 ```
 
-The use of parameter packs here allows creating any number of parmeter types `ParamType1 ... ParamTypeN`.
+Every protocol requirement is backed by a `Spy` and tracked internally by the `Mock` base class, allowing the expanded code to remain compact.
 
+The use of parameter packs here allows creating any number of parmeter types `ParamType1 ... ParamTypeN`.
 This approach eliminates the need for manual mock implementations and provides a clean, expressive, and type-safe API for your tests.
+
+See this [article](https://dev.to/danielcardonarojas/swiftmocking-rethinking-test-doubles-with-modern-swift-3hoa)
 
 ---
 
