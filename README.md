@@ -1,9 +1,9 @@
 
 # SwiftMocking
 
-[![swift-version](https://img.shields.io/badge/swift-6.0-orange.svg)](https://img.shields.io/badge/swift-6.0-orange.svg)
-[![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-lightgrey.svg)](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS-blue.svg)
-[![license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://img.shields.io/badge/license-MIT-lightgrey.svg)
+[![Swift](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FDanielCardonaRojas%2Fswift-mocking%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/DanielCardonaRojas/swift-mocking)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FDanielCardonaRojas%2Fswift-mocking%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/DanielCardonaRojas/swift-mocking)
+[![license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 [![CI Status](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml/badge.svg?branch=main)](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml?query=branch%3Amain)
 
 
