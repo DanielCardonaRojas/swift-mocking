@@ -28,9 +28,9 @@
             }
 
             @Step {
-                That single annotation is all the macro needs. It generates `MockPricingService` next to your protocol — the equivalent of writing this by hand:
+                That single annotation is all the macro needs. It generates `MockPricingService` next to your protocol — the equivalent of writing this by hand. You never create or edit this file yourself:
 
-                @Code(name: "MockPricingService.swift (generated)", file: "01-1-3-generated-mock.swift", reset: true)
+                @Code(name: "MockPricingService.swift", file: "01-1-3-generated-mock.swift", reset: true)
             }
 
             @Step {
@@ -48,9 +48,21 @@
 
         @Steps {
             @Step {
-                Create `Store.swift`. The store registers items and asks the pricing service for each item's price:
+                Create `Store.swift`. Start with the state the store owns: the items it has registered and the price it recorded for each.
 
                 @Code(name: "Store.swift", file: "01-2-1-store.swift", reset: true)
+            }
+
+            @Step {
+                Inject the dependency. `Store` holds `any PricingService` rather than a concrete type — that existential is what lets a mock stand in for the real implementation without `Store` knowing the difference.
+
+                @Code(name: "Store.swift", file: "01-2-2-store.swift")
+            }
+
+            @Step {
+                Add the behavior under test. `register(_:)` appends the item and asks the pricing service what it costs — the single call your test will stub and then verify.
+
+                @Code(name: "Store.swift", file: "01-2-3-store.swift")
             }
         }
     }
@@ -64,9 +76,21 @@
 
         @Steps {
             @Step {
-                Create `StoreTests.swift`, instantiate the mock, and stub a price for each item you'll register. Then drive the store and assert the stubbed prices flowed through:
+                Create `StoreTests.swift` and wire up the two objects: the mock, and the `Store` that receives it. Nothing is stubbed yet — the mock exists, but it has no answers.
 
                 @Code(name: "StoreTests.swift", file: "01-3-1-store-tests.swift", reset: true)
+            }
+
+            @Step {
+                Arrange the behavior. Each `when` describes a call — `price(for: "apple")` — and pins the value it returns. The bare string literal is sugar for `.equal("apple")`, so each stub answers only its own item.
+
+                @Code(name: "StoreTests.swift", file: "01-3-2-store-tests.swift")
+            }
+
+            @Step {
+                Act, then assert. Registering both items drives the real `Store` logic, and the prices it recorded are exactly the ones you stubbed.
+
+                @Code(name: "StoreTests.swift", file: "01-3-3-store-tests.swift")
             }
 
             @Step {
@@ -91,6 +115,10 @@
 
             @Step {
                 Run the test again — it still passes, and now it also fails loudly if the store ever stops consulting the pricing service.
+            }
+
+            @Step {
+                Confirm the assertion has teeth. Temporarily change `.called(2)` to `.called(3)` and the test fails at that line with `Unfulfilled call count. Actual: 2` — the message reports what really happened, not just that something went wrong. Change it back before moving on.
 
                 You've completed the full mocking loop: **generate** with `@Mockable`, **arrange** with `when`, **act** on your type, **assert** with `verify`.
             }

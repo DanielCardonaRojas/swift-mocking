@@ -16,13 +16,25 @@
 
         @Steps {
             @Step {
-                Drive a pricing mock and pin down every corner: two total calls, one specific, one never-made, and a second mock entirely untouched:
+                Drive a pricing mock with two calls so there's a recorded history to assert against.
 
                 @Code(name: "CallCountTests.swift", file: "04-1-1-counts.swift")
             }
 
             @Step {
-                Count matchers compose too — `.called(.greaterThan(1))` or `.called(.in(1...3))` accept any `ArgMatcher<Int>`, just like value matchers.
+                Assert the positive space. `.called(2)` pins the total across both items, while the literal `"apple"` narrows to the single call that passed it — and bare `called()` means *exactly once*, not "at least once".
+
+                @Code(name: "CallCountTests.swift", file: "04-1-2-counts.swift")
+            }
+
+            @Step {
+                Now the negative space, which is just as much a part of the contract: `neverCalled()` asserts one interaction never happened, and `verifyZeroInteractions(_:)` asserts an entire mock was never touched at all.
+
+                @Code(name: "CallCountTests.swift", file: "04-1-3-counts.swift")
+            }
+
+            @Step {
+                Count matchers compose too — `.called(.greaterThan(1))` or `.called(.in(1...3))` accept any `ArgMatcher<Int>`, just like value matchers. Reach for these when the exact number isn't the point, such as asserting a retry happened at least once.
             }
         }
     }
@@ -36,19 +48,35 @@
 
         @Steps {
             @Step {
-                Declare a second dependency for analytics, then interleave calls to both mocks from your system:
+                Declare a second dependency. Ordering only becomes interesting once more than one collaborator is involved, so add an analytics service alongside the pricing one.
 
-                @Code(name: "CheckoutTests.swift", file: "04-2-1-in-order.swift")
+                @Code(name: "CheckoutTests.swift", file: "04-2-1-in-order.swift", reset: true)
             }
 
             @Step {
-                Wrap the expected sequence in `verifyInOrder` — each entry is the same call description you'd pass to `verify`:
+                Set up both mocks in a test.
 
-                @Code(name: "CheckoutTests.swift", file: "04-2-2-in-order-verify.swift")
+                @Code(name: "CheckoutTests.swift", file: "04-2-2-in-order.swift")
+            }
+
+            @Step {
+                Interleave calls to the two mocks, mimicking what your system under test would do: price an item, log the purchase, then price another.
+
+                @Code(name: "CheckoutTests.swift", file: "04-2-3-in-order.swift")
+            }
+
+            @Step {
+                Wrap the expected sequence in `verifyInOrder` — each entry is the same call description you'd pass to `verify`, and the assertion holds only if they occurred in exactly this relative order.
+
+                @Code(name: "CheckoutTests.swift", file: "04-2-4-in-order-verify.swift")
             }
 
             @Step {
                 The assertion passes only if matching invocations exist on each spy *in the written order* — other calls may interleave freely; only the relative order of the listed interactions is checked.
+            }
+
+            @Step {
+                Prove it's really checking order, not just presence: swap the first two lines inside `verifyInOrder` so the log is expected before the first price. All three calls still happened, but the test now fails — which is exactly the class of bug this catches.
             }
         }
     }
@@ -71,6 +99,12 @@
                 Enable logging on a mock instance and every subsequent invocation prints to the console — invaluable when you can't tell which arguments your production code is really passing:
 
                 @Code(name: "LoggingTests.swift", file: "04-3-2-logging.swift", reset: true)
+            }
+
+            @Step {
+                Reach for these in order: read the failure message first, since it reports the actual count; add `captured` when the count is right but the arguments are suspect; turn on logging last, when you need to see the calls arrive in real time.
+
+                That completes the toolkit — you can now stub, match, capture, count, and order every interaction your tests depend on.
             }
         }
     }
