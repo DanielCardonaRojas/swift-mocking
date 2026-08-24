@@ -29,7 +29,7 @@ final class GeneratorPipelineTests: XCTestCase {
                 }
 
                 func price(_ item: String) -> Int {
-                    return adapt(super.price, item)
+                    return adapt(super.price, item, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
@@ -57,7 +57,7 @@ final class GeneratorPipelineTests: XCTestCase {
 
                 var value: Int {
                     get {
-                        adapt(super.value, ())
+                        adapt(super.value, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                     }
                 }
             }
@@ -85,7 +85,7 @@ final class GeneratorPipelineTests: XCTestCase {
                 }
 
                 func doSomething() {
-                    return adapt(super.doSomething, ())
+                    return adapt(super.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
@@ -260,7 +260,7 @@ final class GeneratorPipelineTests: XCTestCase {
                 }
 
                 func price(_ item: String) -> Int {
-                    return adapt(super.price, item)
+                    return adapt(super.price, item, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             """

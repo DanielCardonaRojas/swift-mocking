@@ -26,7 +26,7 @@ final class MacroOptionsTests: MacroTestCase {
                 }
 
                 func doSomething() {
-                    return adapt(super.doSomething, ())
+                    return adapt(super.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
@@ -62,7 +62,7 @@ final class MacroOptionsTests: MacroTestCase {
                 }
 
                 func doSomething() {
-                    return Mock.adapt(self.mock.doSomething, ())
+                    return Mock.adapt(self.mock.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
@@ -103,7 +103,7 @@ final class MacroOptionsTests: MacroTestCase {
                 }
 
                 func doSomething() {
-                    return Mock.adapt(self.mock.doSomething, ())
+                    return Mock.adapt(self.mock.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
@@ -141,7 +141,7 @@ final class MacroOptionsTests: MacroTestCase {
                 }
 
                 static func reset() {
-                    return Mock.adapt(staticMock.reset, ())
+                    return Mock.adapt(staticMock.reset, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
@@ -309,7 +309,7 @@ final class MacroOptionsTests: MacroTestCase {
                 }
 
                 func doSomething() {
-                    return adapt(super.doSomething, ())
+                    return adapt(super.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
