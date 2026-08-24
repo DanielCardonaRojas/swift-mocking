@@ -351,10 +351,22 @@ public func until<each Input, Output>(
 // MARK: Asserts
 
 public extension Assert {
-    /// Asserts that the mocked method was called a specific number of times.
+    /// Asserts that the mocked method was called a number of times matching `countMatcher`.
+    ///
+    /// Passing a bare `Int` asserts an exact count, since `ArgMatcher` conforms to
+    /// `ExpressibleByIntegerLiteral`:
+    ///
+    /// ```swift
+    /// verify(mock.price(for: .any)).called()               // at least once
+    /// verify(mock.price(for: .any)).called(2)              // exactly twice
+    /// verify(mock.price(for: .any)).called(.greaterThan(1))
+    /// verify(mock.price(for: .any)).called(.in(1...3))
+    /// verify(mock.price(for: "cherry")).called(.equal(0))  // see also `neverCalled()`
+    /// ```
     ///
     /// - Parameter countMatcher: An `ArgMatcher<Int>` to specify the expected call count.
-    ///   Defaults to `.equal(1)` if `nil`, meaning the method is expected to be called exactly once.
+    ///   Defaults to `.greaterThan(.zero)` if `nil`, meaning the method is expected to be
+    ///   called *at least once*. Pass `.equal(1)` to require exactly one call.
     /// - Parameter file: The file where a verification failure is reported.
     /// - Parameter line: The line where a verification failure is reported.
     func called(

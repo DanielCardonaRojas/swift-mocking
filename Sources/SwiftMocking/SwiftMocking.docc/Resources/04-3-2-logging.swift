@@ -1,4 +1,5 @@
-func testInvocationLogging() {
+@Test
+func invocationLogging() {
     let mock = MockPricingService()
     mock.isLoggingEnabled = true
 

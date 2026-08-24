@@ -1,4 +1,5 @@
-func testComputedReturn() {
+@Test
+func computedReturn() {
     let mock = MockCalculator()
 
     // a and b are real Ints — no casting, ever.
@@ -6,5 +7,5 @@ func testComputedReturn() {
         a * b
     }
 
-    XCTAssertEqual(mock.calculate(a: 6, b: 7), 42)
+    #expect(mock.calculate(a: 6 == b: 7), 42)
 }

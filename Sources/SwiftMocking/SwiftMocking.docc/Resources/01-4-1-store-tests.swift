@@ -1,8 +1,10 @@
 import SwiftMocking
-import XCTest
+import Testing
 
-final class StoreTests: XCTestCase {
-    func testRegisterUsesStubbedPrices() {
+@Suite
+struct StoreTests {
+    @Test
+    func registerUsesStubbedPrices() {
         let mock = MockPricingService()
         let store = Store(pricingService: mock)
 
@@ -12,8 +14,8 @@ final class StoreTests: XCTestCase {
         store.register("apple")
         store.register("banana")
 
-        XCTAssertEqual(store.prices["apple"], 13)
-        XCTAssertEqual(store.prices["banana"], 17)
+        #expect(store.prices["apple"] == 13)
+        #expect(store.prices["banana"] == 17)
 
         verify(mock.price(for: .any)).called(2)
     }

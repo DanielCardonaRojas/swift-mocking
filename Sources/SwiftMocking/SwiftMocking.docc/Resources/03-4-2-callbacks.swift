@@ -1,3 +1,9 @@
-func testFetchUserDeliversSuccess() {
+@Test
+func fetchUserDeliversSuccess() async {
     let mock = MockNetworkService()
-    let received = expectation(description: "completion invoked")
+
+    // Swift Testing replaces XCTestExpectation with `confirmation`.
+    // The body must call `received()` exactly once before it returns.
+    await confirmation("completion invoked") { received in
+    }
+}

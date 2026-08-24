@@ -1,6 +1,6 @@
-@Tutorial(time: 10) {
+@Tutorial(time: 20) {
     @Intro(title: "Verify Every Interaction") {
-        You've verified counts and matched arguments. This page completes the toolkit: asserting a call happened *never*, proving a mock was *untouched*, and — the signature feature — verifying the *order* of calls as they happened across multiple mocks.
+        You've verified counts and matched arguments. This page completes the toolkit: counting calls with the full matcher vocabulary, asserting a call happened *never*, proving a mock was *untouched*, verifying thrown errors, waiting for calls that arrive from another task, distinguishing property reads from writes, and — the signature feature — verifying the *order* of calls across multiple mocks.
 
         You'll also learn to read failure output and turn on invocation logging when a test goes sideways.
 
@@ -9,20 +9,36 @@
 
     @Section(title: "Assert call counts") {
         @ContentAndMedia {
-            `verify(...).called(n)` asserts an *exact* count, and `called()` with no argument asserts exactly once. For the negative space there's `neverCalled()` on an interaction and `verifyZeroInteractions(_:)` for an entire mock.
+            `verify(...).called(n)` asserts an *exact* count, while bare `called()` asserts the method was called *at least once*. For the negative space there's `neverCalled()` and `verifyNever(_:)` on an interaction, and `verifyZeroInteractions(_:)` for an entire mock.
 
             @Image(source: intro-verifying, alt: "A counter above three recorded calls reading exactly three.")
         }
 
         @Steps {
             @Step {
-                Drive a pricing mock and pin down every corner: two total calls, one specific, one never-made, and a second mock entirely untouched:
+                Drive a pricing mock with two calls so there's a recorded history to assert against.
 
                 @Code(name: "CallCountTests.swift", file: "04-1-1-counts.swift")
             }
 
             @Step {
-                Count matchers compose too — `.called(.greaterThan(1))` or `.called(.in(1...3))` accept any `ArgMatcher<Int>`, just like value matchers.
+                Assert the positive space. `.called(2)` pins the total across both items, while the literal `"apple"` narrows to the single call that passed it.
+
+                Watch the default: bare `called()` means **at least once** (`.greaterThan(.zero)`), not exactly once. When you mean exactly one call, say `called(1)`.
+
+                @Code(name: "CallCountTests.swift", file: "04-1-2-counts.swift")
+            }
+
+            @Step {
+                Because the parameter is an ordinary `ArgMatcher<Int>`, the whole matcher vocabulary from the previous tutorial applies to counts as well — reach for these when the exact number isn't the point.
+
+                @Code(name: "CallCountTests.swift", file: "04-1-3-counts.swift")
+            }
+
+            @Step {
+                Now the negative space, which is just as much a part of the contract. `neverCalled()` and the standalone `verifyNever(_:)` are two spellings of `called(.equal(0))`; `verifyZeroInteractions(_:)` widens the claim to *every* method on a mock, which is how you prove a collaborator went completely unused.
+
+                @Code(name: "CallCountTests.swift", file: "04-1-4-counts.swift")
             }
         }
     }
@@ -36,19 +52,123 @@
 
         @Steps {
             @Step {
-                Declare a second dependency for analytics, then interleave calls to both mocks from your system:
+                Declare a second dependency. Ordering only becomes interesting once more than one collaborator is involved, so add an analytics service alongside the pricing one.
 
-                @Code(name: "CheckoutTests.swift", file: "04-2-1-in-order.swift")
+                @Code(name: "CheckoutTests.swift", file: "04-2-1-in-order.swift", reset: true)
             }
 
             @Step {
-                Wrap the expected sequence in `verifyInOrder` — each entry is the same call description you'd pass to `verify`:
+                Set up both mocks in a test.
 
-                @Code(name: "CheckoutTests.swift", file: "04-2-2-in-order-verify.swift")
+                @Code(name: "CheckoutTests.swift", file: "04-2-2-in-order.swift")
+            }
+
+            @Step {
+                Interleave calls to the two mocks, mimicking what your system under test would do: price an item, log the purchase, then price another.
+
+                @Code(name: "CheckoutTests.swift", file: "04-2-3-in-order.swift")
+            }
+
+            @Step {
+                Wrap the expected sequence in `verifyInOrder` — each entry is the same call description you'd pass to `verify`, and the assertion holds only if they occurred in exactly this relative order.
+
+                @Code(name: "CheckoutTests.swift", file: "04-2-4-in-order-verify.swift")
             }
 
             @Step {
                 The assertion passes only if matching invocations exist on each spy *in the written order* — other calls may interleave freely; only the relative order of the listed interactions is checked.
+            }
+
+            @Step {
+                Prove it's really checking order, not just presence: swap the first two lines inside `verifyInOrder` so the log is expected before the first price. All three calls still happened, but the test now fails — which is exactly the class of bug this catches.
+            }
+        }
+    }
+
+    @Section(title: "Verify thrown errors") {
+        @ContentAndMedia {
+            When a requirement is `throws`, its `Assert` gains a `throws(_:)` method. It asserts that matching calls actually threw — and optionally that the error was of a particular kind, using the same `ArgMatcher` vocabulary applied to `any Error`.
+
+            @Image(source: chapter-advanced, alt: "A mocked call branching into a thrown error, with an assertion confirming its type.")
+        }
+
+        @Steps {
+            @Step {
+                Declare a service with both a throwing and an async throwing requirement, plus a concrete error type to throw.
+
+                @Code(name: "PaymentService.swift", file: "04-4-1-throwing.swift", reset: true)
+            }
+
+            @Step {
+                Stub the two paths separately: `.thenThrow` for the failure case, `.thenReturn` for the success case. Matchers decide which amounts take which path.
+
+                @Code(name: "PaymentTests.swift", file: "04-4-2-throwing.swift", reset: true)
+            }
+
+            @Step {
+                Assert the throw. Bare `throws()` accepts any error; `.anyError()` says so explicitly; `.error(_:)` pins the concrete type. Counting assertions work on the same interaction, unchanged.
+
+                @Code(name: "PaymentTests.swift", file: "04-4-3-throwing.swift")
+            }
+
+            @Step {
+                For an `async throws` requirement the assertion is itself awaited — `await verify(...).throws(...)`. Note that `called(_:)` never needs `await`, whatever the effect.
+
+                @Code(name: "PaymentTests.swift", file: "04-4-4-throwing.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Wait for calls that haven't happened yet") {
+        @ContentAndMedia {
+            Verification is retrospective: it asks what already happened. When the call you care about is dispatched from another task, `until` bridges the gap — it suspends until a matching invocation is recorded, or fails once the timeout elapses.
+
+            @Image(source: intro-verifying, alt: "A test suspending on a timeline until a mocked call arrives from another task.")
+        }
+
+        @Steps {
+            @Step {
+                Kick off work on a detached task, then `await until(...)` before verifying. Without it the verification would run first and see nothing — the classic async test flake.
+
+                @Code(name: "SyncEngineTests.swift", file: "04-5-1-until.swift", reset: true)
+            }
+
+            @Step {
+                `until` takes the same interaction you'd pass to `verify`, so matchers narrow *which* call you're waiting for. The `timeout` defaults to one second; it throws rather than hanging if the call never arrives.
+            }
+        }
+    }
+
+    @Section(title: "Verify property reads and writes") {
+        @ContentAndMedia {
+            A `{ get set }` requirement records reads and writes on **two separate spies**. The plain expression verifies reads; the `<-` operator turns it into the write interaction. A write never counts as a read, which is the single most surprising rule in the library.
+
+            @Image(source: chapter-advanced, alt: "A property with two separate tally columns, one for reads and one for writes.")
+        }
+
+        @Steps {
+            @Step {
+                Declare a protocol with two settable properties.
+
+                @Code(name: "FeatureFlags.swift", file: "04-6-1-settable.swift", reset: true)
+            }
+
+            @Step {
+                Read once and write once, then count each independently. Note that you drive properties on the mock directly — no protocol-typed reference needed, because the runtime member is a `var` and the interaction member is a `func`.
+
+                @Code(name: "FeatureFlagsTests.swift", file: "04-6-2-settable.swift", reset: true)
+            }
+
+            @Step {
+                Matchers apply to the written value just as they do to arguments. In `captured`, the write pack is the read pack *plus* the new value — for a property the read pack is empty, hence the leading `_`.
+
+                @Code(name: "FeatureFlagsTests.swift", file: "04-6-3-settable.swift")
+            }
+
+            @Step {
+                You can also stub the write itself to observe values as they land, and a write interaction composes with `verifyInOrder` like any other. (Mixing a property *read* into that list needs its explicit `mock.prop(()).get` form.)
+
+                @Code(name: "FeatureFlagsTests.swift", file: "04-6-4-settable.swift", reset: true)
             }
         }
     }
@@ -72,63 +192,11 @@
 
                 @Code(name: "LoggingTests.swift", file: "04-3-2-logging.swift", reset: true)
             }
-        }
-    }
 
-    @Assessments {
-        @MultipleChoice {
-            What does `verify(mock.price(for: .any)).called()` assert, with no argument?
+            @Step {
+                Reach for these in order: read the failure message first, since it reports the actual count; add `captured` when the count is right but the arguments are suspect; turn on logging last, when you need to see the calls arrive in real time.
 
-            @Choice(isCorrect: false) {
-                The method was called at least once.
-
-                @Justification(reaction: "Try again!") {
-                    That's the behavior of some frameworks, but here the default is stricter.
-                }
-            }
-
-            @Choice(isCorrect: true) {
-                The method was called exactly once.
-
-                @Justification(reaction: "That's right!") {
-                    `called()` defaults to `.equal(1)`. For looser bounds pass a count matcher, like `.called(.greaterThan(0))`.
-                }
-            }
-
-            @Choice(isCorrect: false) {
-                The method was called at most once.
-
-                @Justification(reaction: "Try again!") {
-                    Zero calls would fail too — it's an exact assertion.
-                }
-            }
-        }
-
-        @MultipleChoice {
-            Your checkout test needs to prove the analytics event fired *between* the two pricing calls. Which tool asserts that?
-
-            @Choice(isCorrect: false) {
-                Three separate `verify(...).called()` assertions.
-
-                @Justification(reaction: "Try again!") {
-                    Separate assertions prove each call happened, but say nothing about their order.
-                }
-            }
-
-            @Choice(isCorrect: true) {
-                A single `verifyInOrder` listing all three interactions.
-
-                @Justification(reaction: "That's right!") {
-                    `verifyInOrder` checks the listed interactions occurred in the written sequence, even across different mocks.
-                }
-            }
-
-            @Choice(isCorrect: false) {
-                `verifyZeroInteractions` on the analytics mock.
-
-                @Justification(reaction: "Try again!") {
-                    That asserts the *absence* of all interactions — the opposite of what you need.
-                }
+                That completes the toolkit — you can now stub, match, capture, count, and order every interaction your tests depend on.
             }
         }
     }

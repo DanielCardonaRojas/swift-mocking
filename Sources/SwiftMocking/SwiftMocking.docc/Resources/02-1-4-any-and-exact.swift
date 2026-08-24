@@ -1,8 +1,10 @@
 import SwiftMocking
-import XCTest
+import Testing
 
-final class OrderServiceTests: XCTestCase {
-    func testAnyVersusExact() {
+@Suite
+struct OrderServiceTests {
+    @Test
+    func anyVersusExact() {
         let mock = MockOrderService()
 
         // The fallback: answers every call, whatever the amount.
@@ -11,5 +13,5 @@ final class OrderServiceTests: XCTestCase {
         // More specific: wins for this exact amount.
         when(mock.discount(forAmountCents: 999)).thenReturn(200)
 
-        XCTAssertEqual(mock.discount(forAmountCents: 999), 200)
-        XCTAssertEqual(mock.discount(forAmountCents: 199), 100)
+        #expect(mock.discount(forAmountCents: 999) == 200)
+        #expect(mock.discount(forAmountCents: 199) == 100)

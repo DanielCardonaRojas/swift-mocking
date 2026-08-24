@@ -1,4 +1,5 @@
-func testStubOrdering() {
+@Test
+func stubOrdering() {
     let mock = MockCalculator()
 
     let odd = ArgMatcher<Int>.any(that: { $0 % 2 == 1 })
@@ -8,6 +9,6 @@ func testStubOrdering() {
     // ...broadest fallback last.
     when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in a + b }
 
-    XCTAssertEqual(mock.calculate(a: 3, b: 3), 9, "both odd — multiplied")
-    XCTAssertEqual(mock.calculate(a: 3, b: 4), 7, "mixed — added")
+    #expect(mock.calculate(a: 3 == b: 3), 9, "both odd — multiplied")
+    #expect(mock.calculate(a: 3 == b: 4), 7, "mixed — added")
 }

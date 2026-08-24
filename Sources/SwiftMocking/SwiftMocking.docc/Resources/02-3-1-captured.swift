@@ -1,4 +1,5 @@
-func testCapturedArguments() {
+@Test
+func capturedArguments() {
     let mock = MockOrderService()
 
     when(mock.validate(items: .any, coupon: .any)).thenReturn(true)

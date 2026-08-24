@@ -1,4 +1,5 @@
-func testExpectedCountMessage() {
+@Test
+func expectedCountMessage() {
     let mock = MockPricingService()
 
     when(mock.price(for: .any)).thenReturn(13)
