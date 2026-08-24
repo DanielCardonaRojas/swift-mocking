@@ -1,8 +1,8 @@
-@Tutorial(time: 10) {
+@Tutorial(time: 20) {
     @Intro(title: "Stub Dynamically") {
         Fixed return values only go so far. Real dependencies *compute*: a calculator multiplies its operands, a sync engine mutates state, a network service delivers results through callbacks.
 
-        In this tutorial you'll stub with closures that receive the actual arguments — fully typed, no casting — learn how overlapping stubs resolve, register side effects, and drive callback-based APIs on your terms.
+        In this tutorial you'll stub with closures that receive the actual arguments — fully typed, no casting — learn exactly how overlapping stubs resolve through matcher precedence, register side effects, and drive callback-based APIs on your terms.
 
         @Image(source: intro-dynamic, alt: "Two arguments entering a closure and a computed value leaving it, drawn as a function machine.")
     }
@@ -37,7 +37,7 @@
 
     @Section(title: "Order your stubs") {
         @ContentAndMedia {
-            Stubs with different matchers coexist: the most specific matcher that matches a call answers it. When you register another stub for the *same* matcher, the later registration wins.
+            Stubs with different matchers coexist: the most specific matcher that matches a call answers it. Registration order doesn't come into it — the next section explains exactly how "most specific" is decided.
 
             @Image(source: chapter-advanced, alt: "Three overlapping stub bands, with an arrow showing the most specific band answering a call first.")
         }
@@ -59,6 +59,68 @@
                 Exercise both paths. Two odd operands hit the specific stub and multiply; a mixed pair falls through to `.any` and adds.
 
                 @Code(name: "CalculatorTests.swift", file: "03-2-3-ordering.swift")
+            }
+        }
+    }
+
+    @Section(title: "Understand matcher precedence") {
+        @ContentAndMedia {
+            "Most specific wins" is a real rule with a number behind it. Every matcher carries a **precedence**, and when several stubs match one call, the one whose matchers total the highest precedence answers it.
+
+            The ladder runs `.any` (0), type matchers like `.is` and `.hasCount` (100), predicates and ranges like `.greaterThan` and `.in` (200), `.equal` and bare literals (500), `.identical` (600), then two custom tiers (700 and 999).
+
+            @Image(source: chapter-advanced, alt: "A ladder of matcher tiers from any at the bottom to custom at the top, with a call selecting the highest matching rung.")
+        }
+
+        @Steps {
+            @Step {
+                Start with a service that has a single-argument method and a two-argument one — you'll use the second to see how multiple arguments combine.
+
+                @Code(name: "RateService.swift", file: "03-5-1-precedence.swift", reset: true)
+            }
+
+            @Step {
+                Register three stubs on the same method, spanning three tiers of the ladder: `.any` at 0, `.greaterThan` at 200, and the bare literal `500` at 500.
+
+                @Code(name: "RateServiceTests.swift", file: "03-5-2-precedence.swift", reset: true)
+            }
+
+            @Step {
+                Now call it with three amounts. Each call is answered by the highest-precedence stub that matches it — and `500` matches all three stubs, yet only the most specific one responds.
+
+                @Code(name: "RateServiceTests.swift", file: "03-5-3-precedence.swift")
+            }
+
+            @Step {
+                Prove that order is irrelevant by registering the identical stubs in reverse. The results don't change: a late `.any` cannot override an earlier `.equal`, because 0 will never outrank 500.
+
+                This is the property that makes stubs safe to reorder or extract into shared setup helpers.
+
+                @Code(name: "RateServiceTests.swift", file: "03-5-4-precedence.swift", reset: true)
+            }
+
+            @Step {
+                For a method with several parameters the precedences are **summed across the argument pack**. Two predicates total 400; one exact value plus one `.any` totals 500 — so the second stub wins even though it's `.any` in a position where the first is specific.
+
+                Specificity is a property of the whole call, not of any single argument.
+
+                @Code(name: "RateServiceTests.swift", file: "03-5-5-precedence.swift", reset: true)
+            }
+
+            @Step {
+                Registration order matters in exactly one case: when two stubs **tie**. Stub the same matcher twice and the totals are equal, so the later registration wins — which is how you deliberately replace a stub.
+
+                @Code(name: "RateServiceTests.swift", file: "03-5-6-precedence.swift", reset: true)
+            }
+
+            @Step {
+                When you need to escape the ladder, build the matcher by hand and choose its precedence. `.customHigh` (700) and `.customExtreme` (999) sit above every built-in tier, so a predicate that would normally lose to `.equal` can be made to win.
+
+                @Code(name: "RateServiceTests.swift", file: "03-5-7-precedence.swift", reset: true)
+            }
+
+            @Step {
+                One boundary worth remembering: precedence applies only to **stubbing**. Verification is unaffected — `verify(mock.rate(forAmount: .any)).called(3)` counts every matching invocation regardless of which stub supplied the return value.
             }
         }
     }

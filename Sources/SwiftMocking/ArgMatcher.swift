@@ -31,6 +31,22 @@ public struct ArgMatcher<Argument>: Sendable {
     var precedence: MatcherPrecedence
     let matcher: @Sendable (Argument) -> Bool
 
+    /// Creates a matcher from a predicate.
+    ///
+    /// Most of the time you'll use a factory such as `.any`, `.equal`, or `.any(that:)`
+    /// instead. Reach for this initializer when you need to control how the matcher ranks
+    /// against others — see ``MatcherPrecedence``.
+    ///
+    /// ```swift
+    /// // Outranks even `.equal`, because 999 > 500.
+    /// let roundNumbers = ArgMatcher<Int>(precedence: .customExtreme) { $0 % 100 == 0 }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - precedence: How specific this matcher is. When a call matches several stubs,
+    ///     the one whose matchers total the highest precedence answers it. Defaults to
+    ///     ``MatcherPrecedence/typeMatch``.
+    ///   - matcher: Returns `true` when the argument matches.
     public init(
         precedence: MatcherPrecedence = .typeMatch,
         matcher: @escaping @Sendable (Argument) -> Bool
@@ -629,17 +645,111 @@ public extension ArgMatcher where Argument: Collection, Argument: Sendable, Argu
 }
 
 // MARK: - MatcherPrecendence
+
+/// How *specific* an ``ArgMatcher`` is, used to decide which stub answers a call.
+///
+/// ## Why this exists
+///
+/// Stubs are additive: registering `.any` doesn't replace an earlier `.equal(5)`, so a
+/// single call frequently matches several stubs at once. Something has to break the tie.
+///
+/// Resolving by registration order would make tests fragile — moving a `when` line, or
+/// extracting shared setup into a helper, would silently change behavior. Instead each
+/// matcher carries a precedence, and the **most specific matching stub wins regardless of
+/// the order the stubs were registered in**. That lets you write a broad fallback next to
+/// narrow special cases and read the result off the matchers alone:
+///
+/// ```swift
+/// when(mock.rate(forAmount: .any)).thenReturn("any")               //   0
+/// when(mock.rate(forAmount: .greaterThan(100))).thenReturn("high") // 200
+/// when(mock.rate(forAmount: 500)).thenReturn("exact")              // 500
+///
+/// service.rate(forAmount: 500)  // "exact"  — 500 outranks 200 and 0
+/// service.rate(forAmount: 250)  // "high"   — 200 outranks 0
+/// service.rate(forAmount: 5)    // "any"    — the only stub that matches
+/// ```
+///
+/// ## The ladder
+///
+/// | Precedence | Value | Matchers |
+/// | --- | --- | --- |
+/// | ``any`` | 0 | `.any` |
+/// | ``typeMatch`` | 100 | `.any(_:)`, `.is`, `.as`, `.hasCount`, `.anyError` |
+/// | ``predicate`` | 200 | `.any(that:)`, `.lessThan`, `.greaterThan`, `.in`, `.between`, `.notNil`, `.nil`, `.contains` |
+/// | ``equalTo`` | 500 | `.equal`, and bare literals like `5` or `"apple"` |
+/// | ``identicalTo`` | 600 | `.identical` |
+/// | ``customHigh`` | 700 | available for your own matchers |
+/// | ``customExtreme`` | 999 | available for your own matchers |
+///
+/// ## Multi-argument calls sum their matchers
+///
+/// For a method with several parameters the precedences are **added together**, so
+/// specificity is a property of the whole call rather than any single argument:
+///
+/// ```swift
+/// // (.greaterThan, .any(that:)) = 200 + 200 = 400
+/// when(mock.fee(amount: .greaterThan(0), currency: .any(that: { !$0.isEmpty })))
+///     .thenReturn("both predicates")
+///
+/// // (.equal, .any)              = 500 +   0 = 500  ← wins
+/// when(mock.fee(amount: 100, currency: .any)).thenReturn("one exact")
+///
+/// service.fee(amount: 100, currency: "USD")  // "one exact"
+/// ```
+///
+/// ## Ties
+///
+/// Two stubs with the *same* total precedence — most often two registrations of the same
+/// matcher — are resolved by recency: the later registration wins. This is the only case
+/// where the order of your `when` calls matters.
+///
+/// ## Overriding the ladder
+///
+/// ``customHigh`` and ``customExtreme`` sit above every built-in tier, so a hand-built
+/// matcher can outrank even `.equal` when you need it to:
+///
+/// ```swift
+/// let roundNumbers = ArgMatcher<Int>(precedence: .customExtreme) { $0 % 100 == 0 }
+///
+/// when(mock.rate(forAmount: 500)).thenReturn("exact")       // 500
+/// when(mock.rate(forAmount: roundNumbers)).thenReturn("vip") // 999 ← wins
+/// ```
+///
+/// - Note: Verification is unaffected by precedence. `verify(...)` counts *every*
+///   invocation matching the matcher you pass; precedence only selects which stub
+///   supplies a return value.
 public struct MatcherPrecedence: Comparable, Hashable, Sendable {
+    /// Matches anything (0). The broadest tier — used by `.any`.
     public static let any: Self                = .init(value: 0)
+
+    /// Matches on type or shape rather than value (100).
+    ///
+    /// Used by `.any(_:)`, `.is`, `.as`, `.hasCount`, and `.anyError`.
     public static let typeMatch: Self          = .init(value: 100)
+
+    /// Matches a range or an arbitrary condition (200).
+    ///
+    /// Used by `.any(that:)`, `.lessThan`, `.greaterThan`, `.in`, `.between`,
+    /// `.notNil`, `.nil`, and the string matchers such as `.contains`.
     public static let predicate: Self          = .init(value: 200)
+
+    /// Matches one exact value (500). Used by `.equal` and by bare literals.
     public static let equalTo: Self            = .init(value: 500)
+
+    /// Matches one specific instance by identity (600). Used by `.identical`.
     public static let identicalTo: Self        = .init(value: 600)
+
+    /// Above every built-in tier (700), reserved for custom matchers.
     public static let customHigh: Self         = .init(value: 700)
+
+    /// The highest usable precedence (999), reserved for custom matchers.
     public static let customExtreme: Self      = .init(value: 999)
 
+    /// The underlying rank. Higher wins; values are summed across an argument pack.
     public var value: Int
 
+    /// Creates a precedence with the given rank, clamped to a maximum of 1000.
+    /// - Parameter value: The rank. Higher values win over lower ones.
     public init(value: Int) {
         self.value = min(value, 1000)
     }
