@@ -32,9 +32,9 @@ let package = Package(
     platforms: [
         .macOS(.v14),
         .iOS(.v17),
-        .tvOS(.v13),
+        .tvOS(.v17),
         .watchOS(.v10),
-        .macCatalyst(.v13)
+        .macCatalyst(.v17)
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -64,6 +64,9 @@ let package = Package(
             dependencies: [
                 "SwiftMockingMacros",
                 "SwiftMockingOptions",
+                // Not imported by any source file here, but `@Mockable` expansions in
+                // client targets reference MockableGenerator symbols, which xcodebuild
+                // only resolves if the dependency is declared on this target.
                 "MockableGenerator",
                 .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
             ],

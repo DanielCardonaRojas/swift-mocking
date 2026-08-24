@@ -1,4 +1,6 @@
-#if canImport(XCTest)
+// WASI ships an XCTest module whose members are all marked unavailable, so
+// `canImport(XCTest)` succeeds there while `invokeTest()` cannot be overridden.
+#if canImport(XCTest) && !os(WASI)
 import XCTest
 import SwiftMocking
 
