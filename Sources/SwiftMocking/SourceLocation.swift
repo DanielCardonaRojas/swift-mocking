@@ -150,7 +150,7 @@ public struct SourceLocation: Sendable {
 /// attributed to the calling frame rather than to `reportUnrecoverable` itself. Without it,
 /// the runtime's crash message ends in `at SourceLocation.reportUnrecoverable` and Xcode's
 /// stack navigator selects SwiftMocking's frame instead of the mocked requirement's.
-//@_transparent
+@_transparent
 @usableFromInline
 func reportUnrecoverable(
     _ error: any Error,

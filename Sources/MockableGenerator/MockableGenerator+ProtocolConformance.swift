@@ -252,7 +252,8 @@ extension MockableGenerator {
     /// adapt(super.myMethod, param1)
     /// ```
     private static func adaptCall(effectType: EffectType, requirementName: TokenSyntax, parameters: [ExprSyntax]) -> FunctionCallExprSyntax {
-        let adaptingName = "adapt" + (effectType.rawValue.contains("Throws") ? "Throwing" : "")
+        let isThrowing = effectType.rawValue.contains("Throws")
+        let adaptingName = "adapt" + (isThrowing ? "Throwing" : "")
         return FunctionCallExprSyntax(
             calledExpression: DeclReferenceExprSyntax(
                 baseName: .identifier(adaptingName)
@@ -278,6 +279,29 @@ extension MockableGenerator {
                     for parameter in parameters {
                         LabeledExprSyntax(expression: parameter)
                     }
+                }
+
+                // Source location of the requirement being mocked.
+                //
+                // These magic literals are expanded where the macro's output is attached —
+                // the user's `@Mockable` protocol — so they resolve to that protocol's file
+                // and line rather than anywhere inside SwiftMocking. Passing them as
+                // *arguments* keeps the generated method's signature identical to the
+                // protocol requirement; adding them as parameters would break conformance.
+                //
+                // Only the non-throwing adapters take a location. A throwing requirement
+                // surfaces an unstubbed call as a thrown `MockingError` carrying the full
+                // message, which the test framework already reports; passing a location
+                // there would only add a duplicate, message-less issue.
+                for name in isThrowing ? [] : ["fileID", "filePath", "line", "column"] {
+                    LabeledExprSyntax(
+                        label: .identifier(name),
+                        colon: .colonToken(),
+                        expression: MacroExpansionExprSyntax(
+                            macroName: .identifier(name),
+                            arguments: LabeledExprListSyntax()
+                        )
+                    )
                 }
             },
             rightParen: .rightParenToken()

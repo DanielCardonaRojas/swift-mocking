@@ -26,7 +26,7 @@ final class BasicTests: MacroTestCase {
                 }
 
                 func price(_ item: String) -> Int {
-                    return adapt(super.price, item)
+                    return adapt(super.price, item, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
