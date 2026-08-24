@@ -1,7 +1,9 @@
 import SwiftMocking
-import XCTest
+import Testing
 
-final class StoreTests: XCTestCase {
-    func testRegisterUsesStubbedPrices() {
+@Suite
+struct StoreTests {
+    @Test
+    func registerUsesStubbedPrices() {
         let mock = MockPricingService()
         let store = Store(pricingService: mock)

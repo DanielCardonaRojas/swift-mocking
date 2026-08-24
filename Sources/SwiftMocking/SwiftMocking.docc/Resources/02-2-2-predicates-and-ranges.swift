@@ -1,4 +1,5 @@
-func testPredicatesAndRanges() {
+@Test
+func predicatesAndRanges() {
     let mock = MockOrderService()
 
     when(mock.discount(forAmountCents: .lessThan(100))).thenReturn(0)

@@ -1,0 +1,111 @@
+@Tutorial(time: 15) {
+    @Intro(title: "Swift Testing, Defaults, and Statics") {
+        Every test so far has been an ordinary `@Test`. This page covers what Swift Testing adds on top: **traits**, which scope behavior to a test or a whole suite.
+
+        Two traits matter for mocking. `.withDefaults(_:)` decides what an *unstubbed* requirement returns, so a mock with fifty methods needs stubs only for the handful your test cares about. `.mocking` gives a test its own spy storage, which is what makes **static** requirements safe when tests run in parallel.
+
+        @Image(source: chapter-advanced, alt: "Two test cases running side by side, each with its own isolated box of mock state.")
+    }
+
+    @Section(title: "Control what unstubbed requirements return") {
+        @ContentAndMedia {
+            Calling a method you never stubbed doesn't trap — it returns a registered default for the return type: `""` for `String`, `0` for numbers, `false` for `Bool`, empty collections, `nil` for optionals.
+
+            That's a sensible baseline, but it's rarely the value your test wants. `.withDefaults(_:)` replaces it for the scope of a test or suite.
+
+            @Image(source: chapter-getting-started, alt: "An unstubbed method call falling through to a registry that supplies a default value.")
+        }
+
+        @Steps {
+            @Step {
+                Start with a protocol whose requirements return three different types.
+
+                @Code(name: "UserProfile.swift", file: "05-1-1-profile.swift", reset: true)
+            }
+
+            @Step {
+                Call every requirement without stubbing anything. Each returns the zero value for its type — useful when a dependency is irrelevant to what you're testing, and you'd rather not write stubs just to keep it quiet.
+
+                @Code(name: "UserProfileTests.swift", file: "05-1-2-defaults.swift", reset: true)
+            }
+
+            @Step {
+                Now attach `.withDefaults(_:)`. It takes a variadic list of values and matches them to requirements **by return type** — so `"Guest"` answers every unstubbed `String`, `5` every `Int`, and `true` every `Bool`.
+
+                @Code(name: "UserProfileTests.swift", file: "05-1-3-defaults.swift", reset: true)
+            }
+
+            @Step {
+                The trait works at suite level too, and nests: a suite sets the baseline, a test overrides it, and an explicit `when` stub beats both. Defaults are the fallback of last resort, and they're scoped — a test without the trait is unaffected by one that has it.
+
+                @Code(name: "UserProfileTests.swift", file: "05-1-4-defaults.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Mock static requirements safely") {
+        @ContentAndMedia {
+            Static requirements have no instance to hang state on, so their spies live in shared storage. Under Swift Testing — which runs tests in parallel by default — that shared storage is a race waiting to happen.
+
+            The `.mocking` trait solves it by binding fresh, task-local spy storage for the duration of a test.
+
+            @Image(source: chapter-advanced, alt: "Two parallel tests each holding a separate copy of static mock storage.")
+        }
+
+        @Steps {
+            @Step {
+                Declare a protocol with a static method and a static property. The macro generates static members on the mock to match.
+
+                @Code(name: "Clock.swift", file: "05-2-1-clock.swift", reset: true)
+            }
+
+            @Step {
+                Stub and verify the static method on the *type* — `MockClock.now()` — rather than on an instance. The `.mocking` trait is what keeps this test's static calls to itself.
+
+                @Code(name: "ClockTests.swift", file: "05-2-2-static.swift", reset: true)
+            }
+
+            @Step {
+                Add a second test to prove the isolation. It opens by asserting `neverCalled()`, which would fail if the previous test's invocations were still visible — exactly the flake `.mocking` prevents.
+
+                @Code(name: "ClockTests.swift", file: "05-2-3-static.swift")
+            }
+
+            @Step {
+                Static properties follow the same pattern: stub the type member, read it, verify the read.
+
+                @Code(name: "ClockTests.swift", file: "05-2-4-static.swift")
+            }
+
+            @Step {
+                Reach for `.mocking` whenever a test touches static requirements or uses `verifyInOrder`, since the cross-spy timeline is shared state too. It's harmless on tests that need neither, so applying it at suite level is a reasonable default.
+            }
+        }
+    }
+
+    @Section(title: "Use the rest of Swift Testing's vocabulary") {
+        @ContentAndMedia {
+            Mocks compose with the framework's other features. Two come up constantly: parameterized tests, which run one body across many inputs, and `#expect(throws:)`, which asserts at the call site.
+
+            @Image(source: intro-matching, alt: "A single test body fanning out into several argument pairs.")
+        }
+
+        @Steps {
+            @Step {
+                A parameterized `@Test` runs once per argument, each with a fresh mock. Note the matcher: `item` is a runtime value rather than a literal, so it needs an explicit `.equal(item)` — the bare-literal shorthand only applies to literals.
+
+                @Code(name: "PricingTests.swift", file: "05-3-1-parameterized.swift", reset: true)
+            }
+
+            @Step {
+                For failures you have two complementary assertions. `#expect(throws:)` checks what the *call site* saw; `verify(...).throws(...)` checks what the *mock* recorded. Using both pins down the error's whole round trip.
+
+                @Code(name: "PaymentTests.swift", file: "05-3-2-expect-throws.swift", reset: true)
+            }
+
+            @Step {
+                One habit carries over from every section: call the mock through a **protocol-typed reference** when passing literal arguments. On the mock type itself, `mock.price(for: "apple")` resolves to the interaction overload and returns a description instead of calling through.
+            }
+        }
+    }
+}

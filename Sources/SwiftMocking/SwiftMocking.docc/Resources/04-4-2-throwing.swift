@@ -1,4 +1,5 @@
-func testChargeFailsForLargeAmounts() throws {
+@Test
+func chargeFailsForLargeAmounts() throws {
     let mock = MockPaymentService()
 
     // Stub the failure path with .thenThrow, the happy path with .thenReturn.

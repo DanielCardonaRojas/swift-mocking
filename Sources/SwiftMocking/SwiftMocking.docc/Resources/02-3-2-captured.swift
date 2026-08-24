@@ -1,4 +1,5 @@
-func testCapturedArguments() {
+@Test
+func capturedArguments() {
     let mock = MockOrderService()
 
     when(mock.validate(items: .any, coupon: .any)).thenReturn(true)
@@ -9,4 +10,4 @@ func testCapturedArguments() {
     // with its concrete, fully typed arguments.
     verify(mock.validate(items: .any, coupon: .equal("SUMMER")))
         .captured { items, coupon in
-            XCTAssertEqual(items, ["apple", "banana"])
+            #expect(items == ["apple", "banana"])

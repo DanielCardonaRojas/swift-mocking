@@ -1,4 +1,5 @@
-func testNotificationArrivesEventually() async throws {
+@Test
+func notificationArrivesEventually() async throws {
     let mock = MockSyncEngine()
     when(mock.refresh(id: .any)).thenReturn(())
 

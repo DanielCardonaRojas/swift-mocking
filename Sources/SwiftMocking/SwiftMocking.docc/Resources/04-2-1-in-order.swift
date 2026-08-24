@@ -1,5 +1,5 @@
 import SwiftMocking
-import XCTest
+import Testing
 
 @Mockable
 protocol AnalyticsService {

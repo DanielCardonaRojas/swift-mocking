@@ -1,4 +1,5 @@
-func testReadsAndWritesAreCountedSeparately() {
+@Test
+func readsAndWritesAreCountedSeparately() {
     let mock = MockFeatureFlags()
     when(mock.isEnabled).thenReturn(true)
 
@@ -17,7 +18,7 @@ func testReadsAndWritesAreCountedSeparately() {
     verify(mock.retryCount <- .greaterThan(5)).called(1)
     verify(mock.retryCount <- .any).called(2)
     verify(mock.retryCount <- .any).captured { _, newValue in
-        XCTAssertTrue(newValue == 3 || newValue == 9)
+        #expect(newValue == 3 || newValue == 9)
     }
 
     // Never written at all?

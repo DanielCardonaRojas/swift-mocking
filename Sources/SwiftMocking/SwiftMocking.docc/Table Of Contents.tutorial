@@ -32,4 +32,12 @@
 
         @TutorialReference(tutorial: "doc:verifying-interactions")
     }
+
+    @Chapter(name: "Swift Testing Integration") {
+        @Image(source: chapter-advanced, alt: "Two test cases running side by side, each with its own isolated box of mock state.")
+
+        Scope behavior with traits: inject defaults for unstubbed requirements, isolate static requirements across parallel tests, and combine mocks with parameterized tests.
+
+        @TutorialReference(tutorial: "doc:testing-integration")
+    }
 }

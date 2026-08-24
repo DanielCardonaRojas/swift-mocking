@@ -1,4 +1,5 @@
-func testComputedReturn() {
+@Test
+func computedReturn() {
     let mock = MockCalculator()
 
     // a and b are real Ints — no casting, ever.

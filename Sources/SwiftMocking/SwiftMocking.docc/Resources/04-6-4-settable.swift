@@ -12,7 +12,9 @@ final class IntRecorder: @unchecked Sendable {
     }
 }
 
-func testObserveWritesAsTheyHappen() {
+@Test
+@Test
+func observeWritesAsTheyHappen() {
     let mock = MockFeatureFlags()
 
     let written = IntRecorder()
@@ -23,7 +25,7 @@ func testObserveWritesAsTheyHappen() {
     mock.retryCount = 1
     mock.retryCount = 2
 
-    XCTAssertEqual(written.values, [1, 2])
+    #expect(written.values == [1, 2])
 
     // A write interaction is an ordinary Interaction, so it composes
     // with verifyInOrder. A *read* needs its explicit `.get` form,

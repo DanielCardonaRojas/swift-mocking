@@ -1,4 +1,5 @@
-func testReadsAndWritesAreCountedSeparately() {
+@Test
+func readsAndWritesAreCountedSeparately() {
     let mock = MockFeatureFlags()
     when(mock.isEnabled).thenReturn(true)
 

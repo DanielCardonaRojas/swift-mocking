@@ -1,8 +1,10 @@
 import SwiftMocking
-import XCTest
+import Testing
 
-final class OrderServiceTests: XCTestCase {
-    func testAnyVersusExact() {
+@Suite
+struct OrderServiceTests {
+    @Test
+    func anyVersusExact() {
         let mock = MockOrderService()
 
         // The fallback: answers every call, whatever the amount.

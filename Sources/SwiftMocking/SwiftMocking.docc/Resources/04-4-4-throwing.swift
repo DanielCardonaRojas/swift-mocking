@@ -1,4 +1,5 @@
-func testRefundFailsAsynchronously() async throws {
+@Test
+func refundFailsAsynchronously() async throws {
     let mock = MockPaymentService()
 
     when(mock.refund(id: .any)).thenThrow(PaymentError(code: 7))

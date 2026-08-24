@@ -13,7 +13,9 @@ final class Recorder: @unchecked Sendable {
     }
 }
 
-func testSideEffects() {
+@Test
+@Test
+func sideEffects() {
     let mock = MockSyncEngine()
     let refreshed = Recorder()
 
@@ -27,6 +29,6 @@ func testSideEffects() {
     mock.refresh(id: "primary")
     mock.refresh(id: "backup")
 
-    XCTAssertEqual(refreshed.values, ["primary", "backup"])
+    #expect(refreshed.values == ["primary", "backup"])
     verify(mock.refresh(id: .any)).called(2)
 }

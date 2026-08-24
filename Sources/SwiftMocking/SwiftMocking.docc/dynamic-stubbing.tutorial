@@ -112,7 +112,7 @@
             }
 
             @Step {
-                Set up the test with an `XCTestExpectation`. Because you control when the completion fires, the expectation is what proves it fired at all rather than being silently dropped.
+                Set up the test with a `confirmation`. It's Swift Testing's replacement for `XCTestExpectation`, and it's what proves the completion actually fired rather than being silently dropped — the body must confirm exactly once before it returns.
 
                 @Code(name: "NetworkServiceTests.swift", file: "03-4-2-callbacks.swift", reset: true)
             }
@@ -124,7 +124,9 @@
             }
 
             @Step {
-                Call the mock and assert what arrives, fulfilling the expectation inside the handler. The `wait` at the end fails the test if the completion never ran.
+                Call the mock and assert what arrives, calling `received()` inside the handler. Note the protocol-typed `service` reference: on the mock type a literal argument would resolve to the *interaction* overload and never call through.
+
+                Use `Issue.record` where XCTest would use `XCTFail`.
 
                 @Code(name: "NetworkServiceTests.swift", file: "03-4-4-callbacks.swift")
             }

@@ -1,13 +1,15 @@
 import SwiftMocking
-import XCTest
+import Testing
 
 @Mockable
 protocol AnalyticsService {
     func logEvent(_ name: String) -> Void
 }
 
-final class CheckoutTests: XCTestCase {
-    func testCheckoutOrder() {
+@Suite
+struct CheckoutTests {
+    @Test
+    func checkoutOrder() {
         let pricing = MockPricingService()
         let analytics = MockAnalyticsService()
 

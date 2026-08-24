@@ -1,2 +1,3 @@
-func testPredicatesAndRanges() {
+@Test
+func predicatesAndRanges() {
     let mock = MockOrderService()
