@@ -44,6 +44,26 @@ public struct MockingError: Error, Equatable, Sendable {
 }
 
 /// An error thrown when `until` fails to observe a matching interaction before timing out.
-public enum UntilError: Error, Sendable {
-    case timeout
+///
+/// `until` throws rather than reporting an issue directly: callers must already `try await`
+/// it, so the test framework attributes the failure to that `try` in the user's test. The
+/// associated values exist so the thrown error says *what* timed out — a bare `.timeout`
+/// gives no indication of which interaction was being awaited.
+public enum UntilError: Error, Sendable, CustomStringConvertible {
+    /// The awaited interaction was not observed before the timeout elapsed.
+    ///
+    /// The associated values are optional so existing `case .timeout` patterns keep
+    /// compiling and matching.
+    case timeout(method: String? = nil, duration: Duration? = nil)
+
+    public var description: String {
+        switch self {
+        case let .timeout(method, duration):
+            let subject = method.map { "\"\($0)\"" } ?? "interaction"
+            guard let duration else {
+                return "Timed out waiting for \(subject) to be called."
+            }
+            return "Timed out after \(duration) waiting for \(subject) to be called."
+        }
+    }
 }

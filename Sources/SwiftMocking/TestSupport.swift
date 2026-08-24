@@ -133,9 +133,12 @@ public func verify<each Input, Eff: Effect, Output>(
 ///   - line: The line where a verification failure is reported.
 public func verifyInOrder(
     _ verifiables: [any CrossSpyVerifiable],
+    fileID: StaticString = #fileID,
     file: StaticString = #filePath,
-    line: UInt = #line
+    line: UInt = #line,
+    column: UInt = #column
 ) {
+    let location = SourceLocation(fileID: fileID, filePath: file, line: line, column: column)
     let result = CrossSpyVerification.verifyInOrder(verifiables)
     if let result {
         let matchedSequenceDescription = result.matched.map({ recorded in
@@ -147,12 +150,10 @@ public func verifyInOrder(
         }).joined(separator: "\n")
 
         if result.matched.isEmpty {
-            reportIssue("Did not find sequence of interactions", filePath: file, line: line)
+            location.report("Did not find sequence of interactions")
         } else {
-            reportIssue(
-                "Partially found sequence of interactions. Matched \(result.matched.count) of \(result.matched.count + result.expectedRemaining) expected. Matched up to:\n\(matchedSequenceDescription)",
-                filePath: file,
-                line: line
+            location.report(
+                "Partially found sequence of interactions. Matched \(result.matched.count) of \(result.matched.count + result.expectedRemaining) expected. Matched up to:\n\(matchedSequenceDescription)"
             )
         }
     }
@@ -160,10 +161,12 @@ public func verifyInOrder(
 
 public func verifyInOrder(
     @CrossSpyVerificationBuilder _ builder: () -> [any CrossSpyVerifiable],
+    fileID: StaticString = #fileID,
     file: StaticString = #filePath,
-    line: UInt = #line
+    line: UInt = #line,
+    column: UInt = #column
 ) {
-    verifyInOrder(builder(), file: file, line: line)
+    verifyInOrder(builder(), fileID: fileID, file: file, line: line, column: column)
 }
 
 /// Verifies that a specific interaction with a mock object never occurred.
@@ -183,10 +186,12 @@ public func verifyInOrder(
 /// - Parameter line: The line where a verification failure is reported.
 public func verifyNever<each Input, Eff: Effect, Output>(
     _ interaction: Interaction<repeat each Input, Eff, Output>,
+    fileID: StaticString = #fileID,
     file: StaticString = #filePath,
-    line: UInt = #line
+    line: UInt = #line,
+    column: UInt = #column
 ) {
-    verify(interaction).neverCalled(file: file, line: line)
+    verify(interaction).neverCalled(fileID: fileID, file: file, line: line, column: column)
 }
 
 /// Verifies that a specific interaction with a mock object never occurred, accepting an
@@ -194,29 +199,35 @@ public func verifyNever<each Input, Eff: Effect, Output>(
 /// getter interaction): `verifyNever(mock.name)`.
 public func verifyNever<each Input, Eff: Effect, Output>(
     _ interaction: (()) -> Interaction<repeat each Input, Eff, Output>,
+    fileID: StaticString = #fileID,
     file: StaticString = #filePath,
-    line: UInt = #line
+    line: UInt = #line,
+    column: UInt = #column
 ) {
-    verify(interaction).neverCalled(file: file, line: line)
+    verify(interaction).neverCalled(fileID: fileID, file: file, line: line, column: column)
 }
 
 /// Verifies that a settable requirement was never read.
 public func verifyNever<each Input, Eff: Effect, Output>(
     _ interaction: SettableInteraction<repeat each Input, Eff, Output>,
+    fileID: StaticString = #fileID,
     file: StaticString = #filePath,
-    line: UInt = #line
+    line: UInt = #line,
+    column: UInt = #column
 ) {
-    verify(interaction.get).neverCalled(file: file, line: line)
+    verify(interaction.get).neverCalled(fileID: fileID, file: file, line: line, column: column)
 }
 
 /// Verifies that a settable variable was never read, accepting an unapplied
 /// reference to its interaction member: `verifyNever(mock.value)`.
 public func verifyNever<each Input, Eff: Effect, Output>(
     _ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>,
+    fileID: StaticString = #fileID,
     file: StaticString = #filePath,
-    line: UInt = #line
+    line: UInt = #line,
+    column: UInt = #column
 ) {
-    verify(interaction(()).get).neverCalled(file: file, line: line)
+    verify(interaction(()).get).neverCalled(fileID: fileID, file: file, line: line, column: column)
 }
 
 infix operator <- : AssignmentPrecedence
@@ -277,14 +288,17 @@ public func <- <each Input, Eff: Effect, Output>(
 /// - Parameter line: The line where a verification failure is reported.
 public func verifyZeroInteractions(
     _ mock: Mock,
+    fileID: StaticString = #fileID,
     file: StaticString = #filePath,
-    line: UInt = #line
+    line: UInt = #line,
+    column: UInt = #column
 ) {
     let totalInvocations = mock.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
-    
+
     if totalInvocations > 0 {
         let mockTypeName = String(describing: type(of: mock))
-        reportIssue("Expected zero interactions with \(mockTypeName) but found \(totalInvocations) invocation(s)", filePath: file, line: line)
+        let location = SourceLocation(fileID: fileID, filePath: file, line: line, column: column)
+        location.report("Expected zero interactions with \(mockTypeName) but found \(totalInvocations) invocation(s)")
     }
 }
 
@@ -371,15 +385,15 @@ public extension Assert {
     /// - Parameter line: The line where a verification failure is reported.
     func called(
         _ countMatcher: ArgMatcher<Int>? = nil,
+        fileID: StaticString = #fileID,
         file: StaticString = #filePath,
-        line: UInt = #line
+        line: UInt = #line,
+        column: UInt = #column
     ) {
         do {
             try self.assert(countMatcher)
-        } catch let error as MockingError {
-            reportIssue("\(error.message)", filePath: file, line: line)
         } catch {
-            reportIssue("\(error.localizedDescription)", filePath: file, line: line)
+            SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
     }
 
@@ -389,15 +403,15 @@ public extension Assert {
     /// Inspects captured arguments with automatic error reporting
     func captured(
         _ inspector: @escaping (repeat each Input) throws -> Void,
+        fileID: StaticString = #fileID,
         file: StaticString = #filePath,
-        line: UInt = #line
+        line: UInt = #line,
+        column: UInt = #column
     ) {
         do {
             try self.captures(inspector)
-        } catch let error as MockingError {
-            reportIssue("\(error.message)", filePath: file, line: line)
         } catch {
-            reportIssue("\(error.localizedDescription)", filePath: file, line: line)
+            SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
     }
 }
@@ -411,15 +425,15 @@ public extension Assert where Eff == Throws {
     /// - Parameter line: The line where a verification failure is reported.
     func `throws`(
         _ errorMatcher: ArgMatcher<any Error>? = nil,
+        fileID: StaticString = #fileID,
         file: StaticString = #filePath,
-        line: UInt = #line
+        line: UInt = #line,
+        column: UInt = #column
     ) {
         do {
             try doesThrow(errorMatcher)
-        } catch let error as MockingError {
-            reportIssue("\(error.message)", filePath: file, line: line)
         } catch {
-            reportIssue("\(error.localizedDescription)", filePath: file, line: line)
+            SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
     }
 }
@@ -433,15 +447,15 @@ public extension Assert where Eff == AsyncThrows {
     /// - Parameter line: The line where a verification failure is reported.
     func `throws`(
         _ errorMatcher: ArgMatcher<any Error>? = nil,
+        fileID: StaticString = #fileID,
         file: StaticString = #filePath,
-        line: UInt = #line
+        line: UInt = #line,
+        column: UInt = #column
     ) async {
         do {
             try await doesThrow(errorMatcher)
-        } catch let error as MockingError {
-            reportIssue("\(error.message)", filePath: file, line: line)
         } catch {
-            reportIssue("\(error.localizedDescription)", filePath: file, line: line)
+            SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
     }
 }
@@ -456,11 +470,14 @@ where repeat each Input: Sendable
     let tracker = FulfillmentTracker()
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
         let actionReference = Action<repeat each Input, Eff>(invocationMatcher: interaction.invocationMatcher)
+        let methodLabel = interaction.spy.methodLabel
         let timer = Task {
             try await Task.sleep(for: timeout)
             if tracker.tryFulfill() {
                 interaction.spy.removeAction(actionReference)
-                continuation.resume(throwing: UntilError.timeout)
+                continuation.resume(
+                    throwing: UntilError.timeout(method: methodLabel, duration: timeout)
+                )
             }
         }
 

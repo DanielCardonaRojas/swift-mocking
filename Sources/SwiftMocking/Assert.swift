@@ -70,10 +70,12 @@ public class Assert<each Input, Eff: Effect, Output> {
     /// verify(mock.someMethod(.any)).neverCalled()
     /// ```
     public func neverCalled(
+        fileID: StaticString = #fileID,
         file: StaticString = #filePath,
-        line: UInt = #line
+        line: UInt = #line,
+        column: UInt = #column
     ) {
-        called(.equal(0), file: file, line: line)
+        called(.equal(0), fileID: fileID, file: file, line: line, column: column)
     }
 
     /// Inspects captured arguments from matching invocations using a closure.
