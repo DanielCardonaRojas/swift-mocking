@@ -118,6 +118,7 @@ let package = Package(
             dependencies: [
                 "SwiftMocking",
                 "SwiftMockingTestSupport",
+                .product(name: "IssueReportingTestSupport", package: "xctest-dynamic-overlay"),
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),

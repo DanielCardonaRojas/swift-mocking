@@ -19,7 +19,8 @@ let package = Package(
             targets: ["Examples"]),
     ],
     dependencies: [
-        .package(path: "../")
+        .package(path: "../"),
+        .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.11.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -32,7 +33,10 @@ let package = Package(
         ),
         .testTarget(
             name: "ExamplesTests",
-            dependencies: ["Examples"]
+            dependencies: [
+                "Examples",
+                .product(name: "IssueReportingTestSupport", package: "xctest-dynamic-overlay"),
+            ]
         ),
     ]
 )
