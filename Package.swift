@@ -64,6 +64,10 @@ let package = Package(
             dependencies: [
                 "SwiftMockingMacros",
                 "SwiftMockingOptions",
+                // Not imported by any source file here, but `@Mockable` expansions in
+                // client targets reference MockableGenerator symbols, which xcodebuild
+                // only resolves if the dependency is declared on this target.
+                "MockableGenerator",
                 .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
             ],
             swiftSettings: swiftSettings + interfaceSettings
