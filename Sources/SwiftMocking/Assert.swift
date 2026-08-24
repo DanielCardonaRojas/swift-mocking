@@ -28,7 +28,7 @@
 /// // Verify that 'doSomething' was called exactly once with "test"
 /// verify(spy.doSomething(value: .equal("test"))).called(1)
 ///
-/// // Verify that 'calculate' was called with any integers
+/// // Verify that 'calculate' was called at least once with any integers
 /// verify(spy.calculate(a: .any, b: .any)).called()
 ///
 /// // Verify that 'calculate' threw an error
