@@ -1,6 +1,6 @@
-@Tutorial(time: 10) {
+@Tutorial(time: 20) {
     @Intro(title: "Verify Every Interaction") {
-        You've verified counts and matched arguments. This page completes the toolkit: asserting a call happened *never*, proving a mock was *untouched*, and — the signature feature — verifying the *order* of calls as they happened across multiple mocks.
+        You've verified counts and matched arguments. This page completes the toolkit: counting calls with the full matcher vocabulary, asserting a call happened *never*, proving a mock was *untouched*, verifying thrown errors, waiting for calls that arrive from another task, distinguishing property reads from writes, and — the signature feature — verifying the *order* of calls across multiple mocks.
 
         You'll also learn to read failure output and turn on invocation logging when a test goes sideways.
 
@@ -9,7 +9,7 @@
 
     @Section(title: "Assert call counts") {
         @ContentAndMedia {
-            `verify(...).called(n)` asserts an *exact* count, and `called()` with no argument asserts exactly once. For the negative space there's `neverCalled()` on an interaction and `verifyZeroInteractions(_:)` for an entire mock.
+            `verify(...).called(n)` asserts an *exact* count, while bare `called()` asserts the method was called *at least once*. For the negative space there's `neverCalled()` and `verifyNever(_:)` on an interaction, and `verifyZeroInteractions(_:)` for an entire mock.
 
             @Image(source: intro-verifying, alt: "A counter above three recorded calls reading exactly three.")
         }
@@ -22,19 +22,23 @@
             }
 
             @Step {
-                Assert the positive space. `.called(2)` pins the total across both items, while the literal `"apple"` narrows to the single call that passed it — and bare `called()` means *exactly once*, not "at least once".
+                Assert the positive space. `.called(2)` pins the total across both items, while the literal `"apple"` narrows to the single call that passed it.
+
+                Watch the default: bare `called()` means **at least once** (`.greaterThan(.zero)`), not exactly once. When you mean exactly one call, say `called(1)`.
 
                 @Code(name: "CallCountTests.swift", file: "04-1-2-counts.swift")
             }
 
             @Step {
-                Now the negative space, which is just as much a part of the contract: `neverCalled()` asserts one interaction never happened, and `verifyZeroInteractions(_:)` asserts an entire mock was never touched at all.
+                Because the parameter is an ordinary `ArgMatcher<Int>`, the whole matcher vocabulary from the previous tutorial applies to counts as well — reach for these when the exact number isn't the point.
 
                 @Code(name: "CallCountTests.swift", file: "04-1-3-counts.swift")
             }
 
             @Step {
-                Count matchers compose too — `.called(.greaterThan(1))` or `.called(.in(1...3))` accept any `ArgMatcher<Int>`, just like value matchers. Reach for these when the exact number isn't the point, such as asserting a retry happened at least once.
+                Now the negative space, which is just as much a part of the contract. `neverCalled()` and the standalone `verifyNever(_:)` are two spellings of `called(.equal(0))`; `verifyZeroInteractions(_:)` widens the claim to *every* method on a mock, which is how you prove a collaborator went completely unused.
+
+                @Code(name: "CallCountTests.swift", file: "04-1-4-counts.swift")
             }
         }
     }
@@ -77,6 +81,94 @@
 
             @Step {
                 Prove it's really checking order, not just presence: swap the first two lines inside `verifyInOrder` so the log is expected before the first price. All three calls still happened, but the test now fails — which is exactly the class of bug this catches.
+            }
+        }
+    }
+
+    @Section(title: "Verify thrown errors") {
+        @ContentAndMedia {
+            When a requirement is `throws`, its `Assert` gains a `throws(_:)` method. It asserts that matching calls actually threw — and optionally that the error was of a particular kind, using the same `ArgMatcher` vocabulary applied to `any Error`.
+
+            @Image(source: chapter-advanced, alt: "A mocked call branching into a thrown error, with an assertion confirming its type.")
+        }
+
+        @Steps {
+            @Step {
+                Declare a service with both a throwing and an async throwing requirement, plus a concrete error type to throw.
+
+                @Code(name: "PaymentService.swift", file: "04-4-1-throwing.swift", reset: true)
+            }
+
+            @Step {
+                Stub the two paths separately: `.thenThrow` for the failure case, `.thenReturn` for the success case. Matchers decide which amounts take which path.
+
+                @Code(name: "PaymentTests.swift", file: "04-4-2-throwing.swift", reset: true)
+            }
+
+            @Step {
+                Assert the throw. Bare `throws()` accepts any error; `.anyError()` says so explicitly; `.error(_:)` pins the concrete type. Counting assertions work on the same interaction, unchanged.
+
+                @Code(name: "PaymentTests.swift", file: "04-4-3-throwing.swift")
+            }
+
+            @Step {
+                For an `async throws` requirement the assertion is itself awaited — `await verify(...).throws(...)`. Note that `called(_:)` never needs `await`, whatever the effect.
+
+                @Code(name: "PaymentTests.swift", file: "04-4-4-throwing.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Wait for calls that haven't happened yet") {
+        @ContentAndMedia {
+            Verification is retrospective: it asks what already happened. When the call you care about is dispatched from another task, `until` bridges the gap — it suspends until a matching invocation is recorded, or fails once the timeout elapses.
+
+            @Image(source: intro-verifying, alt: "A test suspending on a timeline until a mocked call arrives from another task.")
+        }
+
+        @Steps {
+            @Step {
+                Kick off work on a detached task, then `await until(...)` before verifying. Without it the verification would run first and see nothing — the classic async test flake.
+
+                @Code(name: "SyncEngineTests.swift", file: "04-5-1-until.swift", reset: true)
+            }
+
+            @Step {
+                `until` takes the same interaction you'd pass to `verify`, so matchers narrow *which* call you're waiting for. The `timeout` defaults to one second; it throws rather than hanging if the call never arrives.
+            }
+        }
+    }
+
+    @Section(title: "Verify property reads and writes") {
+        @ContentAndMedia {
+            A `{ get set }` requirement records reads and writes on **two separate spies**. The plain expression verifies reads; the `<-` operator turns it into the write interaction. A write never counts as a read, which is the single most surprising rule in the library.
+
+            @Image(source: chapter-advanced, alt: "A property with two separate tally columns, one for reads and one for writes.")
+        }
+
+        @Steps {
+            @Step {
+                Declare a protocol with two settable properties.
+
+                @Code(name: "FeatureFlags.swift", file: "04-6-1-settable.swift", reset: true)
+            }
+
+            @Step {
+                Read once and write once, then count each independently. Note that you drive properties on the mock directly — no protocol-typed reference needed, because the runtime member is a `var` and the interaction member is a `func`.
+
+                @Code(name: "FeatureFlagsTests.swift", file: "04-6-2-settable.swift", reset: true)
+            }
+
+            @Step {
+                Matchers apply to the written value just as they do to arguments. In `captured`, the write pack is the read pack *plus* the new value — for a property the read pack is empty, hence the leading `_`.
+
+                @Code(name: "FeatureFlagsTests.swift", file: "04-6-3-settable.swift")
+            }
+
+            @Step {
+                You can also stub the write itself to observe values as they land, and a write interaction composes with `verifyInOrder` like any other. (Mixing a property *read* into that list needs its explicit `mock.prop(()).get` form.)
+
+                @Code(name: "FeatureFlagsTests.swift", file: "04-6-4-settable.swift", reset: true)
             }
         }
     }

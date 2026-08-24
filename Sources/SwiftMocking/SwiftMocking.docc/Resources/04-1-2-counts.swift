@@ -6,4 +6,6 @@ func testCounts() {
     _ = mock.price(for: "banana")
 
     verify(mock.price(for: .any)).called(2)      // exactly twice
-    verify(mock.price(for: "apple")).called()    // exactly once (the default)
+    verify(mock.price(for: "apple")).called()    // at least once (the default)
+    verify(mock.price(for: "apple")).called(1)   // exactly once — be explicit
+}

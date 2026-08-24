@@ -90,7 +90,7 @@
             }
 
             @Step {
-                Pair it with a `thenReturn(())` stub for the same matcher so the call itself resolves cleanly, then drive two refreshes. The recorder shows both, in order, and `verify` confirms the count.
+                Pair it with a `thenReturn(())` stub for the same matcher so the call itself resolves cleanly, then drive two refreshes. Reading `refreshed.values` shows both, in order, and `verify` confirms the count.
 
                 @Code(name: "SyncEngineTests.swift", file: "03-3-4-side-effects.swift")
             }

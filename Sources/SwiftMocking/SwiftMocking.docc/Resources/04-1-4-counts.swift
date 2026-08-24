@@ -14,4 +14,13 @@ func testCounts() {
     verify(mock.price(for: .any)).called(.lessThan(5))
     verify(mock.price(for: .any)).called(.in(1...3))
     verify(mock.price(for: .any)).called(.between(2, 4))
+
+    // The negative space, three equivalent ways.
+    verify(mock.price(for: "cherry")).called(.equal(0))
+    verify(mock.price(for: "cherry")).neverCalled()
+    verifyNever(mock.price(for: "cherry"))
+
+    // And an entire mock that should never have been touched.
+    let untouched = MockPricingService()
+    verifyZeroInteractions(untouched)
 }
