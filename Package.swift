@@ -53,9 +53,16 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "509.0.0"..<"602.0.0"),
-        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.6.3"),
+        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.7.0"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.5"),
-        .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.6.0")
+        // NOTE: This is the pre-2.0 name of swift-issue-reporting. Migrating to
+        // `https://github.com/pointfreeco/swift-issue-reporting` (2.x) currently fails
+        // the package graph: swift-custom-dump — reached via swift-macro-testing ->
+        // swift-snapshot-testing, and still on the old name as of custom-dump 1.7.0 and
+        // its main branch — makes SwiftPM see two distinct packages vending an
+        // `IssueReporting` target. The two URLs are separate live repos, not a redirect,
+        // so SwiftPM cannot unify them. Revisit once custom-dump adopts the new name.
+        .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.11.0")
 
     ],
     targets: [
@@ -111,6 +118,7 @@ let package = Package(
             dependencies: [
                 "SwiftMocking",
                 "SwiftMockingTestSupport",
+                .product(name: "IssueReportingTestSupport", package: "xctest-dynamic-overlay"),
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
