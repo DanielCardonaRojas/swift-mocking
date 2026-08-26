@@ -26,7 +26,7 @@ final class MacroOptionsTests: MacroTestCase {
                 }
 
                 func doSomething() {
-                    return adapt(super.doSomething, ())
+                    return adapt(super.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif
@@ -55,7 +55,7 @@ final class MacroOptionsTests: MacroTestCase {
                 }
 
                 func doSomething() {
-                    return adapt(super.doSomething, ())
+                    return adapt(super.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
                 }
             }
             #endif

@@ -340,19 +340,33 @@ extension Spy where Effects == Throws {
 // MARK: None throwing
 extension Spy where Effects == None {
     /// Calls the spy's method, expecting it not to throw an error.
+    ///
+    /// When invoked directly (rather than through a generated conformance) the defaulted
+    /// location parameters capture the caller's own file and line, so an unstubbed call
+    /// is attributed to the calling test.
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error.
     @inlinable
     @inline(__always)
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) -> Output {
+    public func callAsFunction(
+        _ input: repeat each Input,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> Output {
         do {
             return try process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
 
@@ -384,13 +398,23 @@ extension Spy where Effects == Async {
     @inlinable
     @inline(__always)
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) async -> Output {
+    public func callAsFunction(
+        _ input: repeat each Input,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) async -> Output {
         do {
             return try await process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
 
