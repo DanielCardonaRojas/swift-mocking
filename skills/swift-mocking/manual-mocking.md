@@ -8,6 +8,8 @@ How to hand-write what `@Mockable` generates — without the macro. Required whe
 
 Hand-writing is always a valid option, with or without the `mockable` CLI. For protocols **without** inheritance, generating the base with the CLI (see SKILL.md) is faster and byte-exact — use it when available, then hand-adjust.
 
+**If your type can't inherit `Mock`** — it already has a superclass, or it's a struct or actor — don't stop here: use the same recipe with a `let mock = Mock()` property instead (`super.f` → `mock.f`, `adapt` → `Mock.adapt`). **If you're mocking a class rather than a protocol**, `@Mockable` doesn't apply at all; subclass it and back overrides with raw `Spy` properties. Both are covered in **spies-and-composition.md**.
+
 Everything below mirrors `MockableGenerator` — with one deliberate improvement: zero-parameter members and property getters use the pinned-spy form so `when`/`verify` actually reach them (the macro-generated form silently mis-stubs those; see the pinned-spy section).
 
 ## The two-member rule
@@ -17,7 +19,7 @@ For every protocol requirement, write **two** members:
 1. **Runtime member** — fulfills the protocol; forwards to the spy via `adapt`/`adaptThrowing`.
 2. **Interaction member** — same name, every parameter wrapped in `ArgMatcher<T>`, returns `Interaction<Inputs..., Effect, Output>`; this is what `when(...)`/`verify(...)` consume.
 
-`super.<name>` (resolved through `Mock`'s `@dynamicMemberLookup` subscript) lazily creates or fetches the `Spy` keyed by that member name — instance context uses instance storage, `static` context uses lock-backed static storage. Never instantiate `Spy` yourself inside a mock.
+`super.<name>` (resolved through `Mock`'s `@dynamicMemberLookup` subscript) lazily creates or fetches the `Spy` keyed by that member name — instance context uses instance storage, `static` context uses lock-backed static storage. Never instantiate `Spy` yourself inside a `Mock` subclass — that spy won't be the one `when`/`verify` resolve. (Directly owning `Spy` properties *is* the right design for a fake that isn't a `Mock` subclass at all, e.g. a spy-backed subclass of a third-party class; see spies-and-composition.md.)
 
 ## Class shell
 
@@ -324,7 +326,7 @@ func execute(completion: ArgMatcher<(String) -> Void>) -> Interaction<(String) -
 | `verify(mock[.a, .b] <- v)` won't compile | `cannot convert value` / inference failure | Multi-index subscript: bind first (`let w = mock[.a, .b] <- v`), then `verify(w)` |
 | Only implementing the derived protocol's members | Compile error (missing runtime witnesses) | Flatten the chain — runtime + interaction members for every ancestor requirement |
 | Runtime members only (no `ArgMatcher` overloads) | Compiles; `when`/`verify` can't reference the method | Every requirement gets both members |
-| Instantying `Spy()` manually inside the mock | Invocations not recorded where `when`/`verify` look | Always go through `super.<name>` |
+| Instantiating `Spy()` inside a `Mock` subclass | Invocations not recorded where `when`/`verify` look | In a `Mock` subclass always go through `super.<name>`. (Owning `Spy` properties outright is correct in a *non*-`Mock` fake — see spies-and-composition.md — but then stub/verify through those properties, not `super`.) |
 | Internal mock for a public protocol | `cannot find 'XMock' in scope` from the test module | Match access levels |
 | Renaming interaction members (`fetchUserInteraction`) | API mismatch with macro convention | Same name, matcher-typed parameters |
 | Keeping `@escaping` inside `ArgMatcher<@escaping (String) -> Void>` | Syntax error | Strip attributes in matcher types |

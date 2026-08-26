@@ -1,11 +1,16 @@
 ---
 name: swift-mocking
-description: Use when writing Swift tests with the SwiftMocking library — creating @Mockable mocks, stubbing with when/verify, matching arguments, or hand-writing mock classes (e.g. for protocol inheritance chains the @Mockable macro cannot generate).
+description: Use when writing Swift tests with the SwiftMocking library — creating @Mockable mocks, stubbing with when/verify, matching arguments, or hand-writing mocks (protocol inheritance chains, mocking classes).
 ---
 
 # SwiftMocking
 
 Mocking for Swift protocols: `@Mockable` generates mock classes; `when(...)` stubs, `verify(...)` asserts calls. When the macro can't generate a mock — most notably **protocol inheritance** (`protocol B: A` — the macro drops inherited requirements and the mock fails to conform) — hand-write the mock following the exact generated-code shape.
+
+The macro is not the only entry point. Two escape hatches cover everything it can't reach, and both are fully supported (see **spies-and-composition.md**):
+
+- **`Spy` used directly** — a standalone recorder needing no `Mock` subclass and no macro. This is how you mock **classes**, which `@Mockable` cannot touch at all: subclass the class and back each override with a `Spy`.
+- **Composition over inheritance** — hold a `let mock = Mock()` property instead of inheriting from `Mock`. `Mock`'s `@dynamicMemberLookup` subscript is `public`, so `mock.name` resolves spies from outside the class. Required when the type already has a superclass (`UIViewController`, a legacy base class) or isn't a class at all (**struct**, **actor**). Substitute `super.name` → `mock.name` and `adapt(...)` → `Mock.adapt(...)`; everything else in manual-mocking.md is unchanged.
 
 ## When to use what
 
@@ -13,7 +18,9 @@ Mocking for Swift protocols: `@Mockable` generates mock classes; `when(...)` stu
 |---|---|
 | Protocol has no inheritance; need a mock | `@Mockable protocol P {...}` → use `PMock()` |
 | Protocol inherits another protocol with members | **manual-mocking.md** (macro cannot do this) |
-| Mocking without any protocol (closure/TCA dependencies) | usage.md — `Spy` + `adapt` |
+| **Mocking a class** (no protocol available) | **spies-and-composition.md** — subclass + raw `Spy` |
+| **Can't inherit `Mock`** (existing superclass, struct, actor) | **spies-and-composition.md** — `let mock = Mock()` |
+| Mocking without any protocol (closure/TCA dependencies) | usage.md / spies-and-composition.md — `Spy` + `adapt` |
 | Stubbing/verifying settable properties or subscripts (`{ get set }`) | usage.md — *Properties & subscripts*; hand-written shape in manual-mocking.md |
 | Need mock source without the macro (plugin unavailable, codegen, review) | `mockable` CLI (below) when available; hand-writing per manual-mocking.md is always valid |
 | `@Sendable`/Swift 6 concurrency errors when stubbing | sendable.md |
@@ -67,7 +74,7 @@ class FooMock: Mock, @unchecked Sendable, Foo {
 }
 ```
 
-Class shell: inherit `Mock` **first**, restate `@unchecked Sendable`, conform to the most-derived protocol only, match access levels.
+Class shell: inherit `Mock` **first**, restate `@unchecked Sendable`, conform to the most-derived protocol only, match access levels. If inheriting `Mock` isn't possible, keep both members and compose instead — `let mock = Mock()`, `super.price` → `mock.price`, `adaptThrowing(...)` → `Mock.adaptThrowing(...)` (spies-and-composition.md).
 
 **Full recipe (inheritance flattening, properties, subscripts, variadics, generics, statics, initializers): manual-mocking.md.** Zero-parameter methods and property getters need the pinned-spy pattern described there — the macro-generated form silently mis-stubs them.
 
@@ -86,6 +93,8 @@ verify(mock.price(.equal("apple"))).called(1)
 ## Known sharp edges
 
 - `@Mockable` on `protocol B: A` → compile error `does not conform to protocol 'A'` (inherited requirements never generated). Hand-write per manual-mocking.md.
+- `@Mockable` only accepts **protocols** — never a class. To fake a class, subclass it and back overrides with raw `Spy` properties (spies-and-composition.md). `final` classes/members can't be faked either way; extract a protocol.
+- In a **composed** mock, plain `adapt(...)` doesn't resolve — it's an instance method on `Mock` and you didn't inherit it. Use the static `Mock.adapt(...)` / `Mock.adaptThrowing(...)`. Likewise `clear()` becomes `mock.clear()`.
 - Zero-arg members (`func start()`, property getters): `when(mock.getX()).thenReturn(v)` does not reach the runtime member in macro-generated mocks. Manual mocks fix this with the pinned-spy pattern.
 - Stub API is `thenReturn` / `thenThrow` / `do` — there is no `.then`.
 - Spy names come from the requirement, ignoring argument labels: methods use their name, subscripts are namespaced as `subscript`+ParameterNames (`subscript(row:column:)` → `subscriptRowColumn`), settable members add `set`+Name. The prefix keeps a subscript from colliding with a method or variable of the same name. The compiler already rejects most same-key cases (two subscripts differing only by argument label, or a `var x` beside a `func x()`, are both invalid redeclarations); the one that compiles but mocks incorrectly is two *methods* differing only by argument label (`fetch(id:)`/`fetch(name:)`), which silently share a spy — rename one or vary the parameter types. Same-name/different-signature overloads are fine.
@@ -96,5 +105,6 @@ verify(mock.price(.equal("apple"))).called(1)
 ## References
 
 - `manual-mocking.md` — hand-writing mock classes; inheritance chains; pinned-spy pattern
+- `spies-and-composition.md` — using `Spy` directly; mocking classes; composing `let mock = Mock()` for structs/actors/existing superclasses
 - `usage.md` — when/verify/matchers/stubbing reference
 - `sendable.md` — Swift 6 concurrency contract and non-Sendable workarounds

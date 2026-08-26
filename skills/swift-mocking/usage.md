@@ -105,6 +105,8 @@ verify(fetchSpy(.equal("1"))).called(1)
 
 `adapt` is the member on `Mock` AND a standalone overload for spies; it returns a `@Sendable` closure.
 
+A `Spy` is fully usable on its own — `spy(value)` invokes, `spy(.matcher)` builds an `Interaction` for `when`/`verify`, and `spy.clear()` resets it. That's what lets you mock **classes** (subclass, back each override with a spy) and build fakes that hold `let mock = Mock()` by composition instead of inheriting `Mock` — needed for structs, actors, and types with an existing superclass. See **spies-and-composition.md**.
+
 ## Generics, statics, variadics
 
 ```swift

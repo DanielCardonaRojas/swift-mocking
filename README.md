@@ -9,7 +9,9 @@
 
 `SwiftMocking` is a modern, type-safe mocking library for Swift that provides a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) and `@dynamicMemberLookup`.
 
-**Macros are optional.** The `@Mockable` macro is the most convenient way to get a mock, but it is not required, since mocks are ordinary Swift classes. You can generate them as written source with the [`mockable` CLI](#mock-generation-cli), or have an AI assistant write them for you with the [agent skill](#-agent-skill), with surprisingly short code. Both produce the same code the macro does, without the compile-time plugin, and both handle cases the macro cannot (notably protocol inheritance).
+**Macros are optional.** The `@Mockable` macro is the most convenient way to get a mock, but it is not required, since mocks are ordinary Swift classes. You can generate them as written source with the [`mockable` CLI](#mock-generation-cli), or have an AI assistant write them for you with the [agent skill](#-agent-skill), with surprisingly short code.
+
+The CLI shares its generator with the macro, so it produces the same output and has the same blind spots — it is a way to get the code *as source*, not a way to get more of it. For what the generator cannot express at all (protocol inheritance, mocking classes, types that cannot inherit `Mock`), the escape hatch is writing the mock yourself against `Spy` and `Mock` directly — which the [agent skill](#-agent-skill) documents in full.
 
 ---
 
@@ -19,7 +21,7 @@
 *   [Agent Skill & CLI](#-agent-skill)
 *   [Example](#-example)
 *   [Documentation](#-documentation)
-*   [Protocol Inheritance](#-protocol-inheritance-is-not-supported-by-the-macro)
+*   [Protocol Inheritance](#-protocol-inheritance-is-not-supported-by-macros)
 *   [Swift 6 and Sendable](#-swift-6-and-sendable)
 *   [How it Works](#-how-it-works)
 
@@ -94,6 +96,8 @@ Or symlink the directory into your agent's skills folder (`~/.claude/skills/` fo
 ### Mock Generation CLI
 
 The `mockable` executable runs the same code generation as the `@Mockable` macro, outside the compiler. It reads protocol definitions from stdin and writes mock classes to stdout, which is useful for agents, codegen pipelines, or whenever you want the mock source materialized. Together with the skill, this means **you never have to apply the macro** to use this library, only `import SwiftMocking` for the runtime types.
+
+Because it is the same generator, its output has the same limits as the macro's: it drops requirements inherited from a parent protocol (warning on stderr) and emits the zero-parameter shape described in [Known Limitations](docs/limitations.md). Treat it as a starting point to hand-adjust, not as a superset of the macro.
 
 Build the release binary once so startup is near-instant on every subsequent run:
 
@@ -221,10 +225,25 @@ error: type 'BMock' does not conform to protocol 'A'
 
 This is a hard limit of the Swift macro system, not an oversight: a macro sees only the single declaration it is attached to, so `A`'s requirements are invisible to it. Annotating `A` with `@Mockable` too does not help, because each expansion still runs in isolation.
 
-Use one of the two macro-free paths instead, both of which handle inheritance:
+**The `mockable` CLI does not work around this.** It shares the same `MockableGenerator`, so it drops inherited requirements exactly as the macro does — it warns on stderr and emits a mock that will not conform:
 
-- **[The `mockable` CLI](#mock-generation-cli)** generates the mock as source, which you paste into your test target.
-- **[The agent skill](#-agent-skill)** teaches an AI assistant to hand-write it.
+```
+warning: mock for protocol 'B' does not implement requirements inherited from 'A' and may fail to conform
+```
+
+The fix is to write the mock yourself. A mock is an ordinary class over `Mock` and `Spy`, so flattening the chain by hand — a runtime member and an `ArgMatcher` interaction member for every requirement of every protocol in the chain — is mechanical and short:
+
+```swift
+class MockB: Mock, @unchecked Sendable, B {
+    func a() -> Int { adapt(super.a, ()) }                      // inherited from A
+    func a() -> Interaction<Void, None, Int> { Interaction(.any, spy: super.a) }
+
+    func b() -> String { adapt(super.b, ()) }                   // B's own
+    func b() -> Interaction<Void, None, String> { Interaction(.any, spy: super.b) }
+}
+```
+
+Generating the base with the CLI and then adding the inherited members by hand is a reasonable shortcut. **[The agent skill](#-agent-skill)** teaches an AI assistant to do the whole thing, and documents the same `Spy`/`Mock` techniques for the other cases the generator cannot reach — mocking classes, and composing a `Mock` property when a type cannot inherit from `Mock` (an existing superclass, or a struct or actor).
 
 See [Known Limitations](docs/limitations.md) for the remaining macro caveats.
 
