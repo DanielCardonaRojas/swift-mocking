@@ -95,6 +95,13 @@ public struct MockableOptions: OptionSet, Sendable {
         self = combinedOptions
     }
 
+    /// Every option name accepted by ``init(stringLiteral:)``, in declaration order.
+    ///
+    /// Lets callers that surface the option list to users — the `mockable`
+    /// CLI's `--help` and its error message for an unrecognized option — stay
+    /// in step with the parser as options are added.
+    public static let allIdentifiers: [String] = ["prefixMock", "suffixMock", "composition"]
+
     /// Returns an array of string identifiers for the options currently set.
     public var identifiers: [String] {
         var names: [String] = []
