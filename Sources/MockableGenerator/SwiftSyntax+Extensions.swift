@@ -13,6 +13,23 @@ extension DeclModifierSyntax {
     }
 }
 
+extension DeclModifierListSyntax {
+    /// The modifiers with `mutating` and `nonmutating` removed.
+    ///
+    /// Both are legal on a protocol requirement but not on the member generated
+    /// from it, because mocks are classes: `'mutating' is not valid on instance
+    /// methods in classes`. A class satisfies a `mutating` requirement by
+    /// declaring the method without the modifier, so dropping it is what makes
+    /// the conformance compile — callers are unaffected, including through
+    /// generic and existential references.
+    var withoutValueTypeModifiers: DeclModifierListSyntax {
+        filter { modifier in
+            modifier.name.tokenKind != .keyword(.mutating)
+                && modifier.name.tokenKind != .keyword(.nonmutating)
+        }
+    }
+}
+
 extension VariableDeclSyntax {
     /// A boolean value indicating whether the variable has a getter.
     var hasGetter: Bool {

@@ -385,4 +385,76 @@ final class ProtocolFeaturesTests: MacroTestCase {
             """
         }
     }
+
+    /// `mutating` is valid on a protocol requirement but not on a class member,
+    /// so the generated mock must not carry it — `'mutating' is not valid on
+    /// instance methods in classes`. A class conforms by omitting the modifier.
+    func testMutatingRequirementDropsModifier() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol Repository {
+                mutating func save(_ value: String)
+            }
+            """
+        } expansion: {
+            """
+            protocol Repository {
+                mutating func save(_ value: String)
+            }
+
+            #if DEBUG
+            class MockRepository: Mock, @unchecked Sendable, Repository {
+                func save(_ value: ArgMatcher<String>) -> Interaction<String, None, Void> {
+                    Interaction(value, spy: super.save)
+                }
+
+                func save(_ value: String) {
+                    return adapt(super.save, value)
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// `static` must survive the same filtering that removes `mutating`.
+    func testMutatingAndStaticRequirementsKeepStatic() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol Repository {
+                mutating func save(_ value: String)
+                static func reset()
+            }
+            """
+        } expansion: {
+            """
+            protocol Repository {
+                mutating func save(_ value: String)
+                static func reset()
+            }
+
+            #if DEBUG
+            class MockRepository: Mock, @unchecked Sendable, Repository {
+                func save(_ value: ArgMatcher<String>) -> Interaction<String, None, Void> {
+                    Interaction(value, spy: super.save)
+                }
+
+                static func reset() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: super.reset)
+                }
+
+                func save(_ value: String) {
+                    return adapt(super.save, value)
+                }
+
+                static func reset() {
+                    return adapt(super.reset, ())
+                }
+            }
+            #endif
+            """
+        }
+    }
 }

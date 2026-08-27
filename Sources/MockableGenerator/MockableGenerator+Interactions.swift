@@ -603,7 +603,7 @@ public extension MockableGenerator {
         )
 
         return FunctionDeclSyntax(
-            modifiers: funcDecl.modifiers.trimmed,
+            modifiers: funcDecl.modifiers.withoutValueTypeModifiers.trimmed,
             name: TokenSyntax.identifier(name),
             genericParameterClause: genericParameterClause,
             signature: FunctionSignatureSyntax(
