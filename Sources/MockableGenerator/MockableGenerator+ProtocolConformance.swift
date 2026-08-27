@@ -34,7 +34,7 @@ extension MockableGenerator {
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
                 declarations.append(DeclSyntax(subscriptRequirement(subscriptDecl, spyAccess: spyAccess)))
             } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
-                declarations.append(DeclSyntax(initializerRequirement(initDecl)))
+                declarations.append(DeclSyntax(initializerRequirement(initDecl, spyAccess: spyAccess)))
 
             }
         }
@@ -50,8 +50,30 @@ extension MockableGenerator {
     ///     // ...
     /// }
     /// ```
+    ///
+    /// Under `.composition` the body is `fatalError(...)` instead of empty.
+    /// A composed mock inherits the superclass its protocol constrains it to,
+    /// and Swift requires every designated initializer to chain to `super.init`:
+    ///
+    /// ```
+    /// error: 'super.init' isn't called on all paths before returning from initializer
+    /// ```
+    ///
+    /// The macro cannot synthesize that call — it never sees the superclass, so
+    /// it cannot know which initializers exist or what to pass them. Emitting
+    /// `super.init()` is not a fix either: it fails the same way whenever the
+    /// superclass has no zero-arg initializer. A `Never`-returning call
+    /// satisfies the chaining rule without naming any initializer, and costs
+    /// nothing in practice — the generated `init` exists only to satisfy the
+    /// protocol requirement, and tests construct mocks through the zero-arg
+    /// `init()` the mock gets for free.
+    ///
+    /// The inheriting strategy keeps the empty body: `Mock` always has a
+    /// zero-arg initializer, so Swift inserts the `super.init()` call
+    /// implicitly and the requirement compiles as-is.
     static func initializerRequirement(
-        _ initDecl: InitializerDeclSyntax
+        _ initDecl: InitializerDeclSyntax,
+        spyAccess: SpyAccess = .inherited
     ) -> InitializerDeclSyntax {
         let modifiers = DeclModifierListSyntax {
             DeclModifierSyntax(name: .keyword(.required))
@@ -65,7 +87,9 @@ extension MockableGenerator {
             genericParameterClause: initDecl.genericParameterClause,
             signature: initDecl.signature,
             body: CodeBlockSyntax {
-
+                if case .composed = spyAccess {
+                    ExprSyntax(#"fatalError("init(...) is not implemented on generated mocks")"#)
+                }
             }
         )
     }

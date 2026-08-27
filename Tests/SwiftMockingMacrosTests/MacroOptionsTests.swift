@@ -105,6 +105,38 @@ final class MacroOptionsTests: MacroTestCase {
         }
     }
 
+    /// A composed mock inherits its protocol's required superclass, so its
+    /// initializer must chain to `super.init`. The macro never sees that
+    /// superclass and so cannot synthesize the call — `fatalError` satisfies
+    /// the rule without naming an initializer. The inheriting strategy keeps an
+    /// empty body, since `Mock` always has a zero-argument initializer.
+    func testCompositionOptionWithInitializerRequirement() {
+        assertMacro {
+            """
+            @Mockable([.composition])
+            protocol MyService: SampleBase {
+                init(value: Int)
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService: SampleBase {
+                init(value: Int)
+            }
+
+            #if DEBUG
+            class MockMyService: SampleBase, MyService, MockProviding, @unchecked Sendable {
+                let mock = Mock()
+
+                required init(value: Int) {
+                    fatalError("init(...) is not implemented on generated mocks")
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     func testSuffixMockOption() {
         assertMacro {
             """
