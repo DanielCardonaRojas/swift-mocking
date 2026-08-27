@@ -9,38 +9,38 @@ struct FetchClient {
 
 // MARK: - Function Signature Variations
 
-@Mockable
+@Mockable([.composition])
 protocol ThrowingService {
     func process() throws
 }
 
-@Mockable
+@Mockable([.composition])
 protocol AsyncService {
     func load() async -> String
 }
 
-@Mockable
+@Mockable([.composition])
 protocol AsyncThrowingService {
     func perform() async throws -> Data
 }
 
-@Mockable
+@Mockable([.composition])
 protocol FeedService {
     func fetch(from url: URL) async throws -> Data
     func post(to url: URL, data: Data) async throws
 }
 
-@Mockable
+@Mockable([.composition])
 protocol ParameterlessService {
     func doSomething() -> String
 }
 
-@Mockable
+@Mockable([.composition])
 protocol ReturnlessService {
     func doSomething(with value: Int)
 }
 
-@Mockable
+@Mockable([.composition])
 protocol SimpleService {
     func doSomething()
 }
@@ -59,32 +59,32 @@ protocol SuffixMockService {
 
 // MARK: - Protocol Features
 
-@Mockable
+@Mockable([.composition])
 public protocol PublicService {
     func doSomething()
 }
 
-@Mockable
+@Mockable([.composition])
 protocol PropertyService {
     var value: Int { get set }
 }
 
-@Mockable
+@Mockable([.composition])
 protocol InitializerService {
     init(value: Int)
 }
 
-@Mockable
+@Mockable([.composition])
 protocol SubscriptService {
     subscript(index: Int) -> String { get }
 }
 
-@Mockable
+@Mockable([.composition])
 protocol Printer {
     func print(_ values: String...)
 }
 
-@Mockable
+@Mockable([.composition])
 protocol AssociatedTypeService {
     associatedtype Item: Equatable
     associatedtype Payload
@@ -92,58 +92,58 @@ protocol AssociatedTypeService {
     func data() -> Payload
 }
 
-@Mockable
+@Mockable([.composition])
 public protocol PricingService {
     func price(_ item: String) throws -> Int
 }
 
-@Mockable([.prefixMock])
+@Mockable([.prefixMock, .composition])
 protocol DataFetcherService {
     func fetchData(id: String) async -> String
     func fetchDataThrows(id: String) async throws -> String
 }
 
-@Mockable
+@Mockable([.composition])
 protocol Calculator {
     func calculate(_ a: Int, _ b: Int) -> Int
 }
 
-@Mockable
+@Mockable([.composition])
 protocol AnalyticsProtocol {
     func logEvent<E: Identifiable>(_ event: E)
 }
 
 
-@Mockable
+@Mockable([.composition])
 protocol FakeProvider {
     func fakeData<Fake: Encodable>(_ fakeType: Fake.Type) -> Data
 }
 
-@Mockable
+@Mockable([.composition])
 protocol Logger {
     static func log(_ message: String)
 }
 
-@Mockable
+@Mockable([.composition])
 protocol Countable {
     var totalCount: Int { get set }
 }
 
-@Mockable
+@Mockable([.composition])
 protocol CallbackService {
     func execute(completion: @escaping (String) -> Void)
 }
 
 // MARK: - More complex protocols
 
-@Mockable
+@Mockable([.composition])
 protocol NetworkService {
     func request(url: URL, method: String, headers: [String: String]?) async throws -> Data
     func download(from url: URL) async throws -> URL
     func upload(to url: URL, data: Data) async throws -> (Data, URLResponse)
 }
 
-@Mockable
+@Mockable([.composition])
 protocol PersistenceService {
     func save<T: Codable>(key: String, value: T) throws
     func load<T: Codable>(key: String) throws -> T?

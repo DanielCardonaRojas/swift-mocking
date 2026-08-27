@@ -221,7 +221,9 @@ final class MockitoTests: XCTestCase {
         // This test is designed to expose a race condition when accessing static spies concurrently.
         // By running multiple tasks in parallel that all access the same static mock,
         // we can trigger a crash if the underlying storage is not thread-safe.
-        MockLogger.clear()
+        // Composed mocks don't inherit `Mock`'s `clear()`; static spies live on
+        // the generated `staticMock` storage, so clear that directly.
+        MockLogger.staticMock.clear()
         let expectation = self.expectation(description: "All concurrent tasks finished")
         expectation.expectedFulfillmentCount = 100
         @Sendable func log<L: Logger>(_ type: L.Type,_ message: String) {
