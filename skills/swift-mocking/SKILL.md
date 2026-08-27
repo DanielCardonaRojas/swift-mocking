@@ -61,7 +61,12 @@ echo 'protocol P { func price(_ item: String) throws -> Int }' | mockable
 
 Invoke as `mockable` when it is on `PATH`; otherwise `.build/release/mockable` inside a swift-mocking checkout (build once with `swift build -c release --product mockable`, then optionally copy the binary onto `PATH`).
 
-- Options ride the input: `@Mockable([.suffixMock]) protocol P {...}` on stdin. `[.composition]` works here too — the fastest way to see the composed shape for a given protocol.
+- Input needs no annotation — paste the protocol as it is written in the source you're mocking.
+- Pass options with `--options`, comma-separated (`--options composition,suffixMock`). Use it for protocols you can't or shouldn't annotate — most importantly `--options composition` for a protocol constrained to a class, the fastest way to see the composed shape:
+  ```bash
+  echo 'protocol P: UIViewController { func load() }' | mockable --options composition
+  ```
+- Options may still ride the input as `@Mockable([.suffixMock]) protocol P {...}`, which wins over `--options`. Prefer the flag: it keeps the stdin text identical to the real declaration.
 - Default output keeps the macro's `#if DEBUG` wrapper; pass `--no-debug-wrap` when pasting into a test target (DEBUG is per build configuration — a wrapped mock vanishes under `swift test -c release`).
 - A stderr warning about inherited requirements means the output will not conform — hand-write per manual-mocking.md instead.
 - Output keeps the macro's zero-arg/property-getter shape: `when(...)` silently stubs a disconnected spy, and `verify(...)` reports zero calls for those members — apply the pinned-spy fix from manual-mocking.md before relying on them.
