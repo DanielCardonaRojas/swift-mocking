@@ -98,6 +98,38 @@ final class CompositionStrategyTests: XCTestCase {
         verifyZeroInteractions(mock)
     }
 
+    /// `MockProviding` supplies `clear()`, so a composed mock does not have to
+    /// reach through its storage with `mock.mock.clear()`.
+    func testClearResetsInstanceSpies() {
+        let mock = MockViewControllerService()
+        when(mock.modified()).thenReturn(Data())
+        let service: ViewControllerService = mock
+        _ = service.modified()
+        verify(mock.modified()).called(1)
+
+        mock.clear()
+
+        verifyNever(mock.modified())
+    }
+
+    /// `StaticMockProviding` supplies a static `clear()`, matching the shape
+    /// tests use on inheriting mocks (`MockLogger.clear()`).
+    ///
+    /// It is narrower than `Mock.clear()`, which wipes every mock's static
+    /// storage process-wide: a composed mock's static spies live in their own
+    /// `Mock`, so clearing one leaves others untouched.
+    func testStaticClearResetsStaticSpies() {
+        MockViewControllerService.clear()
+        when(MockViewControllerService.shared()).thenReturn(1)
+        let service: ViewControllerService.Type = MockViewControllerService.self
+        _ = service.shared()
+        verify(MockViewControllerService.shared()).called(1)
+
+        MockViewControllerService.clear()
+
+        verifyNever(MockViewControllerService.shared())
+    }
+
     /// The composed mock still satisfies its class constraint.
     func testMockIsUsableAsItsRequiredSuperclass() {
         let mock = MockViewControllerService()

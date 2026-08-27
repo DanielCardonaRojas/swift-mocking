@@ -31,3 +31,40 @@ extension Mock: MockProviding {
     /// An inheriting mock *is* its own spy storage.
     public var mock: Mock { self }
 }
+
+public extension MockProviding {
+    /// Clears all recorded invocations and stubs from this mock's spies.
+    ///
+    /// A composing type does not inherit ``Mock/clear()``, so without this it
+    /// would have to reach through its storage — `mock.mock.clear()`. Inheriting
+    /// mocks are unaffected: they get ``Mock/clear()`` directly, and it takes
+    /// precedence over this extension.
+    func clear() {
+        mock.clear()
+    }
+}
+
+/// A type that exposes the ``Mock`` backing its **static** spies.
+///
+/// Static requirements cannot reach an instance property, so a mock generated
+/// with `@Mockable([.composition])` keeps a second `Mock` for them. This
+/// protocol exposes it, mirroring ``MockProviding`` for the static half.
+///
+/// Only mocks that actually have static requirements conform — the generator
+/// emits the storage, and this conformance, only then.
+public protocol StaticMockProviding {
+    /// The mock holding this type's static spies.
+    static var staticMock: Mock { get }
+}
+
+public extension StaticMockProviding {
+    /// Clears all recorded invocations and stubs from this type's static spies.
+    ///
+    /// Note this is narrower than ``Mock/clear()``, the inherited strategy's
+    /// static counterpart, which clears *every* mock's static storage because
+    /// that storage is shared process-wide. A composed mock's static spies live
+    /// in their own `Mock` instance, so clearing one leaves the others intact.
+    static func clear() {
+        staticMock.clear()
+    }
+}

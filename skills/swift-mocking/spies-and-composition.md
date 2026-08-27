@@ -231,15 +231,19 @@ let base: RemoteLoader = loader
 XCTAssertEqual(try base.load("42"), "composed")
 verify(loader.load(.equal("42"))).called(1)
 
-loader.mock.clear()                 // clear() lives on the property now
+loader.clear()                      // from MockProviding
 verify(loader.load(.any)).neverCalled()
 ```
 
-Note `loader.mock.clear()` rather than `loader.clear()` — the composing type doesn't inherit `clear()`. Re-expose it if tests expect the usual shape:
+`clear()` comes from `MockProviding`, so a composed mock reads the same as an inheriting one — no `loader.mock.clear()` and nothing to forward by hand.
+
+A mock with **static** requirements also gets a static `clear()` from `StaticMockProviding`:
 
 ```swift
-func clear() { mock.clear() }
+MockLogger.clear()                  // clears this mock's static spies
 ```
+
+That is narrower than `Mock.clear()`, the inheriting strategy's static counterpart, which wipes *every* mock's static storage because that storage is shared process-wide. A composed mock's static spies live in their own `Mock`, so clearing one leaves the others intact.
 
 ### Structs and actors
 
@@ -273,7 +277,7 @@ Both fake a class; they differ in the API tests see.
 - **Raw spies** (`loader.loadSpy(.any)`): less code, zero overload ambiguity, but a non-standard call site. Good for a couple of members or a quick local fake.
 - **Composition** (`loader.load(.any)`): reproduces the exact generated-mock API, so tests read the same as everywhere else and members port cleanly if a protocol appears later. Costs two members per requirement. Good for shared fixtures.
 
-Composition also gives one thing raw spies don't: a **single `clear()`** across all members, and static-storage support via `Mock`'s static subscript.
+Composition also gives one thing raw spies don't: a **single `clear()`** across all members (from `MockProviding`, plus a static one from `StaticMockProviding`), and static-storage support via `Mock`'s static subscript.
 
 ---
 
@@ -283,7 +287,7 @@ Composition also gives one thing raw spies don't: a **single `clear()`** across 
 - **No `super` calls to real behavior after stubbing** — an override forwards to the spy or to `super`, not both. Partial mocks aren't supported; branch inside the override if you need one.
 - **Non-overridable storage**: a stored `var` on the base class can't be turned into a spy-backed property in a subclass. Override a computed property, or compose.
 - **Class initializers** must still satisfy the superclass — call a real `super.init(...)`; `Mock`'s empty-init convention doesn't apply.
-- **Composition doesn't inherit `Mock`'s conveniences**: `clear()`, `adapt`, and `DefaultProvider` conformance are all on `Mock`. Forward them explicitly if needed. `verifyZeroInteractions` is the exception — it takes a `MockProviding`, so it accepts a composed mock directly. Conform to `MockProviding` (a `var mock: Mock { get }`) to get that; `[.composition]` output already does, and any type with a `let mock = Mock()` satisfies it for free.
+- **Composition doesn't inherit `Mock`'s conveniences**: `adapt` and `DefaultProvider` conformance are on `Mock`, so use `Mock.adapt(...)` and forward what you need. `clear()` and `verifyZeroInteractions` are the exceptions — both come from `MockProviding` (a single `var mock: Mock { get }`), so any type with a `let mock = Mock()` satisfies it for free, and `[.composition]` output conforms already. Mocks with static requirements also conform to `StaticMockProviding` for a static `clear()`.
 
 ## Sanity check
 

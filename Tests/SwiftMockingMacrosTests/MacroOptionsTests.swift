@@ -71,7 +71,8 @@ final class MacroOptionsTests: MacroTestCase {
     }
 
     /// A protocol with static requirements gets a second `Mock` for them:
-    /// static members cannot reach an instance property.
+    /// static members cannot reach an instance property. The mock also conforms
+    /// to `StaticMockProviding`, which is what supplies its static `clear()`.
     func testCompositionOptionWithStaticRequirement() {
         assertMacro {
             """
@@ -87,7 +88,7 @@ final class MacroOptionsTests: MacroTestCase {
             }
 
             #if DEBUG
-            class MockMyService: SampleBase, MyService, MockProviding, @unchecked Sendable {
+            class MockMyService: SampleBase, MyService, MockProviding, StaticMockProviding, @unchecked Sendable {
                 let mock = Mock()
 
                 static let staticMock = Mock()

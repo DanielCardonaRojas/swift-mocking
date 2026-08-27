@@ -381,6 +381,15 @@ extension Mock : MockProviding {
     get
   }
 }
+extension MockProviding {
+  public func clear()
+}
+public protocol StaticMockProviding {
+  static var staticMock: Mock { get }
+}
+extension StaticMockProviding {
+  public static func clear()
+}
 public enum MockScope {
   public static let $invocationRecorder: TaskLocal<InvocationRecorder>
   public static var invocationRecorder: InvocationRecorder {
