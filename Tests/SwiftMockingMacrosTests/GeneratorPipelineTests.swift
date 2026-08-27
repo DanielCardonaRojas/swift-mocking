@@ -1,6 +1,9 @@
+import SwiftParser
+import SwiftSyntax
 import XCTest
 
 import MockableGenerator
+import SwiftMockingOptions
 
 /// Tests that `MockableGenerator.generateMocks(source:)` — the pipeline behind the
 /// `mockable` CLI — produces output byte-identical to the fixtures pinned by the
@@ -156,6 +159,27 @@ final class GeneratorPipelineTests: XCTestCase {
             }
             XCTAssertTrue(diagnostics.contains("error:"), "diagnostics should annotate errors: \(diagnostics)")
         }
+    }
+
+    func testCodeGenOptionsReadsMockableAttributeAlongsideOtherAttributes() throws {
+        // A non-option attribute preceding `@Mockable` must not abort the scan.
+        let protocolDecl = try XCTUnwrap(
+            Parser.parse(
+                source: """
+                @available(*, deprecated)
+                @Mockable([.suffixMock])
+                protocol Service {
+                    func load()
+                }
+                """
+            )
+            .statements.first?.item.as(ProtocolDeclSyntax.self)
+        )
+
+        XCTAssertEqual(
+            MockableGenerator.codeGenOptions(protocolDecl: protocolDecl),
+            [.suffixMock]
+        )
     }
 
     func testGenerateMocksWithoutDebugWrapperOmitsIfConfigAndKeepsMembers() throws {

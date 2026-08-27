@@ -223,13 +223,12 @@ public enum MockableGenerator {
     /// This function will return `[.prefixMock]`.
     public static func codeGenOptions(protocolDecl: ProtocolDeclSyntax) -> MockableOptions {
         for attribute in protocolDecl.attributes {
-            guard let attr = attribute.as(AttributeSyntax.self) else {
-                return .default
-            }
-
-            guard let arguments = attr.arguments?.as(LabeledExprListSyntax.self) else {
-                // No arguments or unexpected format
-                return .default
+            // Skip attributes that aren't option-bearing calls rather than
+            // bailing out: a protocol may carry `@available(...)` or a doc
+            // attribute alongside `@Mockable([.composition])`, in any order.
+            guard let attr = attribute.as(AttributeSyntax.self),
+                  let arguments = attr.arguments?.as(LabeledExprListSyntax.self) else {
+                continue
             }
             for argument in arguments {
                 guard let parsedOption = MockableOptions(stringLiteral: argument.expression.description) else {
