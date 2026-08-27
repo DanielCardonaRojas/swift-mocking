@@ -112,12 +112,12 @@ final class CompositionStrategyTests: XCTestCase {
         verifyNever(mock.modified())
     }
 
-    /// `StaticMockProviding` supplies a static `clear()`, matching the shape
+    /// `MockProviding` supplies a static `clear()`, matching the shape
     /// tests use on inheriting mocks (`MockLogger.clear()`).
     ///
     /// It is narrower than `Mock.clear()`, which wipes every mock's static
-    /// storage process-wide: a composed mock's static spies live in their own
-    /// `Mock`, so clearing one leaves others untouched.
+    /// storage process-wide: this filters `MockScope`'s storage to the key
+    /// derived from `Self`, so clearing one mock leaves others untouched.
     func testStaticClearResetsStaticSpies() {
         MockViewControllerService.clear()
         when(MockViewControllerService.shared()).thenReturn(1)

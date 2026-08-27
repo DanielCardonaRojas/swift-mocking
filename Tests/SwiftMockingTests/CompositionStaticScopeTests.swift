@@ -61,7 +61,7 @@ struct CompositionStaticScopeTests {
         verifyNever(MockOtherScopedLogger.log(.any))
     }
 
-    /// `StaticMockProviding.clear()` clears only its own mock's static spies.
+    /// The static `clear()` clears only its own mock's static spies.
     @Test(.mocking)
     func staticClearIsScopedToOneMock() {
         let mine: ScopedLogger.Type = MockScopedLogger.self

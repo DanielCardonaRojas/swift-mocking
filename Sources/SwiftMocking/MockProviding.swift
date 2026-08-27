@@ -43,29 +43,24 @@ public extension MockProviding {
         mock.clear()
     }
 
-}
-
-/// A type that exposes the ``Mock`` backing its **static** spies.
-///
-/// Static requirements cannot reach an instance property, so a mock generated
-/// with `@Mockable([.composition])` keeps a second `Mock` for them. This
-/// protocol exposes it, mirroring ``MockProviding`` for the static half.
-///
-/// Only mocks that actually have static requirements conform — the generator
-/// emits the storage, and this conformance, only then.
-public protocol StaticMockProviding {
-    /// The mock holding this type's static spies.
-    static var staticMock: Mock { get }
-}
-
-public extension StaticMockProviding {
-    /// Clears all recorded invocations and stubs from this type's static spies.
+    /// Clears all recorded invocations and stubs from this type's **static** spies.
     ///
-    /// Static spies live in ``MockScope``'s scoped storage under the mock's own
-    /// type name — the same place and identity an inheriting mock's static
-    /// spies use — so this clears exactly this mock's static spies and leaves
-    /// other mocks untouched.
+    /// Static requirements record on spies held in ``MockScope``'s scoped
+    /// storage, keyed by the mock's own type name — the same place and identity
+    /// an inheriting mock's static spies use. Reading that key from `Self` here
+    /// means this needs nothing from the conforming type beyond its identity,
+    /// so every composed mock gets it whether or not it has static storage.
+    ///
+    /// Scoped to one mock: clearing `MockLogger` leaves other mocks' static
+    /// spies intact. That is narrower than ``Mock/clear()``, the inheriting
+    /// strategy's static counterpart, which wipes every mock's static storage.
     static func clear() {
-        staticMock.clear()
+        let key = "\(Self.self)"
+        guard let spiesByMember = MockScope.storageProvider.storage[key] else {
+            return
+        }
+        for spyGroup in spiesByMember.values {
+            spyGroup.forEach { $0.clear() }
+        }
     }
 }

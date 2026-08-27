@@ -117,15 +117,9 @@ public enum MockableGenerator {
                 .map { TypeSyntax(stringLiteral: $0.type.trimmedDescription) } ?? []
             types = inherited + [
                 TypeSyntax(IdentifierTypeSyntax(name: protocolDecl.name)),
-                TypeSyntax(IdentifierTypeSyntax(name: .identifier("MockProviding")))
+                TypeSyntax(IdentifierTypeSyntax(name: .identifier("MockProviding"))),
+                uncheckedSendable
             ]
-            // Only mocks that actually keep static storage can satisfy
-            // `StaticMockProviding`, and it is what gives them a static
-            // `clear()`.
-            if hasStaticMembers(protocolDecl: protocolDecl) {
-                types.append(TypeSyntax(IdentifierTypeSyntax(name: .identifier("StaticMockProviding"))))
-            }
-            types.append(uncheckedSendable)
         }
 
         return InheritedTypeListSyntax(
