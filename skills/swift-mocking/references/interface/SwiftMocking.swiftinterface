@@ -420,7 +420,6 @@ public enum UntilError : Error, Sendable, CustomStringConvertible {
     get
   }
 }
-}
 extension Return where Effects == None {
 }
 extension Return where Effects == Async {
@@ -436,8 +435,6 @@ public struct SourceLocation : Sendable {
   public static func capture(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> SourceLocation {
         SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column)
     }
-    get
-  }
 }
 public class Spy<each Input, Effects, Output> : AnySpy, @unchecked Sendable where Effects : Effect {
   public var invocations: [Invocation<repeat each Input>] {

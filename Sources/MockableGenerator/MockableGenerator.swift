@@ -185,19 +185,21 @@ public enum MockableGenerator {
     /// }
     /// ```
     /// This function will return `true`.
+    ///
+    /// Subscripts count alongside functions and variables: a `static subscript`
+    /// generates members that read `staticMock`, so omitting it from this check
+    /// produced a mock referencing storage that was never declared.
     private static func hasStaticMembers(protocolDecl: ProtocolDeclSyntax) -> Bool {
-        for member in protocolDecl.memberBlock.members {
-            if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                if funcDecl.modifiers.contains(where: { $0.name.text == "static" }) {
-                    return true
-                }
-            } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                if varDecl.modifiers.contains(where: { $0.name.text == "static" }) {
-                    return true
-                }
+        protocolDecl.memberBlock.members.contains { member in
+            let modifiers: DeclModifierListSyntax?
+            switch member.decl.as(DeclSyntaxEnum.self) {
+            case .functionDecl(let decl): modifiers = decl.modifiers
+            case .variableDecl(let decl): modifiers = decl.modifiers
+            case .subscriptDecl(let decl): modifiers = decl.modifiers
+            default: modifiers = nil
             }
+            return modifiers?.contains(where: \.isStatic) ?? false
         }
-        return false
     }
 
     /// Extracts mock generation options from a protocol's attributes.

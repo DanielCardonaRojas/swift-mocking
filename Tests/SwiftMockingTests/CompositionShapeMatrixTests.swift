@@ -59,6 +59,17 @@ protocol StaticShape: ShapeBase {
     static func reset() -> Int
 }
 
+/// A protocol whose *only* static member is a subscript.
+///
+/// `hasStaticMembers` originally inspected functions and variables but not
+/// subscripts, so this shape generated members reading `staticMock` without
+/// declaring it. Static functions masked the gap — this protocol deliberately
+/// has none.
+@Mockable([.composition])
+protocol StaticSubscriptShape: ShapeBase {
+    static subscript(index: Int) -> String { get }
+}
+
 @Mockable([.composition])
 protocol InitializerShape: ConfiguredBase {
     init(value: Int)
@@ -150,6 +161,19 @@ final class CompositionShapeMatrixTests: XCTestCase {
 
         XCTAssertEqual(service.reset(), 3)
         verify(MockStaticShape.reset()).called(1)
+    }
+
+    /// Regression: a protocol whose only static member is a subscript must
+    /// still get `staticMock`. Before the fix this file did not compile —
+    /// `cannot find 'staticMock' in scope`.
+    func testStaticSubscript() {
+        MockStaticSubscriptShape.staticMock.clear()
+        when(MockStaticSubscriptShape[.equal(1)]).thenReturn("one")
+
+        let service: StaticSubscriptShape.Type = MockStaticSubscriptShape.self
+
+        XCTAssertEqual(service[1], "one")
+        verify(MockStaticSubscriptShape[.equal(1)]).called(1)
     }
 
     /// A composed mock inherits its protocol's required superclass, so its

@@ -138,13 +138,13 @@ protocol ViewControllerService: SampleBase {
 }
 ```
 
-Without the option this protocol **cannot be mocked at all**. Conformers must inherit `SampleBase`, the default strategy needs that same slot for `Mock`, and Swift allows one superclass:
+Without the option, the **default `@Mockable` output cannot conform** to this protocol. Conformers must inherit `SampleBase`, the default strategy needs that same slot for `Mock`, and Swift allows one superclass:
 
-```
+```text
 error: 'ViewControllerService' requires that 'MockViewControllerService' inherit from 'SampleBase'
 ```
 
-Unlike protocol inheritance — where marking the parent `@Mockable` is a workaround — no hand-edit rescues the default output here.
+Unlike protocol inheritance — where marking the parent `@Mockable` is a workaround — no edit to the *generated* output rescues it. Hand-writing the composed mock below is still a valid alternative; `[.composition]` just does it for you.
 
 The generated mock inherits the required superclass and holds a `Mock`:
 
@@ -176,7 +176,7 @@ Points worth knowing:
 - **`MockProviding`** is added so `verifyZeroInteractions(mock)` accepts the mock directly (see below).
 - Usage is identical to any other mock — `when`, `verify`, matchers, settable members all behave the same.
 
-Everything after this point is the **hand-written** recipe, for the cases the macro still can't express: structs, actors, and mocking a concrete class.
+Everything after this point is the **hand-written** recipe: structs, actors, types that already have a superclass, and mocking a concrete class. It stays valid for class-constrained protocols too — `[.composition]` just saves you writing it.
 
 ### Hand-written composition
 
@@ -212,7 +212,7 @@ This is the manual-mocking.md recipe with exactly **two mechanical substitutions
 
 **Spell it `self.mock.load`, not `mock.load`.** A bare `mock` works in a plain method body, but settable members read the spy inside an escaping closure, where Swift demands explicit `self`:
 
-```
+```text
 error: reference to property 'mock' in closure requires explicit use of 'self' to make capture semantics explicit
 ```
 
