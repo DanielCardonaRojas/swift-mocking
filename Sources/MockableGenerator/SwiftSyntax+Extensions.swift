@@ -13,6 +13,86 @@ extension DeclModifierSyntax {
     }
 }
 
+/// How generated members reach the spies backing them.
+///
+/// The two strategies differ only in the expression naming a spy and in whether
+/// the `adapt` family is called as an instance or static method — everything
+/// else about a generated mock is identical, so the builders take this value
+/// and stay otherwise shared.
+public enum SpyAccess {
+    /// The mock inherits `Mock`: spies are `super.name`, adapters are instance
+    /// methods inherited from `Mock`.
+    case inherited
+    /// The mock holds a `Mock`: spies are `mock.name` (or `staticMock.name` in
+    /// a static member), adapters are `Mock`'s static methods, since a
+    /// composing type inherits nothing from `Mock`.
+    case composed
+
+    /// The name of the stored property holding the `Mock` in a composed mock.
+    static let storedPropertyName = "mock"
+
+    /// The name of the stored property holding the `Mock` that backs *static*
+    /// requirements in a composed mock.
+    ///
+    /// Static members cannot reach an instance property, so they need their own
+    /// storage. This mirrors what `Mock.Super` does for the inheriting strategy.
+    static let staticStoredPropertyName = "staticMock"
+
+    /// The expression a spy is looked up on, for a member of the given kind.
+    ///
+    /// Instance storage is spelled `self.mock` rather than a bare `mock`:
+    /// settable members read the spy inside an escaping closure, where Swift
+    /// requires explicit `self` (`reference to property 'mock' in closure
+    /// requires explicit use of 'self' to make capture semantics explicit`).
+    /// `super` never needed the qualification, so this has no inherited
+    /// counterpart. Static storage is a type member and needs no qualifier.
+    ///
+    /// - Parameter isStatic: Whether the member reading the spy is `static`.
+    func spyBase(isStatic: Bool) -> ExprSyntax {
+        switch self {
+        case .inherited:
+            return ExprSyntax(SuperExprSyntax())
+        case .composed where isStatic:
+            return ExprSyntax(
+                DeclReferenceExprSyntax(baseName: .identifier(Self.staticStoredPropertyName))
+            )
+        case .composed:
+            return ExprSyntax(
+                MemberAccessExprSyntax(
+                    base: DeclReferenceExprSyntax(baseName: .keyword(.self)),
+                    name: .identifier(Self.storedPropertyName)
+                )
+            )
+        }
+    }
+
+    /// A `<base>.<name>` spy reference for a member of the given kind.
+    func spyReference(_ name: TokenSyntax, isStatic: Bool) -> ExprSyntax {
+        ExprSyntax(
+            MemberAccessExprSyntax(
+                base: spyBase(isStatic: isStatic),
+                name: name
+            )
+        )
+    }
+
+    /// The callee for an adapter call — bare for the inherited instance method,
+    /// `Mock.`-qualified for the static one a composing type must use.
+    func adapterCallee(_ adapterName: String) -> ExprSyntax {
+        switch self {
+        case .inherited:
+            return ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(adapterName)))
+        case .composed:
+            return ExprSyntax(
+                MemberAccessExprSyntax(
+                    base: DeclReferenceExprSyntax(baseName: .identifier("Mock")),
+                    name: .identifier(adapterName)
+                )
+            )
+        }
+    }
+}
+
 extension DeclModifierListSyntax {
     /// The modifiers with `mutating` and `nonmutating` removed.
     ///

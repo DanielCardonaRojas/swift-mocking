@@ -32,18 +32,21 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
-    static func makeInteractions(protocolDecl: ProtocolDeclSyntax) -> [DeclSyntax] {
+    static func makeInteractions(
+        protocolDecl: ProtocolDeclSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> [DeclSyntax] {
         var members = [DeclSyntax]()
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let stubFunction = processFunc(funcDecl)
+                let stubFunction = processFunc(funcDecl, spyAccess: spyAccess)
                 members.append(stubFunction)
             } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                let stubFunctions = processVar(varDecl)
+                let stubFunctions = processVar(varDecl, spyAccess: spyAccess)
                 members.append(contentsOf: stubFunctions)
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
-                members.append(contentsOf: processSubscript(subscriptDecl))
+                members.append(contentsOf: processSubscript(subscriptDecl, spyAccess: spyAccess))
             }
         }
 
@@ -58,7 +61,10 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: super.doSomething)
     /// }
     /// ```
-    private static func processFunc(_ funcDecl: FunctionDeclSyntax) -> DeclSyntax {
+    private static func processFunc(
+        _ funcDecl: FunctionDeclSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> DeclSyntax {
         let funcName = funcDecl.name.text
         let spyPropertyName = funcDecl.name.text
 
@@ -67,7 +73,8 @@ public extension MockableGenerator {
             spyPropertyName: spyPropertyName,
             funcDecl: funcDecl,
             genericParameterClause: funcDecl.genericParameterClause,
-            genericWhereClause: funcDecl.genericWhereClause
+            genericWhereClause: funcDecl.genericWhereClause,
+            spyAccess: spyAccess
         )
 
         return DeclSyntax(stubFunction)
@@ -80,7 +87,10 @@ public extension MockableGenerator {
     /// func name(_ void: Void = ()) -> Interaction<Void, None, String> { ... }
     /// func setName(newValue: ArgMatcher<String>) -> Interaction<String, None, Void> { ... }
     /// ```
-    private static func processVar(_ varDecl: VariableDeclSyntax) -> [DeclSyntax] {
+    private static func processVar(
+        _ varDecl: VariableDeclSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> [DeclSyntax] {
         var decls = [DeclSyntax]()
         for binding in varDecl.bindings {
             guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
@@ -95,14 +105,16 @@ public extension MockableGenerator {
                 decls.append(DeclSyntax(createSettableGetterInteraction(
                     varName: varName,
                     type: type,
-                    modifiers: varDecl.modifiers
+                    modifiers: varDecl.modifiers,
+                    spyAccess: spyAccess
                 )))
             } else {
                 // Getter
                 let getter = createGetterInteraction(
                     varName: varName,
                     type: type,
-                    modifiers: varDecl.modifiers
+                    modifiers: varDecl.modifiers,
+                    spyAccess: spyAccess
                 )
                 decls.append(DeclSyntax(getter))
             }
@@ -115,11 +127,14 @@ public extension MockableGenerator {
     /// Get-only requirements generate an `Interaction` subscript; settable
     /// requirements generate a `SettableInteraction` subscript exposing reads
     /// (`when`/`verify`) and writes (`assigned:`) through one surface.
-    private static func processSubscript(_ subscriptDecl: SubscriptDeclSyntax) -> [DeclSyntax] {
+    private static func processSubscript(
+        _ subscriptDecl: SubscriptDeclSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> [DeclSyntax] {
         if subscriptDecl.hasSetter {
-            return [DeclSyntax(subscriptSettableInteraction(subscriptDecl))]
+            return [DeclSyntax(subscriptSettableInteraction(subscriptDecl, spyAccess: spyAccess))]
         }
-        return [DeclSyntax(subscriptGetterInteraction(subscriptDecl))]
+        return [DeclSyntax(subscriptGetterInteraction(subscriptDecl, spyAccess: spyAccess))]
     }
 
     /// Creates a getter interaction subscript mirroring the requirement's indices.
@@ -130,7 +145,11 @@ public extension MockableGenerator {
     ///     get { Interaction(index, spy: super.index) }
     /// }
     /// ```
-    private static func subscriptGetterInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
+    private static func subscriptGetterInteraction(
+        _ subscriptDecl: SubscriptDeclSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> SubscriptDeclSyntax {
+        let isStatic = subscriptDecl.modifiers.contains(where: \.isStatic)
         let subscriptDecl = SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
@@ -153,7 +172,9 @@ public extension MockableGenerator {
                         bodyBuilder: {
                             createFunctionBody(
                                 spyPropertyName: subscriptDecl.name,
-                                parameterNames: subscriptDecl.parameterClause.parameters
+                                parameterNames: subscriptDecl.parameterClause.parameters,
+                                spyAccess: spyAccess,
+                                isStatic: isStatic
                             ).statements
                         }
                     )
@@ -182,7 +203,10 @@ public extension MockableGenerator {
     ///
     /// Reads record on the `subscript` spy, writes on the `setSubscript` spy with
     /// the written value as a trailing argument.
-    private static func subscriptSettableInteraction(_ subscriptDecl: SubscriptDeclSyntax) -> SubscriptDeclSyntax {
+    private static func subscriptSettableInteraction(
+        _ subscriptDecl: SubscriptDeclSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> SubscriptDeclSyntax {
         SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
             modifiers: subscriptDecl.modifiers,
@@ -214,7 +238,9 @@ public extension MockableGenerator {
                                     inputTypes: subscriptDecl.parameterClause.parameters
                                         .map { removeAttributes($0.type) },
                                     outputType: subscriptDecl.returnClause.type
-                                )
+                                ),
+                                spyAccess: spyAccess,
+                                isStatic: subscriptDecl.modifiers.contains(where: \.isStatic)
                             ).statements
                         }
                     )
@@ -298,7 +324,9 @@ public extension MockableGenerator {
         setterSpyName: String,
         parameterNames: FunctionParameterListSyntax,
         writeSpyType: TypeSyntax,
-        writeInteractionType: TypeSyntax
+        writeInteractionType: TypeSyntax,
+        spyAccess: SpyAccess = .inherited,
+        isStatic: Bool = false
     ) -> CodeBlockSyntax {
         // Relative to the statement's own column: SwiftSyntax supplies the
         // enclosing context's indentation when the body is placed, so these
@@ -307,7 +335,9 @@ public extension MockableGenerator {
         let indent = { (level: Int) in Trivia.spaces(4 * level) }
         let getterCall = interactionCall(
             spyPropertyName: getterSpyName,
-            parameterNames: parameterNames
+            parameterNames: parameterNames,
+            spyAccess: spyAccess,
+            isStatic: isStatic
         )
         let setterCall = interactionCall(
             spyPropertyName: writeSpyBindingName,
@@ -351,10 +381,7 @@ public extension MockableGenerator {
                     ),
                     initializer: InitializerClauseSyntax(
                         equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
-                        value: MemberAccessExprSyntax(
-                            base: SuperExprSyntax(),
-                            name: .identifier(setterSpyName)
-                        )
+                        value: spyAccess.spyReference(.identifier(setterSpyName), isStatic: isStatic)
                     )
                 )
             }
@@ -447,9 +474,19 @@ public extension MockableGenerator {
     ///   their input pack from, so `when(mock.name)` and `verify(mock.name)` resolve.
     /// - It keeps the spy's input pack at `(Void)` — the same pack the conformance's
     ///   `adapt(super.name, ())` records on.
-    private static func createGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+    private static func createGetterInteraction(
+        varName: String,
+        type: TypeSyntax,
+        modifiers: DeclModifierListSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> FunctionDeclSyntax {
         let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
-        let body = createFunctionBody(spyPropertyName: varName, parameterNames: [])
+        let body = createFunctionBody(
+            spyPropertyName: varName,
+            parameterNames: [],
+            spyAccess: spyAccess,
+            isStatic: modifiers.contains(where: \.isStatic)
+        )
         return FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
             name: .identifier(varName),
@@ -481,7 +518,12 @@ public extension MockableGenerator {
     /// `adapt(super.value, ())`; the write pack is `(Void, newValue)`, matching
     /// the conformance setter's `adapt(super.setValue, (), newValue)` — writes
     /// record the read pack plus the written value.
-    private static func createSettableGetterInteraction(varName: String, type: TypeSyntax, modifiers: DeclModifierListSyntax) -> FunctionDeclSyntax {
+    private static func createSettableGetterInteraction(
+        varName: String,
+        type: TypeSyntax,
+        modifiers: DeclModifierListSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> FunctionDeclSyntax {
         FunctionDeclSyntax(
             modifiers: modifiers.trimmed,
             name: .identifier(varName),
@@ -507,7 +549,9 @@ public extension MockableGenerator {
                 writeInteractionType: writeInteractionType(
                     inputTypes: [TypeSyntax(stringLiteral: "Void")],
                     outputType: type
-                )
+                ),
+                spyAccess: spyAccess,
+                isStatic: modifiers.contains(where: \.isStatic)
             )
         )
     }
@@ -586,7 +630,8 @@ public extension MockableGenerator {
         spyPropertyName: String,
         funcDecl: FunctionDeclSyntax,
         genericParameterClause: GenericParameterClauseSyntax?,
-        genericWhereClause: GenericWhereClauseSyntax?
+        genericWhereClause: GenericWhereClauseSyntax?,
+        spyAccess: SpyAccess = .inherited
     ) -> FunctionDeclSyntax {
 
         let (inputTypes, _, _) = getFunctionParameters(funcDecl)
@@ -599,7 +644,9 @@ public extension MockableGenerator {
         let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType, genericParameterClause: genericParameterClause)
         let body = createFunctionBody(
             spyPropertyName: spyPropertyName,
-            parameterNames: funcDecl.signature.parameterClause.parameters
+            parameterNames: funcDecl.signature.parameterClause.parameters,
+            spyAccess: spyAccess,
+            isStatic: funcDecl.modifiers.contains(where: \.isStatic)
         )
 
         return FunctionDeclSyntax(
@@ -735,8 +782,18 @@ public extension MockableGenerator {
     ///     Interaction(value, spy: doSomething)
     /// }
     /// ```
-    private static func createFunctionBody(spyPropertyName: String, parameterNames: FunctionParameterListSyntax) -> CodeBlockSyntax {
-        return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(interactionCall(spyPropertyName: spyPropertyName, parameterNames: parameterNames))))])
+    private static func createFunctionBody(
+        spyPropertyName: String,
+        parameterNames: FunctionParameterListSyntax,
+        spyAccess: SpyAccess = .inherited,
+        isStatic: Bool = false
+    ) -> CodeBlockSyntax {
+        return CodeBlockSyntax(statements: [CodeBlockItemSyntax(item: .expr(ExprSyntax(interactionCall(
+            spyPropertyName: spyPropertyName,
+            parameterNames: parameterNames,
+            spyAccess: spyAccess,
+            isStatic: isStatic
+        ))))])
     }
 
     /// Creates an `Interaction(…, spy: super.<spy>)` call expression.
@@ -752,7 +809,9 @@ public extension MockableGenerator {
         spyPropertyName: String,
         parameterNames: FunctionParameterListSyntax,
         newValueName: String? = nil,
-        spyIsLocalBinding: Bool = false
+        spyIsLocalBinding: Bool = false,
+        spyAccess: SpyAccess = .inherited,
+        isStatic: Bool = false
     ) -> FunctionCallExprSyntax {
         FunctionCallExprSyntax(
             callee: DeclReferenceExprSyntax(baseName: .identifier("Interaction"))
@@ -797,10 +856,7 @@ public extension MockableGenerator {
                 label: "spy",
                 expression: spyIsLocalBinding
                     ? ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(spyPropertyName)))
-                    : ExprSyntax(MemberAccessExprSyntax(
-                        base: SuperExprSyntax(),
-                        name: .identifier(spyPropertyName)
-                    ))
+                    : spyAccess.spyReference(.identifier(spyPropertyName), isStatic: isStatic)
             )
 
         }

@@ -7,14 +7,17 @@ Two escape hatches for everything `@Mockable` cannot reach. Both are fully suppo
 
 Every example below was compiled and executed against this package.
 
+**Check first whether the macro can do it for you.** `@Mockable([.composition])` generates the composed shape automatically for a protocol constrained to a class (`protocol P: SomeClass`) — see §Macro-generated composition. The hand-written recipe below is for what the macro still can't express.
+
 ## Decision table
 
 | Situation | Technique |
 |---|---|
 | Protocol, no inheritance | `@Mockable` (nothing here needed) |
 | Protocol inheritance chain | manual-mocking.md (subclass `Mock`) |
+| **Protocol constrained to a class** (`protocol P: SomeClass`) | `@Mockable([.composition])` — macro-generated, no hand-writing |
 | **Mocking a class** (`class RemoteLoader`, no protocol) | Subclass it, back overrides with raw `Spy` — §Raw spies |
-| **Type already has a superclass** (`UIViewController`, `RemoteLoader`) | Composition — §Composition |
+| **Hand-written type that already has a superclass** (`UIViewController`) | Composition — §Composition |
 | **Struct or actor conforming to a protocol** | Composition (can't inherit at all) |
 | Closure / TCA-style dependency | Raw `Spy` + `adapt(spy)` — usage.md also covers this |
 | Final class you can't subclass | Extract a protocol, or wrap it — §Limits |
@@ -120,6 +123,63 @@ Prefer the global `when`/`verify` in tests: they report failures through IssueRe
 
 ## Part 2 — Composition instead of inheritance
 
+### Macro-generated composition
+
+Before hand-writing anything, check whether `@Mockable([.composition])` covers your case. It does when the protocol is **constrained to a class**:
+
+```swift
+class SampleBase { init() {} }
+
+@Mockable([.composition])
+protocol ViewControllerService: SampleBase {
+    func load(_ id: String) throws -> String
+    var flag: Bool { get set }
+    static func reset()
+}
+```
+
+Without the option, the **default `@Mockable` output cannot conform** to this protocol. Conformers must inherit `SampleBase`, the default strategy needs that same slot for `Mock`, and Swift allows one superclass:
+
+```text
+error: 'ViewControllerService' requires that 'MockViewControllerService' inherit from 'SampleBase'
+```
+
+Unlike protocol inheritance — where marking the parent `@Mockable` is a workaround — no edit to the *generated* output rescues it. Hand-writing the composed mock below is still a valid alternative; `[.composition]` just does it for you.
+
+The generated mock inherits the required superclass and holds a `Mock`:
+
+```swift
+class MockViewControllerService: SampleBase, ViewControllerService, MockProviding, @unchecked Sendable {
+    let mock = Mock()
+    static let staticMock = Mock()          // only when the protocol has static requirements
+
+    func load(_ id: ArgMatcher<String>) -> Interaction<String, Throws, String> {
+        Interaction(id, spy: self.mock.load)
+    }
+    func load(_ id: String) throws -> String {
+        return try Mock.adaptThrowing(self.mock.load, id)
+    }
+
+    static func reset() -> Interaction<Void, None, Void> {
+        Interaction(.any, spy: staticMock.reset)
+    }
+    static func reset() {
+        return Mock.adapt(staticMock.reset, ())
+    }
+}
+```
+
+Points worth knowing:
+
+- **Opt-in only.** The macro cannot tell a class from a protocol by name, so it never infers the strategy — you hit the error first, then add the option.
+- **Statics get their own storage.** A static member can't reach an instance property, so `staticMock` is emitted when needed. It's the composed counterpart of `Mock.Super`.
+- **`MockProviding`** is added so `verifyZeroInteractions(mock)` accepts the mock directly (see below).
+- Usage is identical to any other mock — `when`, `verify`, matchers, settable members all behave the same.
+
+Everything after this point is the **hand-written** recipe: structs, actors, types that already have a superclass, and mocking a concrete class. It stays valid for class-constrained protocols too — `[.composition]` just saves you writing it.
+
+### Hand-written composition
+
 `Mock`'s power comes from its `@dynamicMemberLookup` subscript, and **that subscript is `public`**. So `mock.someName` resolves a lazily-created spy from *outside* the class too — you do not have to be a subclass:
 
 ```swift
@@ -145,10 +205,18 @@ This is the manual-mocking.md recipe with exactly **two mechanical substitutions
 
 | Subclassing `Mock` | Composing a `Mock` |
 |---|---|
-| `super.load` | `mock.load` |
+| `super.load` | `self.mock.load` |
 | `adapt(...)` / `adaptThrowing(...)` (instance method) | `Mock.adapt(...)` / `Mock.adaptThrowing(...)` (static) |
 
 **The `Mock.` prefix is required, and it is the one thing that catches people out.** `adapt` is an instance method on `Mock`; a composing type does not inherit it. Use the static overloads — they take the spy as their first argument and behave identically. (A file-scope `func adapt` shadow also works, but the static form is clearer.)
+
+**Spell it `self.mock.load`, not `mock.load`.** A bare `mock` works in a plain method body, but settable members read the spy inside an escaping closure, where Swift demands explicit `self`:
+
+```text
+error: reference to property 'mock' in closure requires explicit use of 'self' to make capture semantics explicit
+```
+
+`super` never needed the qualifier, so this has no inheritance counterpart. Using `self.` everywhere is the simplest rule and matches what `[.composition]` generates. Static members are the exception — they read a static property, which needs no qualifier.
 
 Everything else is unchanged: the two-member rule, the effect→adapter table, the explicit `()` for zero-arg members, `Interaction` generic ordering, settable properties' two-spy structure, subscript spy naming.
 
@@ -215,7 +283,7 @@ Composition also gives one thing raw spies don't: a **single `clear()`** across 
 - **No `super` calls to real behavior after stubbing** — an override forwards to the spy or to `super`, not both. Partial mocks aren't supported; branch inside the override if you need one.
 - **Non-overridable storage**: a stored `var` on the base class can't be turned into a spy-backed property in a subclass. Override a computed property, or compose.
 - **Class initializers** must still satisfy the superclass — call a real `super.init(...)`; `Mock`'s empty-init convention doesn't apply.
-- **Composition doesn't inherit `Mock`'s conveniences**: `clear()`, `adapt`, and `DefaultProvider` conformance are all on `Mock`. Forward them explicitly if needed.
+- **Composition doesn't inherit `Mock`'s conveniences**: `clear()`, `adapt`, and `DefaultProvider` conformance are all on `Mock`. Forward them explicitly if needed. `verifyZeroInteractions` is the exception — it takes a `MockProviding`, so it accepts a composed mock directly. Conform to `MockProviding` (a `var mock: Mock { get }`) to get that; `[.composition]` output already does, and any type with a `let mock = Mock()` satisfies it for free.
 
 ## Sanity check
 

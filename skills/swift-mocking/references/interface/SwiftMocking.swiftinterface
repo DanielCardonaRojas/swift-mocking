@@ -168,7 +168,7 @@ extension Arrange where Eff == AsyncThrows {
 public class Assert<each Input, Eff, Output> where Eff : Effect {
   public init(invocationMatcher: InvocationMatcher<repeat each Input>? = nil, spy: Spy<repeat each Input, Eff, Output>)
   public func assert(_ matcher: ArgMatcher<Int>?) throws
-  public func neverCalled(file: StaticString = #filePath, line: UInt = #line)
+  public func neverCalled(fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
 }
 extension Assert where Eff == Throws {
   public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws
@@ -373,6 +373,14 @@ extension Mock {
   public func clear()
   public static func clear()
 }
+public protocol MockProviding {
+  var mock: Mock { get }
+}
+extension Mock : MockProviding {
+  public var mock: Mock {
+    get
+  }
+}
 public enum MockScope {
   public static let $invocationRecorder: TaskLocal<InvocationRecorder>
   public static var invocationRecorder: InvocationRecorder {
@@ -406,14 +414,11 @@ public struct MockingError : Error, Equatable, Sendable {
   public static func unfulfilledCallCount(_ actual: Int) -> MockingError
   public static let noMatchingInvocations: MockingError
 }
-public enum UntilError : Error, Sendable {
-  case timeout
-  public static func == (a: UntilError, b: UntilError) -> Bool
-  public func hash(into hasher: inout Hasher)
-  public var hashValue: Int {
+public enum UntilError : Error, Sendable, CustomStringConvertible {
+  case timeout(method: String? = nil, duration: Duration? = nil)
+  public var description: String {
     get
   }
-}
 }
 extension Return where Effects == None {
 }
@@ -425,6 +430,11 @@ public struct SettableInteraction<each Input, Eff, Output> where Eff : Effect {
   public func set(_ newValue: ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void>
 }
 extension SettableInteraction : Sendable where repeat each Input : Sendable, Output : Sendable {
+}
+public struct SourceLocation : Sendable {
+  public static func capture(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> SourceLocation {
+        SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column)
+    }
 }
 public class Spy<each Input, Effects, Output> : AnySpy, @unchecked Sendable where Effects : Effect {
   public var invocations: [Invocation<repeat each Input>] {
@@ -546,30 +556,28 @@ public func verify<each Input, Eff, Output>(_ interaction: Interaction<repeat ea
 public func verify<each Input, Eff, Output>(_ interaction: (()) -> Interaction<repeat each Input, Eff, Output>) -> Assert<repeat each Input, Eff, Output> where Eff : Effect
 public func verify<each Input, Eff, Output>(_ interaction: SettableInteraction<repeat each Input, Eff, Output>) -> Assert<repeat each Input, Eff, Output> where Eff : Effect
 public func verify<each Input, Eff, Output>(_ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>) -> Assert<repeat each Input, Eff, Output> where Eff : Effect
-public func verifyInOrder(_ verifiables: [any CrossSpyVerifiable], file: StaticString = #filePath, line: UInt = #line)
-public func verifyInOrder(@CrossSpyVerificationBuilder _ builder: () -> [any CrossSpyVerifiable], file: StaticString = #filePath, line: UInt = #line)
-public func verifyNever<each Input, Eff, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>, file: StaticString = #filePath, line: UInt = #line) where Eff : Effect
-public func verifyNever<each Input, Eff, Output>(_ interaction: (()) -> Interaction<repeat each Input, Eff, Output>, file: StaticString = #filePath, line: UInt = #line) where Eff : Effect
-public func verifyNever<each Input, Eff, Output>(_ interaction: SettableInteraction<repeat each Input, Eff, Output>, file: StaticString = #filePath, line: UInt = #line) where Eff : Effect
-public func verifyNever<each Input, Eff, Output>(_ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>, file: StaticString = #filePath, line: UInt = #line) where Eff : Effect
+public func verifyInOrder(_ verifiables: [any CrossSpyVerifiable], fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
+public func verifyInOrder(@CrossSpyVerificationBuilder _ builder: () -> [any CrossSpyVerifiable], fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
+public func verifyNever<each Input, Eff, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) where Eff : Effect
+public func verifyNever<each Input, Eff, Output>(_ interaction: (()) -> Interaction<repeat each Input, Eff, Output>, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) where Eff : Effect
+public func verifyNever<each Input, Eff, Output>(_ interaction: SettableInteraction<repeat each Input, Eff, Output>, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) where Eff : Effect
+public func verifyNever<each Input, Eff, Output>(_ interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) where Eff : Effect
 infix operator <- : AssignmentPrecedence
 public func <- <each Input, Eff, Output>(interaction: SettableInteraction<repeat each Input, Eff, Output>, newValue: ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void> where Eff : Effect
 public func <- <each Input, Eff, Output>(interaction: (()) -> SettableInteraction<repeat each Input, Eff, Output>, newValue: ArgMatcher<Output>) -> Interaction<repeat each Input, Output, None, Void> where Eff : Effect
-public func verifyZeroInteractions(_ mock: Mock, file: StaticString = #filePath, line: UInt = #line)
+public func verifyZeroInteractions(_ mock: some MockProviding, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
 public func until<each Input, Output>(_ interaction: Interaction<repeat each Input, None, Output>, timeout: Duration = .seconds(1)) async throws where repeat each Input : Sendable
 public func until<each Input, Output>(_ interaction: Interaction<repeat each Input, Async, Output>, timeout: Duration = .seconds(1)) async throws where repeat each Input : Sendable
 public func until<each Input, Output>(_ interaction: Interaction<repeat each Input, AsyncThrows, Output>, timeout: Duration = .seconds(1)) async throws where repeat each Input : Sendable
 extension Assert {
-  public func called(_ countMatcher: ArgMatcher<Int>? = nil, file: StaticString = #filePath, line: UInt = #line)
+  public func called(_ countMatcher: ArgMatcher<Int>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
 }
 extension Assert {
-  public func captured(_ inspector: @escaping (repeat each Input) throws -> Void, file: StaticString = #filePath, line: UInt = #line)
+  public func captured(_ inspector: @escaping (repeat each Input) throws -> Void, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
 }
 extension Assert where Eff == Throws {
-  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, file: StaticString = #filePath, line: UInt = #line)
+  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
 }
 extension Assert where Eff == AsyncThrows {
-  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, file: StaticString = #filePath, line: UInt = #line) async
+  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
 }
-extension UntilError : Equatable {}
-extension UntilError : Hashable {}

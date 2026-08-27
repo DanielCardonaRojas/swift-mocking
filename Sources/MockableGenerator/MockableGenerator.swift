@@ -34,19 +34,25 @@ public enum MockableGenerator {
         } else if codeGenOptions.contains(.suffixMock) {
             mockName = protocolName + "Mock"
         } else {
-            // Default behavior if no specific option is provided
-            mockName = protocolName + "Mock"
+            // No naming option given — follow `.default` rather than assuming a
+            // suffix, so an options list that names only non-naming options
+            // (`[.composition]`) keeps the same name as a bare `@Mockable`.
+            mockName = MockableOptions.default.contains(.prefixMock)
+                ? "Mock" + protocolName
+                : protocolName + "Mock"
         }
 
         // Generate the spy properties and methods using SpyGenerator
+        let spyAccess: SpyAccess = codeGenOptions.contains(.composition) ? .composed : .inherited
         let genericParameters = associatedTypesToGenericArguments(
             protocolDecl: protocolDecl
         )
         let typeAliases = makeTypeAliases(protocolDecl)
-        let interactions = makeInteractions(protocolDecl: protocolDecl)
-        let conformanceRequirements = makeConformanceRequirements(for: protocolDecl)
+        let spyStorage = makeSpyStorage(protocolDecl: protocolDecl, spyAccess: spyAccess)
+        let interactions = makeInteractions(protocolDecl: protocolDecl, spyAccess: spyAccess)
+        let conformanceRequirements = makeConformanceRequirements(for: protocolDecl, spyAccess: spyAccess)
 
-        let members = separatedByBlankLines(typeAliases + interactions + conformanceRequirements)
+        let members = separatedByBlankLines(typeAliases + spyStorage + interactions + conformanceRequirements)
             .map { MemberBlockItemSyntax(decl: $0) }
 
         // Create the Mock struct
@@ -54,29 +60,10 @@ public enum MockableGenerator {
             name: TokenSyntax.identifier(mockName),
             genericParameterClause: genericParameters,
             inheritanceClause: InheritanceClauseSyntax(
-                inheritedTypes: [
-                    InheritedTypeSyntax(
-                        type: IdentifierTypeSyntax(
-                            name: .identifier("Mock")
-                        ),
-                        trailingComma: .commaToken()
-                    ),
-                    InheritedTypeSyntax(
-                        // `Mock` is `@unchecked Sendable`; subclasses must restate the
-                        // conformance to stay warning-free under Swift 6 concurrency.
-                        type: AttributedTypeSyntax(
-                            specifiers: [],
-                            attributes: [.attribute(
-                                AttributeSyntax(attributeName: IdentifierTypeSyntax(name: .identifier("unchecked")))
-                            )],
-                            baseType: IdentifierTypeSyntax(name: TokenSyntax.identifier("Sendable"))
-                        ),
-                        trailingComma: .commaToken()
-                    ),
-                    InheritedTypeSyntax(
-                        type: IdentifierTypeSyntax(name: protocolDecl.name)
-                    )
-                ]
+                inheritedTypes: inheritedTypes(
+                    protocolDecl: protocolDecl,
+                    spyAccess: spyAccess
+                )
             ),
             memberBlock: MemberBlockSyntax(members: MemberBlockItemListSyntax(members))
         )
@@ -86,6 +73,85 @@ public enum MockableGenerator {
         })
 
         return [DeclSyntax(ifConfigDecl)]
+    }
+
+    /// Builds the generated mock's inheritance clause.
+    ///
+    /// Inheriting mocks are `Mock, @unchecked Sendable, <Protocol>`.
+    ///
+    /// Composing mocks instead restate the protocol's own inherited types first
+    /// — that is the whole point of the strategy, since a protocol carrying a
+    /// class constraint (`protocol Service: SomeBaseClass`) requires its
+    /// conformers to inherit that class, and the slot is taken by `Mock` under
+    /// the default strategy. Inherited *protocols* are harmless here: conforming
+    /// to the most-derived protocol already implies them.
+    ///
+    /// `MockProviding` is added so `verifyZeroInteractions` accepts the mock;
+    /// inheriting mocks get that conformance from `Mock` itself.
+    static func inheritedTypes(
+        protocolDecl: ProtocolDeclSyntax,
+        spyAccess: SpyAccess
+    ) -> InheritedTypeListSyntax {
+        // `Mock` is `@unchecked Sendable`; conformers must restate the
+        // conformance to stay warning-free under Swift 6 concurrency.
+        let uncheckedSendable = TypeSyntax(
+            AttributedTypeSyntax(
+                specifiers: [],
+                attributes: [.attribute(
+                    AttributeSyntax(attributeName: IdentifierTypeSyntax(name: .identifier("unchecked")))
+                )],
+                baseType: IdentifierTypeSyntax(name: TokenSyntax.identifier("Sendable"))
+            )
+        )
+
+        var types: [TypeSyntax]
+        switch spyAccess {
+        case .inherited:
+            types = [
+                TypeSyntax(IdentifierTypeSyntax(name: .identifier("Mock"))),
+                uncheckedSendable,
+                TypeSyntax(IdentifierTypeSyntax(name: protocolDecl.name))
+            ]
+        case .composed:
+            let inherited = protocolDecl.inheritanceClause?.inheritedTypes
+                .map { TypeSyntax(stringLiteral: $0.type.trimmedDescription) } ?? []
+            types = inherited + [
+                TypeSyntax(IdentifierTypeSyntax(name: protocolDecl.name)),
+                TypeSyntax(IdentifierTypeSyntax(name: .identifier("MockProviding"))),
+                uncheckedSendable
+            ]
+        }
+
+        return InheritedTypeListSyntax(
+            types.enumerated().map { index, type in
+                InheritedTypeSyntax(
+                    type: type,
+                    trailingComma: index == types.count - 1 ? nil : .commaToken()
+                )
+            }
+        )
+    }
+
+    /// The stored properties a composing mock keeps its spies in.
+    ///
+    /// Empty for the inheriting strategy, which *is* its own storage.
+    ///
+    /// A static property is emitted only when the protocol has static
+    /// requirements: static members cannot reach an instance property, so they
+    /// need separate storage — the composed counterpart of `Mock.Super`.
+    static func makeSpyStorage(
+        protocolDecl: ProtocolDeclSyntax,
+        spyAccess: SpyAccess
+    ) -> [DeclSyntax] {
+        guard case .composed = spyAccess else { return [] }
+
+        var decls: [DeclSyntax] = [
+            "let \(raw: SpyAccess.storedPropertyName) = Mock()"
+        ]
+        if hasStaticMembers(protocolDecl: protocolDecl) {
+            decls.append("static let \(raw: SpyAccess.staticStoredPropertyName) = Mock()")
+        }
+        return decls
     }
 
     /// Inserts a blank line before every member but the first.
@@ -119,19 +185,21 @@ public enum MockableGenerator {
     /// }
     /// ```
     /// This function will return `true`.
+    ///
+    /// Subscripts count alongside functions and variables: a `static subscript`
+    /// generates members that read `staticMock`, so omitting it from this check
+    /// produced a mock referencing storage that was never declared.
     private static func hasStaticMembers(protocolDecl: ProtocolDeclSyntax) -> Bool {
-        for member in protocolDecl.memberBlock.members {
-            if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                if funcDecl.modifiers.contains(where: { $0.name.text == "static" }) {
-                    return true
-                }
-            } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                if varDecl.modifiers.contains(where: { $0.name.text == "static" }) {
-                    return true
-                }
+        protocolDecl.memberBlock.members.contains { member in
+            let modifiers: DeclModifierListSyntax?
+            switch member.decl.as(DeclSyntaxEnum.self) {
+            case .functionDecl(let decl): modifiers = decl.modifiers
+            case .variableDecl(let decl): modifiers = decl.modifiers
+            case .subscriptDecl(let decl): modifiers = decl.modifiers
+            default: modifiers = nil
             }
+            return modifiers?.contains(where: \.isStatic) ?? false
         }
-        return false
     }
 
     /// Extracts mock generation options from a protocol's attributes.

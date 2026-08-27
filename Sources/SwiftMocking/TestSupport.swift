@@ -283,19 +283,26 @@ public func <- <each Input, Eff: Effect, Output>(
 /// verifyZeroInteractions(anotherMock)
 /// ```
 ///
-/// - Parameter mock: A `Mock` object to verify has had no interactions.
+/// Accepts both generation strategies through ``MockProviding``: a mock that
+/// inherits ``Mock`` provides itself, and one generated with
+/// `@Mockable([.composition])` provides the ``Mock`` it holds.
+///
+/// - Parameter mock: A mock to verify has had no interactions.
 /// - Parameter file: The file where a verification failure is reported.
 /// - Parameter line: The line where a verification failure is reported.
 public func verifyZeroInteractions(
-    _ mock: Mock,
+    _ mock: some MockProviding,
     fileID: StaticString = #fileID,
     file: StaticString = #filePath,
     line: UInt = #line,
     column: UInt = #column
 ) {
-    let totalInvocations = mock.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
+    let storage = mock.mock
+    let totalInvocations = storage.spies.values.flatMap { $0 }.reduce(0) { $0 + $1.invocationCount }
 
     if totalInvocations > 0 {
+        // The composing type, not the `Mock` it holds — `MockService` reads
+        // better in a failure than the bare `Mock` every composed mock shares.
         let mockTypeName = String(describing: type(of: mock))
         let location = SourceLocation(fileID: fileID, filePath: file, line: line, column: column)
         location.report("Expected zero interactions with \(mockTypeName) but found \(totalInvocations) invocation(s)")

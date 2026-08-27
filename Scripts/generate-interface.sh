@@ -46,14 +46,37 @@ clean_interface() {
     # Strip compiler bookkeeping and non-public surface, then unqualify the
     # names an agent would actually type. perl (not sed) because BSD sed on
     # macOS has no \b word-boundary support.
-    perl -pe '
-        next if s/^\/\/ swift-(interface-format-version|compiler-version|module-flags).*\n//;
-        next if s/^ *\@objc deinit\n//;
-        next if s/^ *\@usableFromInline\n//;
-        next if /internal /  and $_ = "";
+    #
+    # Dropping an `internal` declaration must take its whole body with it.
+    # Deleting only the opening line orphans the closing brace, which leaves
+    # the file unparseable — `internal struct Return<…> {` used to vanish while
+    # its `}` survived and closed the *previous* declaration. So when an
+    # internal line opens a brace, skip through the matching close; internal
+    # members inside a public type (`internal func get() -> R`) are single
+    # lines and drop on their own.
+    perl -ne '
+        if ($skip_until_close) {
+            $depth += tr/{//;
+            $depth -= tr/}//;
+            $skip_until_close = 0 if $depth <= 0;
+            next;
+        }
+        next if /^\/\/ swift-(interface-format-version|compiler-version|module-flags)/;
+        next if /^ *\@objc deinit$/;
+        next if /^ *\@usableFromInline$/;
+        if (/\binternal\b/) {
+            my $opens = tr/{//;
+            my $closes = tr/}//;
+            if ($opens > $closes) {
+                $skip_until_close = 1;
+                $depth = $opens - $closes;
+            }
+            next;
+        }
         s/\@_hasMissingDesignatedInitializers //g;
         s/\@inlinable //g;
         s/\b(SwiftMocking|Swift|_Concurrency)\.//g;
+        print;
     ' "$src" > "$dst"
 
     echo "  $module → $dst ($(wc -l < "$dst" | tr -d ' ') lines)"
