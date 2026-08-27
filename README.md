@@ -106,6 +106,16 @@ swift build -c release --product mockable   # → .build/release/mockable
 echo 'protocol PricingService { func price(_ item: String) throws -> Int }' | .build/release/mockable
 ```
 
+The input needs no annotation — a bare protocol is mocked as-is. Pass `--options` to choose a generation strategy for protocols you cannot annotate, such as one vended by a library you don't own:
+
+```bash
+# A class-constrained protocol needs `.composition`; the default inheriting
+# strategy cannot mock it, since Mock would claim the one superclass slot.
+echo 'protocol Service: UIViewController { func load() }' | mockable --options composition
+```
+
+`--options` takes a comma-separated list (`--options composition,suffixMock`) and accepts the same names as the macro's attribute. It supplies the default only: a protocol carrying an explicit `@Mockable([...])` keeps the options written there.
+
 ---
 
 ## 🚀 Example
