@@ -35,6 +35,31 @@ public struct MockableOptions: OptionSet, Sendable {
         rawValue: 1 << 1
     )
 
+    /// Generates a mock that *holds* a `Mock` instead of inheriting from one.
+    ///
+    /// The default strategy makes the mock a subclass of `Mock`, reaching spies
+    /// through `super`. That is impossible when the mock must already inherit
+    /// something else — most notably for a protocol carrying a class constraint:
+    ///
+    /// ```swift
+    /// @Mockable([.composition])
+    /// protocol ViewControllerService: SampleBase {
+    ///     func modified() -> Data
+    /// }
+    /// ```
+    ///
+    /// Swift permits only one superclass, so the generated mock inherits
+    /// `SampleBase` (as the protocol requires) and reaches spies through a
+    /// stored `mock` property instead. Without this option that protocol cannot
+    /// be mocked at all: the generated class fails with `requires that
+    /// 'MockViewControllerService' inherit from 'SampleBase'`.
+    ///
+    /// The generated mock conforms to `MockProviding`, so `verifyZeroInteractions`
+    /// works with either strategy.
+    public static let composition = MockableOptions(
+        rawValue: 1 << 2
+    )
+
     /// Initializes a `MockableOptions` instance with the given raw value.
     /// - Parameter rawValue: The raw integer value representing the option set.
     public init(rawValue: Int) {
@@ -58,6 +83,8 @@ public struct MockableOptions: OptionSet, Sendable {
                 combinedOptions.formUnion(.suffixMock)
             case "prefixMock":
                 combinedOptions.formUnion(.prefixMock)
+            case "composition":
+                combinedOptions.formUnion(.composition)
             case "": // Handle empty string if there are trailing commas or empty array
                 continue
             default:
@@ -73,6 +100,7 @@ public struct MockableOptions: OptionSet, Sendable {
         var names: [String] = []
         if contains(.prefixMock) { names.append("prefixMock") }
         if contains(.suffixMock) { names.append("suffixMock") }
+        if contains(.composition) { names.append("composition") }
         return names
     }
 }
