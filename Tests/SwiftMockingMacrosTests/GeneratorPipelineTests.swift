@@ -205,8 +205,10 @@ final class GeneratorPipelineTests: XCTestCase {
             mocks[0].source.contains("class AnnotatedMock: Mock, @unchecked Sendable, Annotated {"),
             "attribute options should survive a conflicting fallback: \(mocks[0].source)"
         )
+        // `Bare` has no inheritance clause, so the composed mock has no
+        // superclass and conforms to plain `Sendable` as a `final` class.
         XCTAssertTrue(
-            mocks[1].source.contains("class MockBare: Bare , MockProviding, @unchecked Sendable {"),
+            mocks[1].source.contains("final class MockBare: Bare , MockProviding, Sendable {"),
             "unannotated protocol should take the fallback: \(mocks[1].source)"
         )
     }
