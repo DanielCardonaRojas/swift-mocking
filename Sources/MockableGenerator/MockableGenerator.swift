@@ -48,7 +48,7 @@ public enum MockableGenerator {
             protocolDecl: protocolDecl
         )
         let typeAliases = makeTypeAliases(protocolDecl)
-        let spyStorage = makeSpyStorage(protocolDecl: protocolDecl, spyAccess: spyAccess)
+        let spyStorage = makeSpyStorage(protocolDecl: protocolDecl, spyAccess: spyAccess, mockName: mockName)
         let interactions = makeInteractions(protocolDecl: protocolDecl, spyAccess: spyAccess)
         let conformanceRequirements = makeConformanceRequirements(for: protocolDecl, spyAccess: spyAccess)
 
@@ -141,7 +141,8 @@ public enum MockableGenerator {
     /// need separate storage — the composed counterpart of `Mock.Super`.
     static func makeSpyStorage(
         protocolDecl: ProtocolDeclSyntax,
-        spyAccess: SpyAccess
+        spyAccess: SpyAccess,
+        mockName: String
     ) -> [DeclSyntax] {
         guard case .composed = spyAccess else { return [] }
 
@@ -149,7 +150,13 @@ public enum MockableGenerator {
             "let \(raw: SpyAccess.storedPropertyName) = Mock()"
         ]
         if hasStaticMembers(protocolDecl: protocolDecl) {
-            decls.append("static let \(raw: SpyAccess.staticStoredPropertyName) = Mock()")
+            // Keyed by the mock's own type name so these spies land in
+            // `MockScope`'s scoped storage under the same identity an
+            // inheriting mock's static spies use — without that they bypass
+            // scoping entirely and leak across tests.
+            decls.append(
+                "static let \(raw: SpyAccess.staticStoredPropertyName) = Mock(scopedStorageKey: \(literal: mockName))"
+            )
         }
         return decls
     }

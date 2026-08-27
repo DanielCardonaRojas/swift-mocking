@@ -71,7 +71,10 @@ final class MacroOptionsTests: MacroTestCase {
     }
 
     /// A protocol with static requirements gets a second `Mock` for them:
-    /// static members cannot reach an instance property.
+    /// static members cannot reach an instance property. It carries the mock's
+    /// own type name as its scoped storage key, so those spies land in
+    /// `MockScope` — isolated by `.mocking` exactly like an inheriting mock's
+    /// static spies, and reachable by `MockProviding`'s static `clear()`.
     func testCompositionOptionWithStaticRequirement() {
         assertMacro {
             """
@@ -90,7 +93,7 @@ final class MacroOptionsTests: MacroTestCase {
             class MockMyService: SampleBase, MyService, MockProviding, @unchecked Sendable {
                 let mock = Mock()
 
-                static let staticMock = Mock()
+                static let staticMock = Mock(scopedStorageKey: "MockMyService")
 
                 static func reset() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: staticMock.reset)

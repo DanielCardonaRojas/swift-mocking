@@ -31,3 +31,36 @@ extension Mock: MockProviding {
     /// An inheriting mock *is* its own spy storage.
     public var mock: Mock { self }
 }
+
+public extension MockProviding {
+    /// Clears all recorded invocations and stubs from this mock's spies.
+    ///
+    /// A composing type does not inherit ``Mock/clear()``, so without this it
+    /// would have to reach through its storage — `mock.mock.clear()`. Inheriting
+    /// mocks are unaffected: they get ``Mock/clear()`` directly, and it takes
+    /// precedence over this extension.
+    func clear() {
+        mock.clear()
+    }
+
+    /// Clears all recorded invocations and stubs from this type's **static** spies.
+    ///
+    /// Static requirements record on spies held in ``MockScope``'s scoped
+    /// storage, keyed by the mock's own type name — the same place and identity
+    /// an inheriting mock's static spies use. Reading that key from `Self` here
+    /// means this needs nothing from the conforming type beyond its identity,
+    /// so every composed mock gets it whether or not it has static storage.
+    ///
+    /// Scoped to one mock: clearing `MockLogger` leaves other mocks' static
+    /// spies intact. That is narrower than ``Mock/clear()``, the inheriting
+    /// strategy's static counterpart, which wipes every mock's static storage.
+    static func clear() {
+        let key = "\(Self.self)"
+        guard let spiesByMember = MockScope.storageProvider.storage[key] else {
+            return
+        }
+        for spyGroup in spiesByMember.values {
+            spyGroup.forEach { $0.clear() }
+        }
+    }
+}

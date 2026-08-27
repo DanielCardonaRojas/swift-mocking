@@ -108,7 +108,36 @@ open class Mock: DefaultProvider, @unchecked Sendable {
         }
     }
 
-    public init() { }
+    /// The key this mock's spies are stored under in ``MockScope``, or `nil`
+    /// when the mock keeps its spies in its own instance storage.
+    ///
+    /// The inheriting strategy resolves static requirements through
+    /// ``Mock``'s *static* subscript, which keys `MockScope.storageProvider`
+    /// by `"\(Self.self)"` — that is what makes static spies participate in
+    /// `.mocking` isolation.
+    ///
+    /// A composed mock has no such subclass to name. Its static requirements
+    /// go through a `Mock` *instance* (`staticMock`), which would otherwise
+    /// use private per-instance storage and silently opt out of scoping: spies
+    /// would leak between tests and race under parallel execution. Passing the
+    /// generated mock's type name here routes that instance into the same
+    /// scoped storage the inheriting strategy uses, under the same identity.
+    let scopedStorageKey: String?
+
+    /// Creates a mock that keeps its spies in its own instance storage.
+    public convenience init() {
+        self.init(scopedStorageKey: nil)
+    }
+
+    /// Creates a mock whose spies live in ``MockScope``'s scoped storage under
+    /// `scopedStorageKey`.
+    ///
+    /// Generated composed mocks use this for their static spy storage, passing
+    /// their own type name so the spies are scoped exactly as an inheriting
+    /// mock's static spies are.
+    public init(scopedStorageKey: String?) {
+        self.scopedStorageKey = scopedStorageKey
+    }
 
     /// Returns a deep, point-in-time copy of the instance spy storage.
     ///
@@ -120,6 +149,11 @@ open class Mock: DefaultProvider, @unchecked Sendable {
     private func snapshotSpies() -> [String: [AnySpy]] {
         lock.lock()
         defer { lock.unlock() }
+        // A scoped mock's spies live in `MockScope`, not `_spies`, so `clear()`
+        // and `verifyZeroInteractions` must look where the subscript wrote.
+        if let key = scopedStorageKey {
+            return (MockScope.storageProvider.storage[key] ?? [:]).mapValues { Array($0) }
+        }
         return _spies.mapValues { Array($0) }
     }
 
@@ -140,6 +174,24 @@ open class Mock: DefaultProvider, @unchecked Sendable {
     public subscript<each Input, Eff: Effect, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> {
         lock.lock()
         defer { lock.unlock() }
+
+        // A scoped mock reads and writes `MockScope`'s storage, so its spies
+        // are isolated by `.mocking` exactly like an inheriting mock's static
+        // spies. Everything else keeps its spies per-instance.
+        if let key = scopedStorageKey {
+            let provider = MockScope.storageProvider
+            var storage = provider.storage[key] ?? [:]
+            if let existingSpy = storage[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> }) {
+                return existingSpy
+            }
+            let spy = Spy<repeat each Input, Eff, Output>(label: "\(key).\(member)")
+            spy.isLoggingEnabled = isLoggingEnabled
+            spy.defaultProviderRegistry = defaultProviderRegistry
+            storage[member, default: []].append(spy)
+            provider.storage[key] = storage
+            return spy
+        }
+
         if let existingSpy = _spies[member]?.firstMap({ $0 as? Spy<repeat each Input, Eff, Output> })  {
             return existingSpy
         } else {

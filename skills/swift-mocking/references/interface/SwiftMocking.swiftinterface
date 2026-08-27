@@ -363,7 +363,8 @@ extension Mock {
     get
     set
   }
-  public init()
+  convenience public init()
+  public init(scopedStorageKey: String?)
   public subscript<each Input, Eff, Output>(dynamicMember member: String) -> Spy<repeat each Input, Eff, Output> where Eff : Effect {
     get
   }
@@ -380,6 +381,10 @@ extension Mock : MockProviding {
   public var mock: Mock {
     get
   }
+}
+extension MockProviding {
+  public func clear()
+  public static func clear()
 }
 public enum MockScope {
   public static let $invocationRecorder: TaskLocal<InvocationRecorder>
