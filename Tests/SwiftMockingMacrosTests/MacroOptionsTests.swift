@@ -91,7 +91,7 @@ final class MacroOptionsTests: MacroTestCase {
             class MockMyService: SampleBase, MyService, MockProviding, StaticMockProviding, @unchecked Sendable {
                 let mock = Mock()
 
-                static let staticMock = Mock()
+                static let staticMock = Mock(scopedStorageKey: "MockMyService")
 
                 static func reset() -> Interaction<Void, None, Void> {
                     Interaction(.any, spy: staticMock.reset)

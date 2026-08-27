@@ -42,6 +42,7 @@ public extension MockProviding {
     func clear() {
         mock.clear()
     }
+
 }
 
 /// A type that exposes the ``Mock`` backing its **static** spies.
@@ -60,10 +61,10 @@ public protocol StaticMockProviding {
 public extension StaticMockProviding {
     /// Clears all recorded invocations and stubs from this type's static spies.
     ///
-    /// Note this is narrower than ``Mock/clear()``, the inherited strategy's
-    /// static counterpart, which clears *every* mock's static storage because
-    /// that storage is shared process-wide. A composed mock's static spies live
-    /// in their own `Mock` instance, so clearing one leaves the others intact.
+    /// Static spies live in ``MockScope``'s scoped storage under the mock's own
+    /// type name — the same place and identity an inheriting mock's static
+    /// spies use — so this clears exactly this mock's static spies and leaves
+    /// other mocks untouched.
     static func clear() {
         staticMock.clear()
     }
