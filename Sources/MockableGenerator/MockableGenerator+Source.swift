@@ -56,9 +56,13 @@ public extension MockableGenerator {
     /// generated here are byte-identical to their macro-generated counterparts.
     ///
     /// Options are read from a `@Mockable` attribute on each protocol, when
-    /// present. A protocol without the attribute uses the default options.
+    /// present. A protocol without the attribute uses `defaultOptions`.
     /// - Parameter source: Swift source text containing at least one top-level
     ///   protocol declaration.
+    /// - Parameter defaultOptions: Options applied to protocols that declare
+    ///   none of their own, letting callers mock protocols they cannot annotate
+    ///   — the CLI's `--options` flag. An explicit `@Mockable([...])` on a
+    ///   protocol takes precedence over this.
     /// - Parameter includeDebugWrapper: When `true` (the default) output keeps
     ///   the `#if DEBUG` wrapper the macro emits. Pass `false` to emit the mock
     ///   class bare — appropriate for mocks pasted into test targets, which
@@ -66,7 +70,11 @@ public extension MockableGenerator {
     ///   configuration, not per target, so a bare mock also survives
     ///   `swift test -c release`).
     /// - Returns: One `GeneratedMock` per protocol, in declaration order.
-    static func generateMocks(source: String, includeDebugWrapper: Bool = true) throws -> [GeneratedMock] {
+    static func generateMocks(
+        source: String,
+        includeDebugWrapper: Bool = true,
+        defaultOptions: MockableOptions = .default
+    ) throws -> [GeneratedMock] {
         let sourceFile = Parser.parse(source: source)
 
         let diagnostics = ParseDiagnosticsGenerator.diagnostics(for: sourceFile)
@@ -81,7 +89,7 @@ public extension MockableGenerator {
             throw MockableGeneratorError.noProtocolsFound
         }
         return try protocolDecls.map { protocolDecl in
-            let mockSource = try processProtocol(protocolDecl: protocolDecl)
+            let mockSource = try processProtocol(protocolDecl: protocolDecl, defaultOptions: defaultOptions)
                 .flatMap { decl -> [DeclSyntax] in
                     guard !includeDebugWrapper, let ifConfig = decl.as(IfConfigDeclSyntax.self) else {
                         return [decl]

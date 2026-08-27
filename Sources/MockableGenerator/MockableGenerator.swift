@@ -25,9 +25,16 @@ public enum MockableGenerator {
     ///     }
     /// }
     /// ```
-    public static func processProtocol(protocolDecl: ProtocolDeclSyntax) throws -> [DeclSyntax] {
+    /// - Parameter defaultOptions: Options applied to a protocol that declares
+    ///   none of its own. Defaults to ``MockableOptions/default``; the
+    ///   `mockable` CLI passes its `--options` flag here, so an explicit
+    ///   `@Mockable([...])` in the source still wins.
+    public static func processProtocol(
+        protocolDecl: ProtocolDeclSyntax,
+        defaultOptions: MockableOptions = .default
+    ) throws -> [DeclSyntax] {
         let protocolName = protocolDecl.name.text
-        let codeGenOptions = MockableGenerator.codeGenOptions(protocolDecl: protocolDecl)
+        let codeGenOptions = declaredCodeGenOptions(protocolDecl: protocolDecl) ?? defaultOptions
         let mockName: String
         if codeGenOptions.contains(.prefixMock) {
             mockName = "Mock" + protocolName
@@ -36,7 +43,8 @@ public enum MockableGenerator {
         } else {
             // No naming option given — follow `.default` rather than assuming a
             // suffix, so an options list that names only non-naming options
-            // (`[.composition]`) keeps the same name as a bare `@Mockable`.
+            // (`[.composition]`, or `--options composition`) keeps the same name
+            // as a bare `@Mockable`.
             mockName = MockableOptions.default.contains(.prefixMock)
                 ? "Mock" + protocolName
                 : protocolName + "Mock"
@@ -222,6 +230,21 @@ public enum MockableGenerator {
     /// ```
     /// This function will return `[.prefixMock]`.
     public static func codeGenOptions(protocolDecl: ProtocolDeclSyntax) -> MockableOptions {
+        declaredCodeGenOptions(protocolDecl: protocolDecl) ?? .default
+    }
+
+    /// Extracts mock generation options written on a protocol, distinguishing
+    /// "no options were written" from "options were written and they happen to
+    /// match the defaults".
+    ///
+    /// Callers that need to supply their own fallback — the `mockable` CLI,
+    /// whose `--options` flag applies only to protocols that carry no options
+    /// of their own — use this instead of ``codeGenOptions(protocolDecl:)``.
+    ///
+    /// Returns `nil` when the protocol has no attribute bearing a recognized
+    /// options list, so a bare `protocol Foo {}` and a `@Mockable` with no
+    /// arguments both defer to the caller's default.
+    public static func declaredCodeGenOptions(protocolDecl: ProtocolDeclSyntax) -> MockableOptions? {
         for attribute in protocolDecl.attributes {
             // Skip attributes that aren't option-bearing calls rather than
             // bailing out: a protocol may carry `@available(...)` or a doc
@@ -237,7 +260,7 @@ public enum MockableGenerator {
                 return parsedOption
             }
         }
-        return .default
+        return nil
     }
 
     /// Extracts all associated type declarations from a protocol.

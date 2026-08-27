@@ -161,24 +161,81 @@ final class GeneratorPipelineTests: XCTestCase {
         }
     }
 
-    func testCodeGenOptionsReadsMockableAttributeAlongsideOtherAttributes() throws {
-        // A non-option attribute preceding `@Mockable` must not abort the scan.
-        let protocolDecl = try XCTUnwrap(
-            Parser.parse(
-                source: """
-                @available(*, deprecated)
-                @Mockable([.suffixMock])
-                protocol Service {
-                    func load()
-                }
-                """
-            )
-            .statements.first?.item.as(ProtocolDeclSyntax.self)
+    func testGenerateMocksAppliesDefaultOptionsToProtocolWithoutAttribute() throws {
+        // The CLI's `--options` case: mocking a protocol you cannot annotate,
+        // such as one vended by a third-party library.
+        let mocks = try MockableGenerator.generateMocks(
+            source: """
+            protocol Service: SomeBase {
+                func load()
+            }
+            """,
+            includeDebugWrapper: false,
+            defaultOptions: [.composition]
         )
 
+        let source = try XCTUnwrap(mocks.first?.source)
+        XCTAssertTrue(
+            source.contains("class MockService: SomeBase, Service, MockProviding, @unchecked Sendable {"),
+            "composition should compose rather than inherit Mock: \(source)"
+        )
+        XCTAssertTrue(source.contains("let mock = Mock()"), source)
+    }
+
+    func testGenerateMocksPrefersAttributeOptionsOverDefaultOptions() throws {
+        // An explicit attribute wins; the fallback only fills in for protocols
+        // that declare nothing of their own.
+        let mocks = try MockableGenerator.generateMocks(
+            source: """
+            @Mockable([.suffixMock])
+            protocol Annotated {
+                func a()
+            }
+
+            protocol Bare {
+                func b()
+            }
+            """,
+            includeDebugWrapper: false,
+            defaultOptions: [.composition]
+        )
+
+        XCTAssertEqual(mocks.map(\.protocolName), ["Annotated", "Bare"])
+        XCTAssertTrue(
+            mocks[0].source.contains("class AnnotatedMock: Mock, @unchecked Sendable, Annotated {"),
+            "attribute options should survive a conflicting fallback: \(mocks[0].source)"
+        )
+        XCTAssertTrue(
+            mocks[1].source.contains("class MockBare: Bare , MockProviding, @unchecked Sendable {"),
+            "unannotated protocol should take the fallback: \(mocks[1].source)"
+        )
+    }
+
+    func testGenerateMocksWithNonNamingDefaultOptionsKeepsDefaultPrefixName() throws {
+        // `.composition` names no naming strategy, so the name must still come
+        // from `.default` (prefix) rather than falling through to a suffix.
+        let mocks = try MockableGenerator.generateMocks(
+            source: "protocol Service { func load() }",
+            includeDebugWrapper: false,
+            defaultOptions: [.composition]
+        )
+
+        XCTAssertTrue(mocks[0].source.contains("class MockService:"), mocks[0].source)
+    }
+
+    func testDeclaredCodeGenOptionsIsNilWhenProtocolDeclaresNoOptions() throws {
+        func declaredOptions(_ source: String) throws -> MockableOptions? {
+            let protocolDecl = try XCTUnwrap(
+                Parser.parse(source: source).statements.first?.item.as(ProtocolDeclSyntax.self)
+            )
+            return MockableGenerator.declaredCodeGenOptions(protocolDecl: protocolDecl)
+        }
+
+        XCTAssertNil(try declaredOptions("protocol Bare { func a() }"))
+        XCTAssertNil(try declaredOptions("@Mockable\nprotocol NoArguments { func a() }"))
         XCTAssertEqual(
-            MockableGenerator.codeGenOptions(protocolDecl: protocolDecl),
-            [.suffixMock]
+            try declaredOptions("@Mockable([.composition])\nprotocol Annotated { func a() }"),
+            [.composition]
         )
     }
 
