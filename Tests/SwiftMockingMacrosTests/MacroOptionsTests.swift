@@ -70,6 +70,47 @@ final class MacroOptionsTests: MacroTestCase {
         }
     }
 
+    /// A composed protocol with no inheritance clause has no superclass to
+    /// restate, so the mock can be `final` and conform to plain `Sendable`.
+    ///
+    /// Both are required together: a non-final class cannot conform to
+    /// `Sendable`, and a `Sendable` class cannot inherit another class. The
+    /// conformance is checkable rather than asserted — the mock's only storage
+    /// is `let mock`, so the compiler rejects any mutable stored property.
+    ///
+    /// Contrast ``testCompositionOption()``, where `SampleBase` occupies the
+    /// superclass slot and `@unchecked` is structurally unavoidable.
+    func testCompositionWithoutInheritanceClauseIsStrictlySendable() {
+        assertMacro {
+            """
+            @Mockable([.composition])
+            protocol MyService {
+                func doSomething()
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                func doSomething()
+            }
+
+            #if DEBUG
+            final class MockMyService: MyService , MockProviding, Sendable {
+                let mock = Mock()
+
+                func doSomething() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: self.mock.doSomething)
+                }
+
+                func doSomething() {
+                    return Mock.adapt(self.mock.doSomething, ())
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     /// A protocol with static requirements gets a second `Mock` for them:
     /// static members cannot reach an instance property. It carries the mock's
     /// own type name as its scoped storage key, so those spies land in

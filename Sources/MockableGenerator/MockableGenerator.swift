@@ -65,6 +65,11 @@ public enum MockableGenerator {
 
         // Create the Mock struct
         let mockStruct = ClassDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                if isStrictlySendable(protocolDecl: protocolDecl, spyAccess: spyAccess) {
+                    DeclModifierSyntax(name: .keyword(.final))
+                }
+            },
             name: TokenSyntax.identifier(mockName),
             genericParameterClause: genericParameters,
             inheritanceClause: InheritanceClauseSyntax(
@@ -83,6 +88,36 @@ public enum MockableGenerator {
         return [DeclSyntax(ifConfigDecl)]
     }
 
+    /// Whether the generated mock can conform to plain `Sendable` rather than
+    /// `@unchecked Sendable`.
+    ///
+    /// Two independent compiler rules gate this, and both must hold:
+    ///
+    /// - `non-final class cannot conform to the 'Sendable' protocol`, so the
+    ///   mock must be `final`.
+    /// - `'Sendable' class cannot inherit from another class other than
+    ///   'NSObject'`, so the mock must have no superclass.
+    ///
+    /// The second rules out inheriting mocks (they subclass ``Mock``) and any
+    /// composed mock whose protocol carries a class constraint — the case
+    /// `.composition` exists for. An empty inheritance clause is a *sufficient*
+    /// condition for the composed case: with nothing to restate, no superclass
+    /// can appear.
+    ///
+    /// It is deliberately not a *necessary* one. `protocol P: SomeProtocol` and
+    /// `protocol P: AnyObject` also have no superclass, but a bare identifier in
+    /// an inheritance clause is undecidable at expansion time — the macro sees
+    /// only syntax and cannot tell `BaseService` from `SomeBaseClass`. Those
+    /// keep `@unchecked`, which costs the guarantee but never miscompiles.
+    static func isStrictlySendable(
+        protocolDecl: ProtocolDeclSyntax,
+        spyAccess: SpyAccess
+    ) -> Bool {
+        guard case .composed = spyAccess else { return false }
+        let inherited = protocolDecl.inheritanceClause?.inheritedTypes ?? []
+        return inherited.isEmpty
+    }
+
     /// Builds the generated mock's inheritance clause.
     ///
     /// Inheriting mocks are `Mock, @unchecked Sendable, <Protocol>`.
@@ -93,6 +128,12 @@ public enum MockableGenerator {
     /// conformers to inherit that class, and the slot is taken by `Mock` under
     /// the default strategy. Inherited *protocols* are harmless here: conforming
     /// to the most-derived protocol already implies them.
+    ///
+    /// A composing mock with nothing to restate conforms to plain `Sendable`
+    /// instead — see ``isStrictlySendable(protocolDecl:spyAccess:)``. Its only
+    /// storage is a `let` of `Mock`, itself `@unchecked Sendable` over
+    /// `NSLock`-guarded internals, so the conformance is checkable rather than
+    /// asserted: the compiler rejects any mutable stored property added later.
     ///
     /// `MockProviding` is added so `verifyZeroInteractions` accepts the mock;
     /// inheriting mocks get that conformance from `Mock` itself.
@@ -123,10 +164,13 @@ public enum MockableGenerator {
         case .composed:
             let inherited = protocolDecl.inheritanceClause?.inheritedTypes
                 .map { TypeSyntax(stringLiteral: $0.type.trimmedDescription) } ?? []
+            let sendable = isStrictlySendable(protocolDecl: protocolDecl, spyAccess: spyAccess)
+                ? TypeSyntax(IdentifierTypeSyntax(name: .identifier("Sendable")))
+                : uncheckedSendable
             types = inherited + [
                 TypeSyntax(IdentifierTypeSyntax(name: protocolDecl.name)),
                 TypeSyntax(IdentifierTypeSyntax(name: .identifier("MockProviding"))),
-                uncheckedSendable
+                sendable
             ]
         }
 
