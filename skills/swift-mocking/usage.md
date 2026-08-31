@@ -13,7 +13,52 @@ verify(mock.fetch(id: .equal("1"))).called(1) // assert
 
 - Stub **before** the call; later `when(...)` on the same matcher overwrites.
 - `mock.clear()` (instance) / `MyMock.clear()` (static) in `tearDown` — mandatory for static mocks.
-- Unstubbed non-throwing returns fall back to registered default values, else trap (`fatalError` surfaced at the call site). Unstubbed throwing methods throw.
+- Unstubbed calls fall back to the default-value registry (below). Only when the return type has **no** registered provider does the call fail: throwing members throw `MockingError.unStubbed`, non-throwing members trap (`fatalError` surfaced at the call site).
+
+## Default values for unstubbed calls
+
+`DefaultProvidableRegistry.default` is pre-populated, so a member returning one of these types **needs no stub at all** to be callable:
+
+| Return type | Default |
+|---|---|
+| `Void` | returns (no stub ever needed) |
+| `Bool` | `false` |
+| `String` | `""` |
+| `Int`, `Double`, `Float` | `0` |
+| `Array`, `Set`, `Dictionary` | empty |
+| `Optional` | `nil` |
+
+Providers match the *generic* type, not the element: `[CustomType]` → `[]` and `CustomType?` → `nil` both resolve even though `CustomType` itself has no provider.
+
+**Never write `.thenReturn(())`.** `Void` is registered, so an unstubbed `-> Void` member already does the right thing — just call it and verify:
+
+```swift
+let svc: MyService = mock
+svc.log("hi")                          // no when(...) needed
+verify(mock.log(.equal("hi"))).called(1)
+```
+
+Stub a `Void` member only to attach behavior — `when(mock.log(.any)).thenThrow(...)` for the failure path, or `.do { ... }` for a side effect. `thenReturn(())` adds nothing over the default.
+
+Bare `Int`/`String`/`Bool`/collection returns still usually deserve an explicit `thenReturn` — the default is a silent `0`/`""`/`false`, which passes assertions for the wrong reason. Lean on the defaults for members the test doesn't care about; stub the ones it does.
+
+Custom defaults, when a type isn't registered or the zero value is wrong:
+
+```swift
+// Per test / suite (swift-testing, Swift 6.1+) — values inferred from what you pass
+@Suite(.withDefaults("Default Name"))
+struct UserServiceTests {
+    @Test(.withDefaults("Override", 42))   // nested traits override the suite's
+    func example() { ... }
+}
+
+// Per mock, no trait needed
+var registry = DefaultProvidableRegistry.default
+registry.register(.valueProvider(User(id: "seed")))
+mock.defaultProviderRegistry = registry
+```
+
+`.withDefaults` is scoped to the test — it never leaks into others. Assigning `mock.defaultProviderRegistry` propagates to every spy the mock owns, including ones created later.
 
 ## Argument matchers (`ArgMatcher<T>`)
 
@@ -41,6 +86,7 @@ when(mock.fetch(.equal(url))).thenReturn { _ in callCount == 1 ? throw Timeout :
 
 - Ordering: most specific matcher first; later stubs for the **same** matcher win.
 - `do` = side-effect invocation (returns nothing); `thenReturn { }` = compute return value; `thenThrow` = error.
+- `Void`-returning members need no stub — see *Default values* above. `thenReturn(())` is never necessary.
 - Handler closures are `@Sendable` — construct non-Sendable values inside, don't capture them (see sendable.md).
 
 ## Verification
@@ -128,12 +174,13 @@ verify(mock.print("hello", .any)).called()       // variadic: mix values and mat
 }
 ```
 
-XCTest is the same shape (`XCTAssertEqual` + non-async `verify`). For unstubbed-default values per test, see the `DefaultValuesTrait` swift-testing trait.
+XCTest is the same shape (`XCTAssertEqual` + non-async `verify`). Per-test default values come from `.withDefaults(...)` (swift-testing only, Swift 6.1+); under XCTest set `mock.defaultProviderRegistry` instead — both in *Default values* above.
 
 ## Best practices (short list)
 
 1. Matchers: as specific as the behavior under test requires; `.contains` over exact long strings.
 2. Verify interactions you care about; don't over-verify internal call chains.
 3. Test success AND failure paths (`thenReturn` / `thenThrow`).
+4. Don't stub what the registry already covers — no `thenReturn(())`, and skip stubs for returns the test doesn't assert on.
 4. Arrange → Act → Assert; stubs before SUT construction when readability allows.
 5. Clear static mocks in `tearDown` (`MockLogger.clear()`); safe under concurrent task groups.

@@ -60,7 +60,7 @@ let targetID = target.id  // UUID is Sendable
 when(mock.send(.any(that: { $0.id == targetID }))).thenReturn { _ in ... }
 ```
 
-**Default values for non-Sendable returns**: register a provider; still unconstrained.
+**Default values for non-Sendable returns**: register a provider; still unconstrained. (The built-in registry and the `.withDefaults` trait are in usage.md — *Default values*; note `DefaultProviding.valueProvider` requires `Sendable`, so a non-Sendable type must use the `DefaultProviding(_:create:)` initializer as below.)
 ```swift
 var registry = DefaultProvidableRegistry.default
 registry.register(DefaultProviding(NonSendableMessage.self, create: { NonSendableMessage() }))
