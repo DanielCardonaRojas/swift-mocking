@@ -97,6 +97,13 @@ public struct ArgMatcher<Argument>: Sendable {
     /// // Stubbing a method to return a value if the integer argument is even
     /// spy.when(calledWith: .any(that: { $0 % 2 == 0 })).thenReturn("even")
     /// ```
+    ///
+    /// - Note: The predicate is `@Sendable`, and Swift's inference does not always
+    ///   propagate that through the member chain — you may see *"Converting non-Sendable
+    ///   function value to '@Sendable (T) -> Bool' may introduce data races"*. When the
+    ///   condition is just a property compared to a value, prefer
+    ///   ``any(where:equals:)``, which captures a value instead of a closure. Otherwise
+    ///   annotate the closure: `.any(that: { @Sendable in ... })`.
     public static func any(that predicate: @escaping @Sendable (Argument) -> Bool) -> Self {
         return .init(precedence: .predicate, matcher: predicate)
     }
@@ -364,19 +371,34 @@ public extension ArgMatcher {
     /// }
     ///
     /// // Stub the getUser method to return a user when the id property of the argument is "123"
-    /// when(mockUserService.getUser(user: .any(where: \.id, "123"))).thenReturn(User(id: "123", name: "Test User"))
+    /// when(mockUserService.getUser(user: .any(where: \.id, equals: "123"))).thenReturn(User(id: "123", name: "Test User"))
     ///
     /// // Verify that getUser was called with a user whose name property is "Alice"
-    /// verify(mockUserService.getUser(user: .any(where: \.name, "Alice"))).called()
+    /// verify(mockUserService.getUser(user: .any(where: \.name, equals: "Alice"))).called()
     /// ```
+    ///
+    /// Prefer this over `.any(that:)` when you're comparing a property to a value: it
+    /// captures the value rather than a caller-supplied closure, so it never produces a
+    /// "non-Sendable function value" warning under Swift 6 concurrency checking.
     ///
     /// - Parameters:
     ///   - keyPath: A `KeyPath` to the property of the `Argument` type that should be compared.
     ///   - value: The `Equatable` value to compare the property against.
     /// - Returns: An `ArgMatcher` that matches arguments where the specified property equals the given value.
-    static func any<Property: Equatable & Sendable>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> Self where Argument: Sendable {
+    static func any<Property: Equatable & Sendable>(where keyPath: KeyPath<Argument, Property>, equals value: Property) -> Self where Argument: Sendable {
         let sendableKeyPath = SendableKeyPath(keyPath: keyPath)
         return .init(precedence: .predicate) { $0[keyPath: sendableKeyPath.keyPath] == value }
+    }
+
+    /// A matcher that matches any argument where a specific property of the argument is equal to a given value.
+    ///
+    /// - Parameters:
+    ///   - keyPath: A `KeyPath` to the property of the `Argument` type that should be compared.
+    ///   - value: The `Equatable` value to compare the property against.
+    /// - Returns: An `ArgMatcher` that matches arguments where the specified property equals the given value.
+    @_disfavoredOverload
+    static func any<Property: Equatable & Sendable>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> Self where Argument: Sendable {
+        .any(where: keyPath, equals: value)
     }
 }
 

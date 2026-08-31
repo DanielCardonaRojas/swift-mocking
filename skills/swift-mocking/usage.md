@@ -70,9 +70,32 @@ mock.defaultProviderRegistry = registry
 | `.lessThan`, `.greaterThan`, `.lessThanOrEqual`, `.greaterThanOrEqual` | numeric comparisons |
 | `.identical(obj)` | object identity |
 | `.approximately(x, accuracy:)` | floating point |
-| `.any(where: \.name, "Ada")` | key-path projection |
+| `.any(where: \.name, equals: "Ada")` | key-path projection |
+| `.any(that: { $0.count > 3 })` | arbitrary predicate — last resort, see below |
 
 Plain values coerce: `when(mock.log("hi"))` ≡ `.equal("hi")`.
+
+**Reach for `.any(where:equals:)` before `.any(that:)`.** `.any(that:)` takes a
+`@Sendable` closure, and Swift's inference doesn't always propagate `@Sendable` through
+the member chain — a bare `.any(that: { $0.id == x })` can produce *"Converting
+non-Sendable function value to '@Sendable (T) -> Bool' may introduce data races"*. The
+key-path form captures a value instead of a closure, so it never can:
+
+```swift
+when(mock.getUser(.any(where: \.id, equals: "123"))).thenReturn(user)   // ✅ preferred
+when(mock.getUser(.any(that: { $0.id == "123" }))).thenReturn(user)     // ⚠️ may warn
+```
+
+Use `.any(that:)` only for logic a key-path comparison can't express (ranges over a
+projection, multi-field conditions, negation). When you do, annotate the closure
+explicitly to silence the warning:
+
+```swift
+when(mock.process(.any(that: { @Sendable in $0.retries > 3 && $0.isStale }))).thenReturn(true)
+```
+
+`.any(where:)` also accepts the value unlabeled (`.any(where: \.id, "123")`) for
+backward compatibility; prefer the `equals:` label in new code.
 
 ## Stubbing
 

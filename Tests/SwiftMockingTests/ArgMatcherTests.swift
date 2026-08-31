@@ -81,6 +81,16 @@ final class ArgMatcherTests: XCTestCase {
         struct User {
             let id: String
         }
+        let matcher: ArgMatcher<User> = .any(where: \.id, equals: "123")
+        XCTAssertTrue(matcher(User(id: "123")))
+        XCTAssertFalse(matcher(User(id: "456")))
+    }
+
+    /// The unlabeled form predates `equals:` and stays valid.
+    func testAnyWhereMatcherUnlabeledValueRemainsSupported() {
+        struct User {
+            let id: String
+        }
         let matcher: ArgMatcher<User> = .any(where: \.id, "123")
         XCTAssertTrue(matcher(User(id: "123")))
         XCTAssertFalse(matcher(User(id: "456")))
