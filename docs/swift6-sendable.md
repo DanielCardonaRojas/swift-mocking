@@ -34,8 +34,9 @@ Value-based stubbing constrains its values; closure-based stubbing constrains it
 | `thenReturn(value)` | `Output: Sendable` |
 | `thenThrow(error)` | `E: Error & Sendable` |
 | `thenReturn { ... }` / `.do { ... }` | closure is `@Sendable`, so **captures** must be Sendable |
-| Value-capturing matchers (`.equal`, `.identical`, `.contains`, `.in`, `.approximately`) | argument type `: Sendable` |
-| `.any`, `.any(that:)` | unconstrained; predicates may *take* non-Sendable values |
+| Value-capturing matchers (`.equal`, `.identical`, `.contains`, `.in`, `.approximately`, `.any(where:equals:)`) | argument type `: Sendable` |
+| `.any` | unconstrained |
+| `.any(that:)` | predicate may *take* a non-Sendable value, but its **captures** must be Sendable |
 | Default values for unstubbed returns | unconstrained |
 
 ## Working with non-Sendable types
@@ -53,11 +54,18 @@ when(mock.send(.any)).thenReturn { _ in Receipt(code: 42) }
 when(mock.validate(.any)).thenReturn { _ in throw ValidationError(reason: "invalid") }
 ```
 
-To match a non-Sendable argument, capture a Sendable stand-in instead of the instance:
+To match a non-Sendable argument, capture a Sendable stand-in instead of the instance. Prefer the key-path matcher, which captures a value rather than a closure:
 
 ```swift
 let targetID = target.id                      // UUID is Sendable
-when(mock.send(.any(that: { $0.id == targetID }))).thenReturn { _ in Receipt(code: 0) }
+when(mock.send(.any(where: \.id, equals: targetID))).thenReturn { _ in Receipt(code: 0) }
+```
+
+Use `.any(that:)` for conditions a property comparison can't express, and annotate the closure so inference can't drop `@Sendable`:
+
+```swift
+when(mock.send(.any(that: { @Sendable in $0.id == targetID && $0.retries > 3 })))
+    .thenReturn { _ in Receipt(code: 0) }
 ```
 
 **One boundary to know:** the handler overloads for `throws`, `async`, and `async throws` spies are declared `where repeat each I: Sendable`, because they defer the invocation, so the *arguments* must be Sendable too. The handler workarounds above therefore apply as written only to synchronous, non-throwing requirements. If a requirement both `throws` (or is `async`) **and** takes a non-Sendable parameter, no handler form compiles; make the parameter type `Sendable`, or restructure the requirement to take a Sendable stand-in (an ID) instead of the object.
@@ -74,7 +82,7 @@ If you are upgrading from a pre-Sendable version:
 
 1. Handler closures capturing non-Sendable state no longer compile in Swift 6 mode. Construct values inside the handler, or wrap shared state in a lock or actor.
 2. `thenReturn(value)`/`thenThrow` on non-Sendable types: switch to the handler form above.
-3. `.any(that: { ... })` may need an explicit `@Sendable` in some positions, since inference does not always propagate through the member chain.
+3. *"Converting non-Sendable function value to `@Sendable (T) -> Bool` may introduce data races"* on `.any(that:)`: inference does not always propagate `@Sendable` through the member chain. Rewrite as `.any(where: \.prop, equals: value)` when the predicate is a property comparison; otherwise annotate the closure — `.any(that: { @Sendable in ... })`.
 4. `Recorded` is no longer `Sendable` (its `arguments: [Any]` payload cannot soundly claim transfer); consume `InvocationRecorder.snapshot()` within a single isolation domain.
 
 ---
