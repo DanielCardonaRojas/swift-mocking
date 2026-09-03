@@ -57,7 +57,38 @@ public class Assert<each Input, Eff: Effect, Output> {
         let countMatcher = matcher ?? .greaterThan(.zero)
         let count = if let invocationMatcher { spy.invocationCount(matching: invocationMatcher) } else { spy.invocations.count }
         if !countMatcher(count) {
-            throw MockingError.unfulfilledCallCount(count)
+            throw MockingError.unfulfilledCallCount(
+                count,
+                expected: Self.describeExpectation(matcher),
+                method: spy.methodLabel,
+                recorded: recordedDescriptions()
+            )
+        }
+    }
+
+    /// Describes the expected call count for the failure message.
+    ///
+    /// ``ArgMatcher`` wraps an opaque predicate, so a caller-supplied matcher cannot be
+    /// rendered — probing it at sample counts would risk naming an expectation the user
+    /// never expressed. Only the implicit default is described, since that is the one
+    /// expectation absent from the test source.
+    private static func describeExpectation(_ matcher: ArgMatcher<Int>?) -> String? {
+        matcher == nil ? "at least 1 call" : nil
+    }
+
+    /// Renders every invocation recorded on the spy, marking which ones matched.
+    ///
+    /// The full list is shown rather than only the matches: a verification usually fails
+    /// *because* the recorded arguments differ from the expected ones, and that difference
+    /// is invisible if non-matching invocations are filtered out.
+    func recordedDescriptions() -> [String] {
+        let all = spy.invocations
+        guard let invocationMatcher else {
+            return all.map { $0.debugDescription }
+        }
+        return all.map { invocation in
+            let matched = invocationMatcher.isMatchedBy(invocation)
+            return "\(invocation.debugDescription)\(matched ? " (matched)" : "")"
         }
     }
 
@@ -84,7 +115,10 @@ public class Assert<each Input, Eff: Effect, Output> {
     func captures(_ inspector: @escaping (repeat each Input) throws -> Void) throws {
         let matchingInvocations = getMatchingInvocations()
         guard !matchingInvocations.isEmpty else {
-            throw MockingError.noMatchingInvocations
+            throw MockingError.noMatchingInvocations(
+                method: spy.methodLabel,
+                recorded: recordedDescriptions()
+            )
         }
         
         for invocation in matchingInvocations {
@@ -143,11 +177,11 @@ extension Assert where Eff == Throws {
         }
 
         if errors.isEmpty {
-            throw MockingError.didNotThrow
+            throw MockingError.didNotThrow(spy.methodLabel)
         }
 
         if let errorMatcher, !errors.contains(where: errorMatcher.callAsFunction) {
-            throw MockingError.didNotMatchThrown(errors)
+            throw MockingError.didNotMatchThrown(errors, method: spy.methodLabel)
         }
 
         return
@@ -183,11 +217,11 @@ extension Assert where Eff == AsyncThrows {
         }
 
         if errors.isEmpty {
-            throw MockingError.didNotThrow
+            throw MockingError.didNotThrow(spy.methodLabel)
         }
 
         if let errorMatcher, !errors.contains(where: errorMatcher.callAsFunction) {
-            throw MockingError.didNotMatchThrown(errors)
+            throw MockingError.didNotMatchThrown(errors, method: spy.methodLabel)
         }
     }
 
