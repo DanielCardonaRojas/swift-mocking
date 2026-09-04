@@ -18,6 +18,12 @@ extension Action where Eff == None {
 extension Action where Eff == Throws {
   final public func `do`(_ handler: @escaping @Sendable (repeat each I) throws -> Void)
 }
+extension Action where Eff : SyncTypedThrowingEffect {
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) throws(Eff.Failure) -> Void)
+}
+extension Action where Eff : AsyncTypedThrowingEffect {
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws(Eff.Failure) -> Void)
+}
 extension Action where Eff == Async {
   final public func `do`(_ handler: @escaping @Sendable (repeat each I) async -> Void)
 }
@@ -70,7 +76,8 @@ extension ArgMatcher where Argument : Error {
   public static func error<E>(_ type: E.Type) -> ArgMatcher<Argument> where E : Error
 }
 extension ArgMatcher {
-  public static func any<Property>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> ArgMatcher<Argument> where Argument : Sendable, Property : Equatable, Property : Sendable
+  public static func any<Property>(where keyPath: KeyPath<Argument, Property>, equals value: Property) -> ArgMatcher<Argument> where Argument : Sendable, Property : Equatable, Property : Sendable
+  @_disfavoredOverload public static func any<Property>(where keyPath: KeyPath<Argument, Property>, _ value: Property) -> ArgMatcher<Argument> where Argument : Sendable, Property : Equatable, Property : Sendable
 }
 extension ArgMatcher : ExpressibleByIntegerLiteral where Argument == Int {
   public init(integerLiteral value: IntegerLiteralType)
@@ -153,6 +160,18 @@ extension Arrange where Eff == Throws {
   final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws -> Output) where repeat each I : Sendable
   final public func `do`(_ handler: @escaping @Sendable (repeat each I) throws -> Void)
 }
+extension Arrange where Eff : SyncTypedThrowingEffect {
+  final public func thenReturn(_ output: Output) where Output : Sendable
+  final public func thenThrow(_ error: Eff.Failure)
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws(Eff.Failure) -> Output) where repeat each I : Sendable
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) throws(Eff.Failure) -> Void)
+}
+extension Arrange where Eff : AsyncTypedThrowingEffect {
+  final public func thenReturn(_ output: Output) where Output : Sendable
+  final public func thenThrow(_ error: Eff.Failure)
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws(Eff.Failure) -> Output) where repeat each I : Sendable
+  final public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws(Eff.Failure) -> Void)
+}
 extension Arrange where Eff == Async {
   final public func thenReturn(_ output: Output) where Output : Sendable
   final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> Output)
@@ -172,6 +191,12 @@ public class Assert<each Input, Eff, Output> where Eff : Effect {
 }
 extension Assert where Eff == Throws {
   public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws
+}
+extension Assert where Eff : SyncTypedThrowingEffect {
+  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws
+}
+extension Assert where Eff : AsyncTypedThrowingEffect {
+  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) async throws
 }
 extension Assert where Eff == AsyncThrows {
   public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) async throws
@@ -240,9 +265,26 @@ public protocol Effect : Sendable {
 }
 public enum Throws : Effect, Sendable {
 }
+public enum TypedThrows<E> : Effect, Sendable where E : Error {
+}
+public protocol TypedThrowingEffect : Effect {
+  associatedtype Failure : Error
+}
+public protocol SyncTypedThrowingEffect : TypedThrowingEffect {
+}
+public protocol AsyncTypedThrowingEffect : TypedThrowingEffect {
+}
+extension TypedThrows : SyncTypedThrowingEffect {
+  public typealias Failure = E
+}
 public enum Async : Effect, Sendable {
 }
 public enum AsyncThrows : Effect, Sendable {
+}
+public enum AsyncTypedThrows<E> : Effect, Sendable where E : Error {
+}
+extension AsyncTypedThrows : AsyncTypedThrowingEffect {
+  public typealias Failure = E
 }
 public enum None : Effect, Sendable {
 }
@@ -341,6 +383,10 @@ extension Mock {
     }
   public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O
   public func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O
+  public static func adaptTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, TypedThrows<E>, O>, _ input: repeat each I) throws(E) -> O where E : Error
+  public func adaptTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, TypedThrows<E>, O>, _ input: repeat each I) throws(E) -> O where E : Error
+  public static func adaptAsyncTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, AsyncTypedThrows<E>, O>, _ input: repeat each I) async throws(E) -> O where E : Error
+  public func adaptAsyncTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, AsyncTypedThrows<E>, O>, _ input: repeat each I) async throws(E) -> O where E : Error
   public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O
   public func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O
 }
@@ -476,6 +522,20 @@ extension Spy where Effects == Throws {
   public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
   public func verifyThrows() -> Bool
 }
+extension Spy where Effects : SyncTypedThrowingEffect {
+  @discardableResult
+  public func callAsFunction(_ input: repeat each Input) throws(Effects.Failure) -> Output
+  public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output
+  public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
+  public func verifyThrows() -> Bool
+}
+extension Spy where Effects : AsyncTypedThrowingEffect {
+  @discardableResult
+  public func callAsFunction(_ input: repeat each Input) async throws(Effects.Failure) -> Output
+  public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output
+  public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
+  public func verifyThrows() async -> Bool
+}
 extension Spy where Effects == None {
   @discardableResult
   @inline(__always) public func callAsFunction(_ input: repeat each Input) -> Output {
@@ -540,6 +600,19 @@ extension Stub where Effects == Throws {
   public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
   public func thenThrow<E>(_ error: E) where E : Error
   public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws -> O) where repeat each I : Sendable
+}
+extension Stub where Effects : SyncTypedThrowingEffect {
+  public func thenReturn(_ output: O) where O : Sendable
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  public func thenThrow(_ error: Effects.Failure)
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws(Effects.Failure) -> O) where repeat each I : Sendable
+}
+extension Stub where Effects : AsyncTypedThrowingEffect {
+  public func thenReturn(_ output: O) where O : Sendable
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  public func thenThrow(_ error: Effects.Failure)
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
+  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws(Effects.Failure) -> O) where repeat each I : Sendable
 }
 extension Stub where Effects == Async {
   public func thenReturn(_ output: O) where O : Sendable
