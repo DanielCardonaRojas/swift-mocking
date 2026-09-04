@@ -92,6 +92,128 @@ final class FunctionSignatureTests: MacroTestCase {
         }
     }
 
+    func testSingleMethodTypedThrows() {
+        assertMacro {
+           """
+            @Mockable()
+            protocol PricingService {
+                func price(_ item: String) throws(PricingError) -> Int
+            }
+            """
+        } expansion: {
+            """
+            protocol PricingService {
+                func price(_ item: String) throws(PricingError) -> Int
+            }
+
+            #if DEBUG
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
+                func price(_ item: ArgMatcher<String>) -> Interaction<String, TypedThrows<PricingError>, Int> {
+                    Interaction(item, spy: super.price)
+                }
+
+                func price(_ item: String) throws(PricingError) -> Int {
+                    let typedSpy: Spy<String, TypedThrows<PricingError>, Int> = super.price
+                    return try adaptTypedThrowing(typedSpy, item)
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    func testSingleMethodAsyncTypedThrows() {
+        assertMacro {
+           """
+            @Mockable()
+            protocol PricingService {
+                func price(_ item: String) async throws(PricingError) -> Int
+            }
+            """
+        } expansion: {
+            """
+            protocol PricingService {
+                func price(_ item: String) async throws(PricingError) -> Int
+            }
+
+            #if DEBUG
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
+                func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncTypedThrows<PricingError>, Int> {
+                    Interaction(item, spy: super.price)
+                }
+
+                func price(_ item: String) async throws(PricingError) -> Int {
+                    let typedSpy: Spy<String, AsyncTypedThrows<PricingError>, Int> = super.price
+                    return try await adaptAsyncTypedThrowing(typedSpy, item)
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// `throws(any Error)` is the canonical desugaring of an untyped `throws`, so it
+    /// must produce the untyped `Throws` effect rather than `TypedThrows<any Error>`.
+    func testSingleMethodThrowsAnyErrorStaysUntyped() {
+        assertMacro {
+           """
+            @Mockable()
+            protocol PricingService {
+                func price(_ item: String) throws(any Error) -> Int
+            }
+            """
+        } expansion: {
+            """
+            protocol PricingService {
+                func price(_ item: String) throws(any Error) -> Int
+            }
+
+            #if DEBUG
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
+                func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
+                    Interaction(item, spy: super.price)
+                }
+
+                func price(_ item: String) throws(any Error) -> Int {
+                    return try adaptThrowing(super.price, item)
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// `throws(Never)` cannot throw, so callers invoke it without `try` and the
+    /// generated conformance must not emit one.
+    func testSingleMethodThrowsNeverIsNonThrowing() {
+        assertMacro {
+           """
+            @Mockable()
+            protocol PricingService {
+                func price(_ item: String) throws(Never) -> Int
+            }
+            """
+        } expansion: {
+            """
+            protocol PricingService {
+                func price(_ item: String) throws(Never) -> Int
+            }
+
+            #if DEBUG
+            class MockPricingService: Mock, @unchecked Sendable, PricingService {
+                func price(_ item: ArgMatcher<String>) -> Interaction<String, None, Int> {
+                    Interaction(item, spy: super.price)
+                }
+
+                func price(_ item: String) throws(Never) -> Int {
+                    return adapt(super.price, item)
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     func testSingleMethodAsync() {
         assertMacro {
            """
