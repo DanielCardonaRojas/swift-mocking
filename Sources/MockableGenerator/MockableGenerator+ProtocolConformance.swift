@@ -252,37 +252,98 @@ extension MockableGenerator {
         spyAccess: SpyAccess = .inherited
     ) -> CodeBlockSyntax {
         let effectType = getFunctionEffectType(funcDecl)
+        // Typed-throws requirements bind the spy to an explicitly typed local first.
+        // The adapter's error type `E` appears only in its `throws(E)` clause and in
+        // the spy parameter's effect, and the spy itself comes from `Mock`'s generic
+        // `@dynamicMemberLookup` subscript — so with nothing spelled, both the
+        // subscript's `Eff` and the adapter's `E` stay open and the solver reports
+        //   error: generic parameter 'E' could not be inferred
+        // Spelling the spy's type anchors `Eff`, which determines `E`. This is the
+        // same technique the settable-subscript interactions use for their write spy.
+        let spyBinding = typedThrowsSpyBinding(funcDecl, effectType: effectType, spyAccess: spyAccess)
+        let call = baseFunctionRequirementBody(
+            funcDecl,
+            spyAccess: spyAccess,
+            spyIsLocalBinding: spyBinding != nil
+        )
+        // The `return` is load-bearing for `Void`-returning members under
+        // `.composition`: without a contextual result type the solver cannot
+        // infer `Output` for the generic spy subscript, and the compiler
+        // reports a "failed to produce diagnostic" internal error rather than a
+        // usable message.
+        //
+        // `try`/`await` are applied from the effect's own flags so the typed
+        // cases (`throws(E)`, `async throws(E)`) get the same treatment as their
+        // untyped counterparts without another pair of cases to keep in sync.
+        var expression = ExprSyntax(call)
+        if effectType.isAsync {
+            expression = ExprSyntax(AwaitExprSyntax(expression: expression))
+        }
+        if effectType.isThrowing {
+            expression = ExprSyntax(TryExprSyntax(expression: expression))
+        }
         return CodeBlockSyntax {
-            switch effectType {
-            case .none:
-                // The `return` is load-bearing for `Void`-returning members
-                // under `.composition`: without a contextual result type the
-                // solver cannot infer `Output` for the generic spy subscript,
-                // and the compiler reports a "failed to produce diagnostic"
-                // internal error rather than a usable message.
-                ReturnStmtSyntax(expression: baseFunctionRequirementBody(funcDecl, spyAccess: spyAccess))
-            case .asyncThrows:
-                ReturnStmtSyntax(
-                    expression: TryExprSyntax(
-                        expression: AwaitExprSyntax(
-                            expression: baseFunctionRequirementBody(funcDecl, spyAccess: spyAccess)
+            if let spyBinding {
+                spyBinding
+            }
+            ReturnStmtSyntax(expression: expression)
+        }
+    }
+
+    /// The local constant a typed-throws requirement binds its spy to.
+    static let typedThrowsSpyBindingName = "typedSpy"
+
+    /// Builds `let typedSpy: Spy<Inputs…, TypedThrows<E>, Output> = super.<name>` for a
+    /// typed-throws requirement, or `nil` for every other effect.
+    ///
+    /// See ``functionRequirementBody(_:spyAccess:)`` for why the type must be spelled.
+    private static func typedThrowsSpyBinding(
+        _ funcDecl: FunctionDeclSyntax,
+        effectType: EffectType,
+        spyAccess: SpyAccess
+    ) -> VariableDeclSyntax? {
+        switch effectType {
+        case .none, .async, .throws, .asyncThrows:
+            return nil
+        case .typedThrows, .asyncTypedThrows:
+            break
+        }
+
+        // The spy's input pack mirrors the requirement's parameters, with variadics
+        // widened to arrays and `Void` standing in for an empty pack — matching the
+        // pack the generated `Interaction` spells and that `adapt` records on.
+        let inputTypes = funcDecl.signature.parameterClause.parameters.map { parameter -> String in
+            let type = parameter.ellipsis != nil
+                ? TypeSyntax(ArrayTypeSyntax(element: parameter.type))
+                : parameter.type
+            return type.trimmedDescription
+        }
+        let outputType = funcDecl.signature.returnClause?.type.trimmedDescription ?? "Void"
+        let arguments = (inputTypes.isEmpty ? ["Void"] : inputTypes)
+            + [effectType.typeName, outputType]
+        let spyType = TypeSyntax(stringLiteral: "Spy<\(arguments.joined(separator: ", "))>")
+
+        return VariableDeclSyntax(
+            bindingSpecifier: .keyword(.let, trailingTrivia: .space),
+            bindings: PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(
+                        identifier: .identifier(typedThrowsSpyBindingName)
+                    ),
+                    typeAnnotation: TypeAnnotationSyntax(
+                        colon: .colonToken(trailingTrivia: .space),
+                        type: spyType
+                    ),
+                    initializer: InitializerClauseSyntax(
+                        equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
+                        value: spyAccess.spyReference(
+                            funcDecl.name,
+                            isStatic: funcDecl.modifiers.contains(where: \.isStatic)
                         )
                     )
                 )
-            case .throws:
-                ReturnStmtSyntax(
-                    expression: TryExprSyntax(
-                        expression: baseFunctionRequirementBody(funcDecl, spyAccess: spyAccess)
-                    )
-                )
-            case .async:
-                ReturnStmtSyntax(
-                    expression: AwaitExprSyntax(
-                        expression: baseFunctionRequirementBody(funcDecl, spyAccess: spyAccess)
-                    )
-                )
             }
-        }
+        )
     }
     
     /// Generates the base function call for a function requirement body.
@@ -290,7 +351,8 @@ extension MockableGenerator {
     /// This function creates a `FunctionCallExprSyntax` that calls the appropriate `adapt` function.
     private static func baseFunctionRequirementBody(
         _ functionDecl: FunctionDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        spyIsLocalBinding: Bool = false
     ) -> FunctionCallExprSyntax {
         let effectType = getFunctionEffectType(functionDecl)
         return adaptCall(
@@ -299,7 +361,8 @@ extension MockableGenerator {
             parameters: functionDecl.signature.parameterClause.parameters
                 .map({ ExprSyntax(DeclReferenceExprSyntax(baseName: $0.secondName ?? $0.firstName)) }),
             spyAccess: spyAccess,
-            isStatic: functionDecl.modifiers.contains(where: \.isStatic)
+            isStatic: functionDecl.modifiers.contains(where: \.isStatic),
+            spyIsLocalBinding: spyIsLocalBinding
         )
     }
 
@@ -311,21 +374,31 @@ extension MockableGenerator {
     /// ```swift
     /// adapt(super.myMethod, param1)
     /// ```
+    ///
+    /// - Parameter spyIsLocalBinding: When `true`, the spy has already been bound to an
+    ///   explicitly typed local (see ``typedThrowsSpyBindingName``), so the call passes
+    ///   that constant instead of re-deriving the spy through `super.`.
     private static func adaptCall(
         effectType: EffectType,
         requirementName: TokenSyntax,
         parameters: [ExprSyntax],
         spyAccess: SpyAccess = .inherited,
-        isStatic: Bool = false
+        isStatic: Bool = false,
+        spyIsLocalBinding: Bool = false
     ) -> FunctionCallExprSyntax {
-        let adaptingName = "adapt" + (effectType.rawValue.contains("Throws") ? "Throwing" : "")
+        let adaptingName = effectType.adapterName
         return FunctionCallExprSyntax(
             calledExpression: spyAccess.adapterCallee(adaptingName),
             leftParen: .leftParenToken(),
             arguments: LabeledExprListSyntax {
-                // super.myMethodName — or mock.myMethodName when composing
+                // super.myMethodName — or mock.myMethodName when composing, or the
+                // typed local binding for typed-throws requirements.
                 LabeledExprSyntax(
-                    expression: spyAccess.spyReference(requirementName, isStatic: isStatic)
+                    expression: spyIsLocalBinding
+                        ? ExprSyntax(DeclReferenceExprSyntax(
+                            baseName: .identifier(typedThrowsSpyBindingName)
+                        ))
+                        : spyAccess.spyReference(requirementName, isStatic: isStatic)
                 )
 
                 // param1, param2... — or () when the requirement has no
