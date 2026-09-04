@@ -56,6 +56,54 @@ public extension Arrange where Eff == Throws {
     }
 }
 
+// MARK: - TypedThrows
+public extension Arrange where Eff: SyncTypedThrowingEffect {
+    func thenReturn(_ output: Output) where Output: Sendable {
+        interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
+    }
+
+    /// Stubs the interaction to throw, constrained to the requirement's declared error type.
+    func thenThrow(_ error: Eff.Failure) where Eff.Failure: Sendable {
+        interaction.spy.createStub(for: interaction.invocationMatcher).thenThrow(error)
+    }
+
+    func thenReturn(
+        _ handler: @escaping @Sendable (repeat each I) throws(Eff.Failure) -> Output
+    ) where repeat each I: Sendable {
+        interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(handler)
+    }
+
+    func `do`(_ handler: @escaping @Sendable (repeat each I) throws(Eff.Failure) -> Void) {
+        let action = Action<repeat each I, Eff>(invocationMatcher: interaction.invocationMatcher)
+        action.do(handler)
+        interaction.spy.registerAction(action)
+    }
+}
+
+// MARK: - AsyncTypedThrows
+public extension Arrange where Eff: AsyncTypedThrowingEffect {
+    func thenReturn(_ output: Output) where Output: Sendable {
+        interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(output)
+    }
+
+    /// Stubs the interaction to throw, constrained to the requirement's declared error type.
+    func thenThrow(_ error: Eff.Failure) where Eff.Failure: Sendable {
+        interaction.spy.createStub(for: interaction.invocationMatcher).thenThrow(error)
+    }
+
+    func thenReturn(
+        _ handler: @escaping @Sendable (repeat each I) async throws(Eff.Failure) -> Output
+    ) where repeat each I: Sendable {
+        interaction.spy.createStub(for: interaction.invocationMatcher).thenReturn(handler)
+    }
+
+    func `do`(_ handler: @escaping @Sendable (repeat each I) async throws(Eff.Failure) -> Void) {
+        let action = Action<repeat each I, Eff>(invocationMatcher: interaction.invocationMatcher)
+        action.do(handler)
+        interaction.spy.registerAction(action)
+    }
+}
+
 // MARK: - Async
 public extension Arrange where Eff == Async {
     func thenReturn(_ output: Output) where Output: Sendable {

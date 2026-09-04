@@ -154,6 +154,101 @@ extension Assert where Eff == Throws {
     }
 }
 
+extension Assert where Eff: SyncTypedThrowingEffect {
+    /// Asserts that the spy's method threw an error.
+    ///
+    /// The matcher stays `ArgMatcher<any Error>` rather than being narrowed to the
+    /// declared error type: matchers like ``ArgMatcher/anyError()`` and
+    /// ``ArgMatcher/error(_:)`` are shared with the untyped effects, and stubbing
+    /// already guarantees any collected error is an `Eff.Failure`.
+    /// - Parameter errorMatcher: An optional ``ArgMatcher`` for `Error`. If `nil`, asserts that any error was thrown.
+    /// - Throws:
+    ///   - ``MockingError/didNotThrow`` if no error was thrown.
+    ///   - ``MockingError/didNotMatchThrown(_:)`` if an `errorMatcher` is provided and no thrown error matches it.
+    public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws {
+        var errors = [any Error]()
+        for invocation in spy.invocations {
+            for stub in spy.stubs {
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
+                guard stub.invocationMatcher.isMatchedBy(invocation) else {
+                    continue
+                }
+                if let invocationMatcher {
+                    if invocationMatcher.isMatchedBy(invocation) {
+                        Self.collectTypedErrors(stubbedReturn, errors: &errors)
+                    }
+                } else {
+                    Self.collectTypedErrors(stubbedReturn, errors: &errors)
+                }
+            }
+        }
+
+        if errors.isEmpty {
+            throw MockingError.didNotThrow
+        }
+
+        if let errorMatcher, !errors.contains(where: errorMatcher.callAsFunction) {
+            throw MockingError.didNotMatchThrown(errors)
+        }
+    }
+
+    private static func collectTypedErrors<O>(_ result: Return<Eff, O>, errors: inout [any Error]) {
+        guard let resolved = result.resolveIfSynchronous() else {
+            return
+        }
+        if case .failure(let error) = resolved {
+            errors.append(error)
+        }
+    }
+}
+
+extension Assert where Eff: AsyncTypedThrowingEffect {
+    /// Asserts that the spy's asynchronous method threw an error.
+    ///
+    /// See the synchronous overload for why the matcher is not narrowed to the
+    /// declared error type.
+    /// - Parameter errorMatcher: An optional ``ArgMatcher`` for `Error`. If `nil`, asserts that any error was thrown.
+    /// - Throws:
+    ///   - ``MockingError/didNotThrow`` if no error was thrown.
+    ///   - ``MockingError/didNotMatchThrown(_:)`` if an `errorMatcher` is provided and no thrown error matches it.
+    public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) async throws {
+        var errors = [any Error]()
+        for invocation in spy.invocations {
+            for stub in spy.stubs {
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
+                guard stub.invocationMatcher.isMatchedBy(invocation) else {
+                    continue
+                }
+                if let invocationMatcher {
+                    if invocationMatcher.isMatchedBy(invocation) {
+                        await Self.collectTypedErrorsAsync(stubbedReturn, errors: &errors)
+                    }
+                } else {
+                    await Self.collectTypedErrorsAsync(stubbedReturn, errors: &errors)
+                }
+            }
+        }
+
+        if errors.isEmpty {
+            throw MockingError.didNotThrow
+        }
+
+        if let errorMatcher, !errors.contains(where: errorMatcher.callAsFunction) {
+            throw MockingError.didNotMatchThrown(errors)
+        }
+    }
+
+    private static func collectTypedErrorsAsync<O>(_ result: Return<Eff, O>, errors: inout [any Error]) async {
+        if case .failure(let error) = await result.resolveAsync() {
+            errors.append(error)
+        }
+    }
+}
+
 extension Assert where Eff == AsyncThrows {
     /// Asserts that the spy's asynchronous method threw an error.
     /// - Parameter errorMatcher: An optional ``ArgMatcher`` for `Error` to specify the expected error. If `nil`, asserts that any error was thrown.

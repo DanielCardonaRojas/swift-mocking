@@ -337,6 +337,166 @@ extension Spy where Effects == Throws {
     }
 }
 
+// MARK: Typed throwing
+extension Spy where Effects: TypedThrowingEffect {
+    /// Narrows a resolved failure to the effect's declared error type.
+    ///
+    /// A `Return` for a typed-throwing spy can hold two very different failures: an
+    /// error the test stubbed (necessarily an `Effects.Failure`, because `thenThrow`
+    /// only accepts one), or a ``MockingError`` raised by the framework for an
+    /// unstubbed call. Only the former can cross a `throws(Failure)` boundary.
+    ///
+    /// The latter traps rather than propagating, matching how non-throwing spies
+    /// (`Effects == None`, `Effects == Async`) already report an unstubbed call: the
+    /// method's signature leaves no way to surface it, and an unstubbed call is a
+    /// test-authoring mistake rather than a condition under test.
+    private static func narrow(_ error: any Error) -> Effects.Failure {
+        if let typed = error as? Effects.Failure {
+            return typed
+        }
+        if let mockingError = error as? MockingError {
+            fatalError("MockingError: \(mockingError.message)")
+        }
+        fatalError(
+            """
+            Spy stubbed with an error of type \(type(of: error)) but the requirement \
+            is declared to throw \(Effects.Failure.self).
+            """
+        )
+    }
+}
+
+// MARK: Typed throwing (synchronous)
+extension Spy where Effects: SyncTypedThrowingEffect {
+    /// Calls the spy's method, rethrowing the stubbed error as the declared error type.
+    /// - Parameter input: The arguments for the method call.
+    /// - Returns: The output of the method if it doesn't throw.
+    /// - Throws: The stubbed error, typed as the requirement's declared error type.
+    @discardableResult
+    public func callAsFunction(_ input: repeat each Input) throws(Effects.Failure) -> Output {
+        let invocation = Invocation(arguments: repeat each input)
+        let action = matchingAction(invocation: invocation)
+        let result: Return<Effects, Output>
+        do {
+            result = try invoke(repeat each input)
+        } catch {
+            throw Self.narrow(error)
+        }
+        if let action {
+            do {
+                try action.perform(invocation)
+            } catch {
+                throw Self.narrow(error)
+            }
+        }
+        switch result.resolve() {
+        case .success(let value):
+            return value
+        case .failure(let error):
+            throw Self.narrow(error)
+        }
+    }
+
+    public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output {
+        return { (args: repeat each Input) throws(Effects.Failure) in
+            try self(repeat each args)
+        }
+    }
+
+    /// Verifies that the spy's method threw an error matching the given `errorMatcher`.
+    /// - Parameter errorMatcher: An ``ArgMatcher`` for `Error` to specify the expected error.
+    /// - Returns: `true` if a matching error was thrown, `false` otherwise.
+    public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool {
+        var doesThrow = false
+        for invocation in snapshotInvocations() {
+            for stub in snapshotStubs() where stub.invocationMatcher.isMatchedBy(invocation) {
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
+                switch stubbedReturn.resolve() {
+                case .success:
+                    break
+                case .failure(let error):
+                    doesThrow = errorMatcher(error)
+                }
+            }
+        }
+        return doesThrow
+    }
+
+    /// Verifies that the spy's method threw any error.
+    /// - Returns: `true` if any error was thrown, `false` otherwise.
+    public func verifyThrows() -> Bool {
+        verifyThrows(.anyError())
+    }
+}
+
+// MARK: Typed throwing (asynchronous)
+extension Spy where Effects: AsyncTypedThrowingEffect {
+    /// Calls the spy's method asynchronously, rethrowing the stubbed error as the
+    /// declared error type.
+    /// - Parameter input: The arguments for the method call.
+    /// - Returns: The output of the method if it doesn't throw.
+    /// - Throws: The stubbed error, typed as the requirement's declared error type.
+    @discardableResult
+    public func callAsFunction(_ input: repeat each Input) async throws(Effects.Failure) -> Output {
+        let invocation = Invocation(arguments: repeat each input)
+        let action = matchingAction(invocation: invocation)
+        let result: Return<Effects, Output>
+        do {
+            result = try invoke(repeat each input)
+        } catch {
+            throw Self.narrow(error)
+        }
+        if let action {
+            do {
+                try await action.perform(invocation)
+            } catch {
+                throw Self.narrow(error)
+            }
+        }
+        switch await result.resolveAsync() {
+        case .success(let value):
+            return value
+        case .failure(let error):
+            throw Self.narrow(error)
+        }
+    }
+
+    public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output {
+        return { (args: repeat each Input) async throws(Effects.Failure) in
+            try await self(repeat each args)
+        }
+    }
+
+    /// Verifies that the spy's method threw an error matching the given `errorMatcher`.
+    /// - Parameter errorMatcher: An ``ArgMatcher`` for `Error` to specify the expected error.
+    /// - Returns: `true` if a matching error was thrown, `false` otherwise.
+    public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool {
+        var doesThrow = false
+        for invocation in snapshotInvocations() {
+            for stub in snapshotStubs() where stub.invocationMatcher.isMatchedBy(invocation) {
+                guard let stubbedReturn = stub.returnValue(for: invocation) else {
+                    continue
+                }
+                switch await stubbedReturn.resolveAsync() {
+                case .success:
+                    break
+                case .failure(let error):
+                    doesThrow = errorMatcher(error)
+                }
+            }
+        }
+        return doesThrow
+    }
+
+    /// Verifies that the spy's method threw any error.
+    /// - Returns: `true` if any error was thrown, `false` otherwise.
+    public func verifyThrows() async -> Bool {
+        await verifyThrows(.anyError())
+    }
+}
+
 // MARK: None throwing
 extension Spy where Effects == None {
     /// Calls the spy's method, expecting it not to throw an error.
