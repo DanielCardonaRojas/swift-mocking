@@ -272,8 +272,12 @@ extension Return where Effects: TypedThrowingEffect {
                 return .failure(error)
             }
         }
-        // A non-async `thenReturn` handler on an async requirement stores a
-        // throwing resolver, so both must be honored here.
+        // A non-throwing async `thenReturn` handler stores an async resolver, and a
+        // non-async one stores a throwing resolver, so every resolver a `Stub` can
+        // install must be honored here — not just the async throwing one.
+        if let asyncResolver {
+            return .success(await asyncResolver())
+        }
         guard let throwingResolver else {
             fatalError("Return has no resolver.")
         }
