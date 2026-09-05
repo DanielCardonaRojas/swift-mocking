@@ -467,6 +467,55 @@ public extension Assert where Eff == AsyncThrows {
     }
 }
 
+public extension Assert where Eff: SyncTypedThrowingEffect {
+    /// Asserts that the mocked method threw an error.
+    ///
+    /// The typed-throws counterpart of the ``Throws`` overload. The matcher stays
+    /// `ArgMatcher<any Error>` so `.anyError()` and `.error(_:)` work unchanged.
+    ///
+    /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
+    ///   Defaults to `.anyError()` if `nil`, meaning any error is expected.
+    /// - Parameter file: The file where a verification failure is reported.
+    /// - Parameter line: The line where a verification failure is reported.
+    func `throws`(
+        _ errorMatcher: ArgMatcher<any Error>? = nil,
+        fileID: StaticString = #fileID,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) {
+        do {
+            try doesThrow(errorMatcher)
+        } catch {
+            SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
+        }
+    }
+}
+
+public extension Assert where Eff: AsyncTypedThrowingEffect {
+    /// Asserts asynchronously that the mocked method threw an error.
+    ///
+    /// See the synchronous overload for why the matcher is not narrowed.
+    ///
+    /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
+    ///   Defaults to `.anyError()` if `nil`, meaning any error is expected.
+    /// - Parameter file: The file where a verification failure is reported.
+    /// - Parameter line: The line where a verification failure is reported.
+    func `throws`(
+        _ errorMatcher: ArgMatcher<any Error>? = nil,
+        fileID: StaticString = #fileID,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) async {
+        do {
+            try await doesThrow(errorMatcher)
+        } catch {
+            SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
+        }
+    }
+}
+
 private func withUntilTimeout<each Input, Eff: Effect>(
     interaction: Interaction<repeat each Input, Eff, some Any>,
     timeout: Duration,
