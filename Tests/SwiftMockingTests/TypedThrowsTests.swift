@@ -11,6 +11,9 @@ import SwiftMockingTestSupport
 protocol TypedThrowingService {
     func load(_ id: Int) throws(TestError) -> String
     func fetch(_ id: Int) async throws(TestError) -> String
+    /// `@escaping` describes how the parameter is passed, not its type. The spy's
+    /// pack must drop the attribute — `Spy<@escaping () -> Void, ...>` does not parse.
+    func run(_ handler: @escaping @Sendable () -> Void) throws(TestError) -> Int
 }
 
 /// End-to-end coverage for typed-throws requirements (`throws(E)`).
@@ -85,6 +88,24 @@ final class TypedThrowsTests: MockingTestCase {
         try verify(mock.load(.any)).doesThrow(.error(TestError.self))
     }
 
+    func testTypedThrows_FluentThrowsVerification() {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenThrow(.example)
+
+        _ = try? mock.load(1)
+
+        verify(mock.load(.any)).throws()
+        verify(mock.load(.any)).throws(.error(TestError.self))
+    }
+
+    func testTypedThrows_EscapingClosureParameter() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.run(.any)).thenReturn(1)
+
+        XCTAssertEqual(try mock.run({}), 1)
+        verify(mock.run(.any)).called(1)
+    }
+
     // MARK: Asynchronous
 
     func testAsyncTypedThrows_RethrowsStubbedErrorAsDeclaredType() async {
@@ -123,6 +144,16 @@ final class TypedThrowsTests: MockingTestCase {
         } catch {
             XCTAssertEqual(error, TestError.other)
         }
+    }
+
+    func testAsyncTypedThrows_FluentThrowsVerification() async {
+        let mock = MockTypedThrowingService()
+        when(mock.fetch(.any)).thenThrow(.example)
+
+        _ = try? await mock.fetch(1)
+
+        await verify(mock.fetch(.any)).throws()
+        await verify(mock.fetch(.any)).throws(.error(TestError.self))
     }
 
     func testAsyncTypedThrows_VerifyAndDoesThrow() async throws {

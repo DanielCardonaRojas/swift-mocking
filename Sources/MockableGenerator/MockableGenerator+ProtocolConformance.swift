@@ -312,10 +312,14 @@ extension MockableGenerator {
         // The spy's input pack mirrors the requirement's parameters, with variadics
         // widened to arrays and `Void` standing in for an empty pack — matching the
         // pack the generated `Interaction` spells and that `adapt` records on.
+        // Attributes are stripped for the same reason `createInteractionReturnType`
+        // strips them: `@escaping`/`@autoclosure` describe how a parameter is passed,
+        // not the type itself, and `Spy<@escaping () -> Void, …>` does not parse. The
+        // spy's pack must match the one the generated `Interaction` spells.
         let inputTypes = funcDecl.signature.parameterClause.parameters.map { parameter -> String in
             let type = parameter.ellipsis != nil
                 ? TypeSyntax(ArrayTypeSyntax(element: parameter.type))
-                : parameter.type
+                : removeAttributes(parameter.type)
             return type.trimmedDescription
         }
         let outputType = funcDecl.signature.returnClause?.type.trimmedDescription ?? "Void"

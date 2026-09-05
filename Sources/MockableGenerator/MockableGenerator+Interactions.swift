@@ -793,7 +793,7 @@ public extension MockableGenerator {
 
     }
 
-    private static func removeAttributes(_ type: TypeSyntaxProtocol) -> TypeSyntax {
+    static func removeAttributes(_ type: TypeSyntaxProtocol) -> TypeSyntax {
         guard let attributedType = type.as(AttributedTypeSyntax.self) else {
             return TypeSyntax(fromProtocol: type)
         }
