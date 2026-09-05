@@ -35,7 +35,7 @@ The CLI shares its generator with the macro, so it produces the same output and 
 | **Clean, Readable API** | Provides a Mockito-style API that makes tests expressive and easy to maintain. |
 | **Flexible Argument Matching**| Offers powerful argument matchers like `.any` and `.equal`, with `ExpressibleBy...Literal` conformance for cleaner syntax. |
 | **Cross-Mock Call Order Verification** | Verify that method calls occurred in a specific sequence, even across different mock objects with `verifyInOrder()`. |
-| **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. |
+| **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. Typed throws (`throws(E)`) carry the declared error type, so stubbing the wrong error is a compile error. See the [Usage Reference](docs/usage.md#typed-throws). |
 | **Compact Code Generation** | Keeps the generated code as small and compact as possible. |
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
 | **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what and how code gets generated. |
@@ -54,6 +54,7 @@ The CLI shares its generator with the macro, so it produces the same output and 
 | Subscripts | ✅ |
 | `async` Methods | ✅ |
 | `throws` Methods | ✅ |
+| `throws(E)` (typed throws) | ✅ |
 | Variadic parameters | ✅ |
 | Closure parameters | ✅ |
 | Metatype parameters | ✅ |
@@ -195,8 +196,6 @@ final class StoreTests: XCTestCase {
     }
 }
 ```
-
----
 
 ---
 

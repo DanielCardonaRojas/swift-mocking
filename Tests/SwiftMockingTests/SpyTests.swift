@@ -139,6 +139,94 @@ final class SpyTests: XCTestCase {
         XCTAssert(spy.verifyThrows(.error(TestError.self)))
     }
 
+    func test_spy_typedThrows_recordsInvocations_andReturnsStubbedValue() throws {
+        let spy = Spy<String, TypedThrows<TestError>, Int>()
+        spy.when(calledWith: .any).thenReturn(10)
+
+        let result1 = try spy("hello")
+        let result2 = try spy("world")
+
+        XCTAssertEqual(result1, 10)
+        XCTAssertEqual(result2, 10)
+
+        XCTAssertEqual(spy.invocations.count, 2)
+        XCTAssertEqual(spy.invocations[0].arguments, "hello")
+        XCTAssertEqual(spy.invocations[1].arguments, "world")
+    }
+
+    func test_spy_typedThrows_rethrowsAsDeclaredErrorType() {
+        let spy = Spy<String, TypedThrows<TestError>, Int>()
+        spy.when(calledWith: .any).thenThrow(.example)
+
+        // `error` is already a `TestError`: the spy's effect names the only type
+        // it can throw, so the catch needs no `as?` and no default case.
+        do {
+            _ = try spy("something")
+            XCTFail("Expected spy to throw")
+        } catch {
+            XCTAssertEqual(error, TestError.example)
+        }
+    }
+
+    func test_spy_typedThrows_verification() throws {
+        let spy = Spy<String, TypedThrows<TestError>, Int>()
+        spy.when(calledWith: .any).thenThrow(.example)
+        do {
+            _ = try spy("something")
+        } catch {
+
+        }
+        XCTAssert(spy.verifyThrows(.error(TestError.self)))
+    }
+
+    /// A later non-matching error must not clear an earlier match: `verifyThrows`
+    /// asks whether *any* invocation threw a matching error.
+    func test_spy_verifyThrows_preservesEarlierMatch() throws {
+        let spy = Spy<String, Throws, Int>()
+        spy.when(calledWith: "first").thenThrow(TestError.example)
+        spy.when(calledWith: "second").thenThrow(AnotherError())
+
+        _ = try? spy("first")
+        _ = try? spy("second")
+
+        XCTAssert(spy.verifyThrows(.error(TestError.self)))
+    }
+
+    func test_spy_typedThrows_verifyThrows_preservesEarlierMatch() throws {
+        let spy = Spy<String, TypedThrows<TestError>, Int>()
+        spy.when(calledWith: "first").thenThrow(.example)
+        spy.when(calledWith: "second").thenThrow(.other)
+
+        _ = try? spy("first")
+        _ = try? spy("second")
+
+        XCTAssert(spy.verifyThrows(.error(TestError.self)))
+    }
+
+    func test_spy_asyncTypedThrows_rethrowsAsDeclaredErrorType() async {
+        let spy = Spy<String, AsyncTypedThrows<TestError>, Int>()
+        spy.when(calledWith: .any).thenThrow(.other)
+
+        do {
+            _ = try await spy("something")
+            XCTFail("Expected spy to throw")
+        } catch {
+            XCTAssertEqual(error, TestError.other)
+        }
+    }
+
+    func test_spy_asyncTypedThrows_verification() async {
+        let spy = Spy<String, AsyncTypedThrows<TestError>, Int>()
+        spy.when(calledWith: .any).thenThrow(.example)
+        do {
+            _ = try await spy("something")
+        } catch {
+
+        }
+        let didThrow = await spy.verifyThrows(.error(TestError.self))
+        XCTAssert(didThrow)
+    }
+
     func test_spy_async_recordsInvocations_andReturnsStubbedValue() async {
         let spy = Spy<String, Async, Int>()
         spy.when(calledWith: .any).thenReturn(10)

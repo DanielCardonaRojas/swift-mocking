@@ -53,6 +53,37 @@ extension Action where Eff == Throws {
     }
 }
 
+extension Action where Eff: SyncTypedThrowingEffect {
+    /// Registers a throwing synchronous action.
+    ///
+    /// The handler is constrained to the effect's declared error type, so an action
+    /// cannot introduce an error the requirement is not allowed to throw.
+    public func `do`(_ handler: @escaping @Sendable (repeat each I) throws(Eff.Failure) -> Void) {
+        throwingPerformer = { invocation in
+            try handler(repeat each invocation.arguments)
+        }
+    }
+
+    func perform(_ invocation: Invocation<repeat each I>) throws {
+        try throwingPerformer?(invocation)
+    }
+}
+
+extension Action where Eff: AsyncTypedThrowingEffect {
+    /// Registers an asynchronous throwing action.
+    ///
+    /// See the synchronous overload for why the handler's error type is constrained.
+    public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws(Eff.Failure) -> Void) {
+        asyncThrowingPerformer = { invocation in
+            try await handler(repeat each invocation.arguments)
+        }
+    }
+
+    func perform(_ invocation: Invocation<repeat each I>) async throws {
+        try await asyncThrowingPerformer?(invocation)
+    }
+}
+
 extension Action where Eff == Async {
     /// Registers an asynchronous action.
     public func `do`(_ handler: @escaping @Sendable (repeat each I) async -> Void) {

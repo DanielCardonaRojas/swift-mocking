@@ -7,11 +7,69 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
-public enum EffectType: String {
-    case asyncThrows = "AsyncThrows"
-    case `throws` = "Throws"
-    case `async` = "Async"
-    case none = "None"
+/// The effect a requirement carries, as spelled in the generated spy's type.
+///
+/// Typed-throws requirements (`throws(MyError)`) carry the declared error type so the
+/// generated `Interaction`/`Spy` can name `TypedThrows<MyError>` rather than erasing
+/// to the untyped ``Throws``. `throws(any Error)` is spelled without a type in the
+/// same position, so it is normalized back to the untyped cases by
+/// ``MockableGenerator/getFunctionEffectType(_:)``.
+public enum EffectType: Equatable {
+    case asyncThrows
+    case `throws`
+    case `async`
+    case none
+    /// `throws(E)` — carries the spelled error type `E`.
+    case typedThrows(String)
+    /// `async throws(E)` — carries the spelled error type `E`.
+    case asyncTypedThrows(String)
+
+    /// The type name to write into the generated `Spy`/`Interaction` generic argument list.
+    public var typeName: String {
+        switch self {
+        case .asyncThrows: return "AsyncThrows"
+        case .throws: return "Throws"
+        case .async: return "Async"
+        case .none: return "None"
+        case .typedThrows(let errorType): return "TypedThrows<\(errorType)>"
+        case .asyncTypedThrows(let errorType): return "AsyncTypedThrows<\(errorType)>"
+        }
+    }
+
+    /// Whether the requirement throws, in any form.
+    ///
+    /// Drives the `adapt` vs. `adaptThrowing` choice; previously a substring test on
+    /// the raw value, which the parameterized typed cases would have made fragile.
+    public var isThrowing: Bool {
+        switch self {
+        case .throws, .asyncThrows, .typedThrows, .asyncTypedThrows: return true
+        case .none, .async: return false
+        }
+    }
+
+    /// Whether the requirement is asynchronous.
+    public var isAsync: Bool {
+        switch self {
+        case .async, .asyncThrows, .asyncTypedThrows: return true
+        case .none, .throws, .typedThrows: return false
+        }
+    }
+
+    /// The `Mock` adapter method the generated conformance calls for this effect.
+    ///
+    /// The typed cases use dedicated names rather than `adaptThrowing` overloads. The
+    /// spy passed to the adapter comes from `Mock`'s generic `@dynamicMemberLookup`
+    /// subscript, so its effect is inferred *from* the adapter's parameter; sharing one
+    /// name would leave the solver free to choose the untyped overload and reject the
+    /// expansion. See `Mock.adaptTypedThrowing(_:_:)`.
+    public var adapterName: String {
+        switch self {
+        case .none, .async: return "adapt"
+        case .throws, .asyncThrows: return "adaptThrowing"
+        case .typedThrows: return "adaptTypedThrowing"
+        case .asyncTypedThrows: return "adaptAsyncTypedThrowing"
+        }
+    }
 }
 
 public extension MockableGenerator {
@@ -265,10 +323,10 @@ public extension MockableGenerator {
             #endif
         }
         #if canImport(SwiftSyntax601)
-        genericArgs.append(GenericArgumentSyntax(argument: .init(TypeSyntax(stringLiteral: effectType.rawValue))))
+        genericArgs.append(GenericArgumentSyntax(argument: .init(TypeSyntax(stringLiteral: effectType.typeName))))
         genericArgs.append(GenericArgumentSyntax(argument: .init(outputType)))
         #else
-        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.rawValue)))
+        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.typeName)))
         genericArgs.append(GenericArgumentSyntax(argument: outputType))
         #endif
 
@@ -603,17 +661,51 @@ public extension MockableGenerator {
 
     /// Extracts the effect type (throws, async, etc.) from a function declaration.
     ///
-    /// For example, for `async throws -> Int`, this will return `AsyncThrows`.
+    /// For example, for `async throws -> Int`, this will return `AsyncThrows`; for
+    /// `throws(LoadError) -> Int`, `TypedThrows<LoadError>`.
     static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> EffectType {
         let effects = funcDecl.signature.effectSpecifiers
-        if effects?.throwsClause != nil && effects?.asyncSpecifier != nil {
-            return .asyncThrows
-        } else if effects?.throwsClause != nil {
-            return .throws
-        } else if effects?.asyncSpecifier != nil {
-            return .async
-        } else {
-            return .none
+        let isAsync = effects?.asyncSpecifier != nil
+        guard let throwsClause = effects?.throwsClause else {
+            return isAsync ? .async : .none
+        }
+
+        switch thrownErrorType(throwsClause) {
+        case .untyped:
+            return isAsync ? .asyncThrows : .throws
+        case .never:
+            // `throws(Never)` is a non-throwing function: Swift lets callers invoke it
+            // without `try`, so the generated conformance must not emit one either.
+            return isAsync ? .async : .none
+        case .typed(let errorType):
+            return isAsync ? .asyncTypedThrows(errorType) : .typedThrows(errorType)
+        }
+    }
+
+    /// How a `throws` clause constrains the error type.
+    private enum ThrownErrorType {
+        /// A bare `throws`, or the equivalent explicit `throws(any Error)`.
+        case untyped
+        /// `throws(Never)` — cannot throw at all.
+        case never
+        /// `throws(E)` for a concrete `E`.
+        case typed(String)
+    }
+
+    /// Classifies a `throws` clause by the error type it names.
+    ///
+    /// `throws(any Error)` is the canonical desugaring of an untyped `throws`, so it is
+    /// folded into ``ThrownErrorType/untyped`` and keeps using the existing untyped
+    /// machinery rather than generating a pointless `TypedThrows<any Error>`.
+    private static func thrownErrorType(_ throwsClause: ThrowsClauseSyntax) -> ThrownErrorType {
+        guard let type = throwsClause.type else { return .untyped }
+        switch type.trimmedDescription {
+        case "any Error", "Error":
+            return .untyped
+        case "Never":
+            return .never
+        case let spelled:
+            return .typed(spelled)
         }
     }
 
@@ -701,7 +793,7 @@ public extension MockableGenerator {
 
     }
 
-    private static func removeAttributes(_ type: TypeSyntaxProtocol) -> TypeSyntax {
+    static func removeAttributes(_ type: TypeSyntaxProtocol) -> TypeSyntax {
         guard let attributedType = type.as(AttributedTypeSyntax.self) else {
             return TypeSyntax(fromProtocol: type)
         }
@@ -745,10 +837,10 @@ public extension MockableGenerator {
         }
 
         #if canImport(SwiftSyntax601)
-        genericArgs.append(GenericArgumentSyntax(argument: .init(TypeSyntax(stringLiteral: effectType.rawValue))))
+        genericArgs.append(GenericArgumentSyntax(argument: .init(TypeSyntax(stringLiteral: effectType.typeName))))
         genericArgs.append(GenericArgumentSyntax(argument: .init(outputType)))
         #else
-        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.rawValue)))
+        genericArgs.append(GenericArgumentSyntax(argument: TypeSyntax(stringLiteral: effectType.typeName)))
         genericArgs.append(GenericArgumentSyntax(argument: outputType))
         #endif
 

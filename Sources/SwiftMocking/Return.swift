@@ -204,6 +204,103 @@ extension Return where Effects == Throws {
     }
 }
 
+extension Return where Effects: TypedThrowingEffect {
+    /// Resolves the deferred value into a `Result`.
+    ///
+    /// The failure type stays `any Error` rather than the declared `E`: a `Return` can
+    /// also carry a ``MockingError`` for an unstubbed call, which is by construction not
+    /// an `E`. Narrowing to `E` happens at the call boundary in `Spy`, which is the only
+    /// place that can act on the distinction (rethrow vs. trap).
+    /// - Returns: The stored result for this return value.
+    func resolve() -> Result<R, any Error> {
+        if let storedError {
+            return .failure(storedError)
+        }
+        if let storedValue {
+            return .success(storedValue)
+        }
+        guard let throwingResolver else {
+            fatalError("Return has no resolver.")
+        }
+        do {
+            return .success(try throwingResolver())
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    /// Attempts to resolve the value synchronously if a synchronous resolver exists.
+    /// - Returns: The stored result if a synchronous resolver is present, otherwise `nil`.
+    func resolveIfSynchronous() -> Result<R, any Error>? {
+        if let storedError {
+            return .failure(storedError)
+        }
+        if let storedValue {
+            return .success(storedValue)
+        }
+        guard let throwingResolver else { return nil }
+        do {
+            return .success(try throwingResolver())
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    /// Creates a `Return` instance that represents an error.
+    /// - Parameter error: The error to be returned.
+    /// - Returns: A `Return` instance encapsulating the error.
+    static func error<E: Error>(_ error: E) -> Return<Effects, R> {
+        Return(error: error)
+    }
+
+    /// Resolves the deferred value asynchronously into a `Result`.
+    ///
+    /// The failure type stays `any Error` for the same reason as the synchronous
+    /// case — see ``resolve()``.
+    /// - Returns: The stored result for this return value.
+    func resolveAsync() async -> Result<R, any Error> {
+        if let storedError {
+            return .failure(storedError)
+        }
+        if let storedValue {
+            return .success(storedValue)
+        }
+        if let asyncThrowingResolver {
+            do {
+                return .success(try await asyncThrowingResolver())
+            } catch {
+                return .failure(error)
+            }
+        }
+        // A non-throwing async `thenReturn` handler stores an async resolver, and a
+        // non-async one stores a throwing resolver, so every resolver a `Stub` can
+        // install must be honored here — not just the async throwing one.
+        if let asyncResolver {
+            return .success(await asyncResolver())
+        }
+        guard let throwingResolver else {
+            fatalError("Return has no resolver.")
+        }
+        do {
+            return .success(try throwingResolver())
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    /// Creates a `Return` from a throwing synchronous closure.
+    /// - Parameter producer: A closure that can throw and produces the value.
+    init(_ producer: @escaping @Sendable () throws -> R) {
+        self.init(throwingValue: producer)
+    }
+
+    /// Creates a `Return` from an asynchronous throwing closure.
+    /// - Parameter producer: An async closure that can throw and produces the value.
+    init(_ producer: @escaping @Sendable () async throws -> R) {
+        self.init(asyncThrowingValue: producer)
+    }
+}
+
 extension Return where Effects == Async {
     /// Resolves the deferred value asynchronously into a `Result`.
     /// - Returns: The stored result for this return value.

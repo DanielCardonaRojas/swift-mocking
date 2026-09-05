@@ -122,6 +122,94 @@ extension Stub where Effects == Throws {
     }
 }
 
+extension Stub where Effects: SyncTypedThrowingEffect {
+    /// Defines the return value for this stub.
+    /// - Parameter output: The value to return when this stub is matched.
+    public func thenReturn(_ output: O) where O: Sendable {
+        self.output = { _ in Return.value(output) }
+    }
+
+    /// Defines a dynamic return value using a closure that receives the method arguments.
+    /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O) {
+        self.output = { invocation in
+            let returnValue = handler(repeat each invocation.arguments)
+            return Return.value(returnValue)
+        }
+    }
+
+    /// Defines an error to be thrown when this stub is matched.
+    ///
+    /// Unlike the untyped ``Throws`` overload, this accepts only the error type the
+    /// requirement declares: stubbing an unrelated error is a compile error rather
+    /// than a trap at call time.
+    /// - Parameter error: The error to throw.
+    public func thenThrow(_ error: Effects.Failure) where Effects.Failure: Sendable {
+        self.output = { _ in Return.error(error) }
+    }
+
+    /// Defines a dynamic return value that can throw before producing the result.
+    /// - Parameter handler: A closure that can throw and returns the desired output.
+    public func thenReturn(
+        _ handler: @escaping @Sendable (repeat each I) throws(Effects.Failure) -> O
+    ) where repeat each I: Sendable {
+        self.output = { invocation in
+            Return(throwingValue: {
+                try handler(repeat each invocation.arguments)
+            })
+        }
+    }
+}
+
+extension Stub where Effects: AsyncTypedThrowingEffect {
+    /// Defines the return value for this stub.
+    /// - Parameter output: The value to return when this stub is matched.
+    public func thenReturn(_ output: O) where O: Sendable {
+        self.output = { _ in Return.value(output) }
+    }
+
+    /// Defines a dynamic return value using a closure that receives the method arguments.
+    /// - Parameter handler: A closure that takes the method arguments and returns the desired output.
+    public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O) {
+        self.output = { invocation in
+            let returnValue = handler(repeat each invocation.arguments)
+            return Return.value(returnValue)
+        }
+    }
+
+    /// Defines an error to be thrown when this stub is matched.
+    ///
+    /// See the synchronous overload for why the error type is constrained.
+    /// - Parameter error: The error to throw.
+    public func thenThrow(_ error: Effects.Failure) where Effects.Failure: Sendable {
+        self.output = { _ in Return.error(error) }
+    }
+
+    /// Defines a dynamic return value using an asynchronous closure.
+    /// - Parameter handler: An async closure that returns the desired output.
+    public func thenReturn(
+        _ handler: @escaping @Sendable (repeat each I) async -> O
+    ) where repeat each I: Sendable {
+        self.output = { invocation in
+            Return(asyncValue: {
+                await handler(repeat each invocation.arguments)
+            })
+        }
+    }
+
+    /// Defines a dynamic return value using an asynchronous closure that can throw.
+    /// - Parameter handler: An async closure that returns the desired output or throws.
+    public func thenReturn(
+        _ handler: @escaping @Sendable (repeat each I) async throws(Effects.Failure) -> O
+    ) where repeat each I: Sendable {
+        self.output = { invocation in
+            Return(asyncThrowingValue: {
+                try await handler(repeat each invocation.arguments)
+            })
+        }
+    }
+}
+
 extension Stub where Effects == Async {
     /// Defines the return value for this stub.
     /// - Parameter output: The value to return when this stub is matched.
