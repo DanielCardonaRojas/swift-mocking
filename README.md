@@ -35,7 +35,7 @@ The CLI shares its generator with the macro, so it produces the same output and 
 | **Clean, Readable API** | Provides a Mockito-style API that makes tests expressive and easy to maintain. |
 | **Flexible Argument Matching**| Offers powerful argument matchers like `.any` and `.equal`, with `ExpressibleBy...Literal` conformance for cleaner syntax. |
 | **Cross-Mock Call Order Verification** | Verify that method calls occurred in a specific sequence, even across different mock objects with `verifyInOrder()`. |
-| **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. Typed throws (`throws(E)`) carry the declared error type, so stubbing the wrong error is a compile error. See [Typed Throws](#-typed-throws). |
+| **Effect-Safe Spies** | Models effects like `async` and `throws` as phantom types, ensuring type safety when stubbing. Typed throws (`throws(E)`) carry the declared error type, so stubbing the wrong error is a compile error. See the [Usage Reference](docs/usage.md#typed-throws). |
 | **Compact Code Generation** | Keeps the generated code as small and compact as possible. |
 | **Descriptive Error Reporting** | Provides clear and informative error messages when assertions fail, making it easier to debug tests. |
 | **Options to configure the macro generated code** | Exposes the `MockableOptions` OptionSet that enables selecting what and how code gets generated. |
@@ -196,72 +196,6 @@ final class StoreTests: XCTestCase {
     }
 }
 ```
-
----
-
-## 🎯 Typed Throws
-
-Requirements declared with [typed throws](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md) keep their error type through the mock. The generated conformance stays `throws(E)` rather than widening to `any Error`, so callers catch the concrete type and the compiler checks your stubs against it.
-
-```swift
-@Mockable
-protocol PricingService {
-    func price(_ item: String) throws(PricingError) -> Int
-}
-```
-
-<details>
-<summary>Generated Code</summary>
-
-```swift
-class MockPricingService: Mock, @unchecked Sendable, PricingService {
-    func price(_ item: ArgMatcher<String>) -> Interaction<String, TypedThrows<PricingError>, Int> {
-        Interaction(item, spy: super.price)
-    }
-    func price(_ item: String) throws(PricingError) -> Int {
-        let typedSpy: Spy<String, TypedThrows<PricingError>, Int> = super.price
-        return try adaptTypedThrowing(typedSpy, item)
-    }
-}
-```
-</details>
-
-Stubbing and verification work as they do for untyped `throws`, with one addition: `thenThrow` only accepts the declared error type.
-
-```swift
-let mock = MockPricingService()
-when(mock.price(.any)).thenThrow(.outOfStock)
-
-do {
-    _ = try mock.price("apple")
-} catch {
-    // `error` is already a `PricingError` — no `as?`, no default case.
-    XCTAssertEqual(error, .outOfStock)
-}
-
-verify(mock.price(.any)).called(1)
-```
-
-Stubbing an error the requirement cannot throw no longer compiles:
-
-```swift
-when(mock.price(.any)).thenThrow(NetworkError.offline)
-// ❌ error: cannot convert value of type 'NetworkError' to expected
-//           argument type 'TypedThrows<PricingError>.Failure'
-//           (aka 'PricingError')
-```
-
-`async throws(E)` is supported the same way, producing an `AsyncTypedThrows<E>` spy.
-
-Two spellings deliberately keep the untyped behaviour, since they mean the same thing as their untyped forms:
-
-| Declaration | Effect | Why |
-| --- | --- | --- |
-| `throws(any Error)` | `Throws` | The canonical desugaring of untyped `throws`. |
-| `throws(Never)` | `None` | Cannot throw, so callers need no `try`. |
-
-> [!NOTE]
-> An unstubbed call to a typed-throws method traps rather than throwing. The signature admits only `E`, leaving no way to surface a `MockingError` — the same way non-throwing mocks already report an unstubbed call.
 
 ---
 

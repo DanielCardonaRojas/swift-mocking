@@ -73,6 +73,60 @@ class PricingServiceMock: Mock, @unchecked Sendable, PricingService {
 ```
 </details>
 
+### Method with typed `throws(E)`
+
+The declared error type is carried into the spy as `TypedThrows<E>`, so the conformance keeps its `throws(E)` signature instead of widening to `any Error`.
+
+```swift
+@Mockable
+protocol PricingService {
+    func price(_ item: String) throws(PricingError) -> Int
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class PricingServiceMock: Mock, @unchecked Sendable, PricingService {
+    func price(_ item: String) throws(PricingError) -> Int {
+        let typedSpy: Spy<String, TypedThrows<PricingError>, Int> = super.price
+        return try adaptTypedThrowing(typedSpy, item)
+    }
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, TypedThrows<PricingError>, Int> {
+        Interaction(item, spy: super.price)
+    }
+}
+```
+</details>
+
+The spy is bound to an explicitly typed local first. The adapter's error type appears only in its `throws(E)` clause and in the spy's effect, and the spy itself comes from a generic subscript — with nothing spelled, both stay open and the compiler reports `generic parameter 'E' could not be inferred`.
+
+Two spellings keep the untyped behaviour, since they mean the same thing as their untyped forms: `throws(any Error)` generates a `Throws` spy, and `throws(Never)` generates a `None` spy whose member needs no `try`.
+
+### Method with `async throws(E)`
+
+```swift
+@Mockable
+protocol PricingService {
+    func price(_ item: String) async throws(PricingError) -> Int
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class PricingServiceMock: Mock, @unchecked Sendable, PricingService {
+    func price(_ item: String) async throws(PricingError) -> Int {
+        let typedSpy: Spy<String, AsyncTypedThrows<PricingError>, Int> = super.price
+        return try await adaptAsyncTypedThrowing(typedSpy, item)
+    }
+    func price(_ item: ArgMatcher<String>) -> Interaction<String, AsyncTypedThrows<PricingError>, Int> {
+        Interaction(item, spy: super.price)
+    }
+}
+```
+</details>
+
 ## Complex Protocol Features
 
 ### Multiple Methods

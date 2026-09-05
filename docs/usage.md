@@ -5,6 +5,7 @@ the library, the [interactive tutorials](https://danielcardonarojas.github.io/sw
 teach the same material in order, with runnable code at each step.
 
 - [Argument Matching](#argument-matching)
+- [Typed Throws](#typed-throws)
 - [Properties and Subscripts](#properties-and-subscripts)
 - [Dynamic Stubbing](#dynamic-stubbing)
 - [Logging Invocations](#logging-invocations)
@@ -142,6 +143,71 @@ verifyInOrder([
     pricingMock.price("banana")
 ])
 ```
+
+## Typed Throws
+
+Requirements declared with [typed throws](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0413-typed-throws.md) keep their error type through the mock. The generated conformance stays `throws(E)` rather than widening to `any Error`, so callers catch the concrete type and the compiler checks your stubs against it.
+
+```swift
+@Mockable
+protocol PricingService {
+    func price(_ item: String) throws(PricingError) -> Int
+}
+```
+
+Stubbing and verification work as they do for untyped `throws`, with one addition: `thenThrow` accepts only the declared error type.
+
+```swift
+let mock = MockPricingService()
+when(mock.price(.any)).thenThrow(.outOfStock)
+
+do {
+    _ = try mock.price("apple")
+} catch {
+    // `error` is already a `PricingError` — no `as?`, no default case.
+    XCTAssertEqual(error, .outOfStock)
+}
+
+verify(mock.price(.any)).called(1)
+```
+
+Stubbing an error the requirement cannot throw does not compile:
+
+```swift
+when(mock.price(.any)).thenThrow(NetworkError.offline)
+// ❌ error: cannot convert value of type 'NetworkError' to expected
+//           argument type 'TypedThrows<PricingError>.Failure'
+//           (aka 'PricingError')
+```
+
+Dynamic stubbing carries the same constraint — the handler is typed `throws(E)`:
+
+```swift
+when(mock.price(.any)).thenReturn { (item: String) throws(PricingError) -> Int in
+    guard item != "unobtainium" else { throw .outOfStock }
+    return item.count
+}
+```
+
+`async throws(E)` is supported the same way, producing an `AsyncTypedThrows<E>` spy:
+
+```swift
+when(mock.fetchPrice(.any)).thenThrow(.outOfStock)
+_ = try? await mock.fetchPrice("apple")
+try await verify(mock.fetchPrice(.any)).doesThrow(.error(PricingError.self))
+```
+
+Two spellings deliberately keep the untyped behaviour, since they mean the same thing as their untyped forms:
+
+| Declaration | Effect | Why |
+| --- | --- | --- |
+| `throws(any Error)` | `Throws` | The canonical desugaring of untyped `throws`. |
+| `throws(Never)` | `None` | Cannot throw, so callers need no `try`. |
+
+> [!NOTE]
+> An unstubbed call to a typed-throws method traps rather than throwing. The signature admits only `E`, leaving no way to surface a `MockingError` — the same way non-throwing mocks already report an unstubbed call. Give the method a stub, or a [default value](#default-values-for-unstubbed-methods).
+
+---
 
 ## Properties and Subscripts
 
