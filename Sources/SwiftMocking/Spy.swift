@@ -323,7 +323,7 @@ extension Spy where Effects == Throws {
                 case .success:
                     break
                 case .failure(let error):
-                    doesThrow = errorMatcher(error)
+                    doesThrow = doesThrow || errorMatcher(error)
                 }
             }
         }
@@ -417,7 +417,7 @@ extension Spy where Effects: SyncTypedThrowingEffect {
                 case .success:
                     break
                 case .failure(let error):
-                    doesThrow = errorMatcher(error)
+                    doesThrow = doesThrow || errorMatcher(error)
                 }
             }
         }
@@ -483,7 +483,7 @@ extension Spy where Effects: AsyncTypedThrowingEffect {
                 case .success:
                     break
                 case .failure(let error):
-                    doesThrow = errorMatcher(error)
+                    doesThrow = doesThrow || errorMatcher(error)
                 }
             }
         }
@@ -610,7 +610,7 @@ extension Spy where Effects == AsyncThrows {
                 case .success:
                     break
                 case .failure(let error):
-                    doesThrow = errorMatcher(error)
+                    doesThrow = doesThrow || errorMatcher(error)
                 }
             }
         }

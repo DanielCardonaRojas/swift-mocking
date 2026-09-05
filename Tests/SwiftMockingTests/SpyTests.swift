@@ -179,6 +179,30 @@ final class SpyTests: XCTestCase {
         XCTAssert(spy.verifyThrows(.error(TestError.self)))
     }
 
+    /// A later non-matching error must not clear an earlier match: `verifyThrows`
+    /// asks whether *any* invocation threw a matching error.
+    func test_spy_verifyThrows_preservesEarlierMatch() throws {
+        let spy = Spy<String, Throws, Int>()
+        spy.when(calledWith: "first").thenThrow(TestError.example)
+        spy.when(calledWith: "second").thenThrow(AnotherError())
+
+        _ = try? spy("first")
+        _ = try? spy("second")
+
+        XCTAssert(spy.verifyThrows(.error(TestError.self)))
+    }
+
+    func test_spy_typedThrows_verifyThrows_preservesEarlierMatch() throws {
+        let spy = Spy<String, TypedThrows<TestError>, Int>()
+        spy.when(calledWith: "first").thenThrow(.example)
+        spy.when(calledWith: "second").thenThrow(.other)
+
+        _ = try? spy("first")
+        _ = try? spy("second")
+
+        XCTAssert(spy.verifyThrows(.error(TestError.self)))
+    }
+
     func test_spy_asyncTypedThrows_rethrowsAsDeclaredErrorType() async {
         let spy = Spy<String, AsyncTypedThrows<TestError>, Int>()
         spy.when(calledWith: .any).thenThrow(.other)
