@@ -659,3 +659,9 @@ extension Assert where Eff == Throws {
 extension Assert where Eff == AsyncThrows {
   public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
 }
+extension Assert where Eff : SyncTypedThrowingEffect {
+  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
+}
+extension Assert where Eff : AsyncTypedThrowingEffect {
+  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
+}
