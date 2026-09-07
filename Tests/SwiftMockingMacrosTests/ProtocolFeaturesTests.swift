@@ -167,7 +167,18 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
             #if DEBUG
             class MockMyService: Mock, @unchecked Sendable, MyService {
+                static func `init`(value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
+                    Interaction(value, spy: super.`init`)
+                }
+
                 required init(value: Int) {
+                    let spy: Spy<Int, None, Void> = (MockMyService.self as Mock.Type).`init`
+                    Mock.adapt(spy, value)
+                    super.init(scopedStorageKey: nil)
+                }
+
+                init() {
+                    super.init(scopedStorageKey: nil)
                 }
             }
             #endif

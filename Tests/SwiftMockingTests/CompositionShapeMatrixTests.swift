@@ -17,9 +17,10 @@ class ShapeBase {
 
 /// A superclass *without* a zero-argument initializer.
 ///
-/// This is the case that exposed the initializer bug: Swift inserts an implicit
-/// `super.init()` only when the superclass has one, so a mock whose body never
-/// chains to `super.init` compiles against `ShapeBase` but not against this.
+/// Deliberately unused by any `@Mockable` protocol in this file. A composed mock
+/// chains to `super.init()`, which this class cannot satisfy, so a protocol
+/// constrained to it does not compile — the documented limit of initializer
+/// support under `.composition`. See `testInitializerRequirementRecords`.
 class ConfiguredBase {
     init(config: Int) {}
 }
@@ -71,7 +72,7 @@ protocol StaticSubscriptShape: ShapeBase {
 }
 
 @Mockable([.composition])
-protocol InitializerShape: ConfiguredBase {
+protocol InitializerShape: ShapeBase {
     init(value: Int)
 }
 
@@ -177,15 +178,32 @@ final class CompositionShapeMatrixTests: XCTestCase {
     }
 
     /// A composed mock inherits its protocol's required superclass, so its
-    /// initializer must chain to `super.init`. The macro cannot synthesize that
-    /// call — it never sees the superclass — so the body is `fatalError`, which
-    /// satisfies the chaining rule without naming an initializer.
+    /// initializer must chain to `super.init()`. That constrains the superclass
+    /// to one with a zero-argument initializer — the macro never sees it and so
+    /// cannot pass arguments. `ConfiguredBase` above is the case that does not
+    /// compile.
     ///
-    /// This test is a compile-time assertion: before the fix this file did not
-    /// build, failing with `'super.init' isn't called on all paths before
-    /// returning from initializer`. The generated `init` is never called, so
-    /// there is no runtime behaviour to assert.
-    func testInitializerRequirementCompiles() {
-        XCTAssertTrue((MockInitializerShape.self as Any) is ConfiguredBase.Type)
+    /// Construction records on static storage, so the mock is still constructed
+    /// through the generated zero-argument `init()` in every other test here.
+    func testInitializerRequirementRecords() {
+        MockInitializerShape.staticMock.clear()
+
+        _ = MockInitializerShape(value: 7)
+
+        verify(MockInitializerShape.`init`(value: .equal(7))).called(1)
+        verify(MockInitializerShape.`init`(value: .equal(8))).called(0)
+    }
+
+    /// The zero-argument `init()` a mock needs to stay constructible.
+    ///
+    /// Declaring `init(value:)` suppresses the initializer the mock would
+    /// otherwise get, so without the generated `init()` this line fails with
+    /// `missing argument for parameter 'value'`.
+    func testInitializerShapeRemainsDefaultConstructible() {
+        MockInitializerShape.staticMock.clear()
+
+        _ = MockInitializerShape()
+
+        verify(MockInitializerShape.`init`(value: .any)).called(0)
     }
 }

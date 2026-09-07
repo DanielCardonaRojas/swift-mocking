@@ -23,9 +23,16 @@ extension MockableGenerator {
     /// This function will generate the `doSomething()` function and the `value` computed property.
     static func makeConformanceRequirements(
         for protocolDecl: ProtocolDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        mockName: String
     ) -> [DeclSyntax] {
         var declarations = [DeclSyntax]()
+        var declaresInitializer = false
+        // Whether the generated mock has a superclass to chain `super.init` to.
+        // An inheriting mock always does (`Mock`); a composed one does only if
+        // its protocol's inheritance clause could name a class, which is the
+        // same conservative test that governs `Sendable`.
+        let hasSuperclass = !isStrictlySendable(protocolDecl: protocolDecl, spyAccess: spyAccess)
         for member in protocolDecl.memberBlock.members {
             if let functionDecl = member.decl.as(FunctionDeclSyntax.self) {
                 declarations.append(DeclSyntax(functionRequirement(functionDecl, spyAccess: spyAccess)))
@@ -34,46 +41,127 @@ extension MockableGenerator {
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
                 declarations.append(DeclSyntax(subscriptRequirement(subscriptDecl, spyAccess: spyAccess)))
             } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
-                declarations.append(DeclSyntax(initializerRequirement(initDecl, spyAccess: spyAccess)))
-
+                declarations.append(
+                    DeclSyntax(initializerRequirement(
+                        initDecl,
+                        spyAccess: spyAccess,
+                        mockName: mockName,
+                        hasSuperclass: hasSuperclass
+                    ))
+                )
+                // A protocol may declare `init()` itself, in which case the
+                // requirement above already provides it and restating it would
+                // be an invalid redeclaration.
+                declaresInitializer = declaresInitializer
+                    || !initDecl.signature.parameterClause.parameters.isEmpty
             }
+        }
+
+        if declaresInitializer {
+            declarations.append(
+                DeclSyntax(defaultInitializer(spyAccess: spyAccess, hasSuperclass: hasSuperclass))
+            )
         }
 
         return declarations
     }
 
-    /// Generates a `required` initializer declaration.
+    /// A zero-argument initializer, emitted only when the protocol declares
+    /// initializers of its own.
+    ///
+    /// Declaring any designated initializer suppresses the one a mock would
+    /// otherwise inherit (`Mock`'s) or get synthesized, so without this a mock
+    /// for a protocol with an `init` requirement cannot be constructed the way
+    /// every other mock is:
+    ///
+    /// ```
+    /// error: missing argument for parameter 'value' in call
+    /// ```
+    ///
+    /// Tests construct mocks with `MockMyService()` and stub afterwards; the
+    /// requirement's own initializer exists to satisfy the protocol.
+    ///
+    /// The body chains to `super.init()` only when the mock has a superclass to
+    /// chain to — `super.init()` in a root class is an error.
+    ///
+    /// A composed mock's `init()` is also marked `override`, because the
+    /// superclass it chains to necessarily declares the `init()` it is calling.
+    /// The inheriting strategy must *not* be marked: `Mock.init()` is a
+    /// convenience initializer, which a subclass's designated `init()` does not
+    /// override.
+    static func defaultInitializer(
+        spyAccess: SpyAccess,
+        hasSuperclass: Bool
+    ) -> InitializerDeclSyntax {
+        let overridesSuperclassInit: Bool
+        switch spyAccess {
+        case .inherited: overridesSuperclassInit = false
+        case .composed: overridesSuperclassInit = hasSuperclass
+        }
+        return InitializerDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                if overridesSuperclassInit {
+                    DeclModifierSyntax(name: .keyword(.override))
+                }
+            },
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(
+                    parameters: FunctionParameterListSyntax([])
+                )
+            ),
+            body: CodeBlockSyntax {
+                if hasSuperclass {
+                    superInitCall(spyAccess: spyAccess)
+                }
+            }
+        )
+    }
+
+    /// Generates a `required` initializer declaration that records its call.
     ///
     /// For an initializer `init(value: Int)`, this will generate:
     /// ```swift
     /// required init(value: Int) {
-    ///     // ...
+    ///     let spy: Spy<Int, None, Void> = MockMyService.`init`
+    ///     Mock.adapt(spy, value)
+    ///     super.init(scopedStorageKey: nil)
     /// }
     /// ```
     ///
-    /// Under `.composition` the body is `fatalError(...)` instead of empty.
-    /// A composed mock inherits the superclass its protocol constrains it to,
-    /// and Swift requires every designated initializer to chain to `super.init`:
+    /// ## Why the spy is static
+    ///
+    /// Every other requirement records on instance storage, but an initializer
+    /// runs *before* the instance exists: neither `self.mock` nor the inherited
+    /// `super` subscript is reachable until `super.init()` has returned, and
+    /// recording after that point would be too late for a mock whose
+    /// construction is the thing under test. Static storage has no such phase —
+    /// it is the same reasoning that makes `staticMock` necessary for static
+    /// requirements. The generated interaction is `static` to match.
+    ///
+    /// ## Chaining to `super.init`
+    ///
+    /// Swift requires every designated initializer to chain to `super.init`,
+    /// when there is a superclass at all:
     ///
     /// ```
     /// error: 'super.init' isn't called on all paths before returning from initializer
     /// ```
     ///
-    /// The macro cannot synthesize that call — it never sees the superclass, so
-    /// it cannot know which initializers exist or what to pass them. Emitting
-    /// `super.init()` is not a fix either: it fails the same way whenever the
-    /// superclass has no zero-arg initializer. A `Never`-returning call
-    /// satisfies the chaining rule without naming any initializer, and costs
-    /// nothing in practice — the generated `init` exists only to satisfy the
-    /// protocol requirement, and tests construct mocks through the zero-arg
-    /// `init()` the mock gets for free.
+    /// For the inheriting strategy the superclass is known — `Mock` — and
+    /// ``superInitCall(spyAccess:)`` names its designated initializer directly.
     ///
-    /// The inheriting strategy keeps the empty body: `Mock` always has a
-    /// zero-arg initializer, so Swift inserts the `super.init()` call
-    /// implicitly and the requirement compiles as-is.
+    /// For `.composition` the macro cannot see the superclass its protocol
+    /// constrains the mock to, so it cannot know which initializers exist.
+    /// `super.init()` is correct whenever that superclass has a zero-argument
+    /// initializer, and a compile error naming this line otherwise. That is a
+    /// better failure than the `fatalError` this replaced: that always compiled
+    /// but left the initializer unusable and its calls unrecorded, making
+    /// `.composition` silently differ from the default strategy.
     static func initializerRequirement(
         _ initDecl: InitializerDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        mockName: String,
+        hasSuperclass: Bool
     ) -> InitializerDeclSyntax {
         let modifiers = DeclModifierListSyntax {
             DeclModifierSyntax(name: .keyword(.required))
@@ -81,17 +169,193 @@ extension MockableGenerator {
                 modifier
             }
         }
+        let parameters = initDecl.signature.parameterClause.parameters
         return InitializerDeclSyntax(
             attributes: initDecl.attributes,
             modifiers: modifiers,
             genericParameterClause: initDecl.genericParameterClause,
             signature: initDecl.signature,
             body: CodeBlockSyntax {
-                if case .composed = spyAccess {
-                    ExprSyntax(#"fatalError("init(...) is not implemented on generated mocks")"#)
+                initializerSpyBinding(initDecl, spyAccess: spyAccess, mockName: mockName)
+                // Not assigned to `_`: the spy's output is always `Void` here,
+                // and discarding a `Void` result warns that the discard is
+                // redundant.
+                FunctionCallExprSyntax(
+                    calledExpression: MemberAccessExprSyntax(
+                        base: DeclReferenceExprSyntax(baseName: .identifier("Mock")),
+                        name: .identifier("adapt")
+                    ),
+                    leftParen: .leftParenToken(),
+                    arguments: LabeledExprListSyntax {
+                        LabeledExprSyntax(
+                            expression: DeclReferenceExprSyntax(
+                                baseName: .identifier(initializerSpyBindingName)
+                            )
+                        )
+                        if parameters.isEmpty {
+                            LabeledExprSyntax(
+                                expression: TupleExprSyntax(elements: LabeledExprListSyntax())
+                            )
+                        } else {
+                            for parameter in parameters {
+                                LabeledExprSyntax(
+                                    expression: DeclReferenceExprSyntax(
+                                        baseName: parameter.secondName ?? parameter.firstName
+                                    )
+                                )
+                            }
+                        }
+                    },
+                    rightParen: .rightParenToken()
+                )
+                if hasSuperclass {
+                    superInitCall(spyAccess: spyAccess)
                 }
             }
         )
+    }
+
+    /// The local constant a generated initializer binds its spy to.
+    static let initializerSpyBindingName = "spy"
+
+    /// The `super.init(…)` call a generated designated initializer chains to.
+    ///
+    /// The inheriting strategy must name `Mock`'s *designated* initializer.
+    /// `Mock.init()` is a convenience initializer, and chaining to one is an
+    /// error:
+    ///
+    /// ```
+    /// error: must call a designated initializer of the superclass 'Mock'
+    /// ```
+    ///
+    /// `scopedStorageKey: nil` is what `Mock.init()` itself passes — the mock
+    /// keeps its instance spies in its own storage.
+    ///
+    /// A composed mock's superclass is the one its protocol constrains it to, so
+    /// the only initializer the macro can name is a zero-argument one.
+    static func superInitCall(spyAccess: SpyAccess) -> ExprSyntax {
+        switch spyAccess {
+        case .inherited:
+            return ExprSyntax("super.init(scopedStorageKey: nil)")
+        case .composed:
+            return ExprSyntax("super.init()")
+        }
+    }
+
+    /// Builds `let spy: Spy<Inputs…, None, Void> = <Mock>.staticMock.\`init\``.
+    ///
+    /// The type is spelled for the same reason typed-throws requirements spell
+    /// theirs: the spy comes from `Mock`'s generic `@dynamicMemberLookup`
+    /// subscript, and `adapt`'s own generics cannot pin `Output` down from a
+    /// discarded result. Without the annotation the solver reports
+    /// `generic parameter 'Output' could not be inferred`.
+    ///
+    /// The base is the mock's own type name rather than `Self`: under
+    /// `.composition` a `final` mock makes the two equivalent, but the
+    /// inheriting strategy's mock is subclassable, and `Self` in a subclass
+    /// would resolve to different static storage than the interaction — which
+    /// is declared on the mock — reads from. See
+    /// ``initializerSpyReference(spyAccess:mockName:)``.
+    private static func initializerSpyBinding(
+        _ initDecl: InitializerDeclSyntax,
+        spyAccess: SpyAccess,
+        mockName: String
+    ) -> VariableDeclSyntax {
+        let inputTypes = initDecl.signature.parameterClause.parameters.map { parameter -> String in
+            let type = parameter.ellipsis != nil
+                ? TypeSyntax(ArrayTypeSyntax(element: parameter.type))
+                : removeAttributes(parameter.type)
+            return type.trimmedDescription
+        }
+        let arguments = (inputTypes.isEmpty ? ["Void"] : inputTypes) + ["None", "Void"]
+        let spyType = TypeSyntax(stringLiteral: "Spy<\(arguments.joined(separator: ", "))>")
+
+        return VariableDeclSyntax(
+            bindingSpecifier: .keyword(.let, trailingTrivia: .space),
+            bindings: PatternBindingListSyntax {
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(
+                        identifier: .identifier(initializerSpyBindingName)
+                    ),
+                    typeAnnotation: TypeAnnotationSyntax(
+                        colon: .colonToken(trailingTrivia: .space),
+                        type: spyType
+                    ),
+                    initializer: InitializerClauseSyntax(
+                        equal: .equalToken(leadingTrivia: .space, trailingTrivia: .space),
+                        value: initializerSpyReference(spyAccess: spyAccess, mockName: mockName)
+                    )
+                )
+            }
+        )
+    }
+
+    /// The expression naming an initializer's spy.
+    ///
+    /// Both strategies reach the same static storage the generated interaction
+    /// reads, but they spell it differently.
+    ///
+    /// A composed mock goes through its `staticMock` property, a `Mock`
+    /// instance, whose `@dynamicMemberLookup` subscript supplies the spy.
+    ///
+    /// An inheriting mock has no such property — its static spies come from
+    /// `Mock`'s *static* subscript, reached on the mock's own metatype. That
+    /// metatype is upcast to `Mock.Type` first, because the mock also declares a
+    /// static member literally named `init` — the generated interaction — which
+    /// otherwise shadows the dynamic-member lookup:
+    ///
+    /// ```
+    /// error: cannot convert value of type '@Sendable (ArgMatcher<Int>) ->
+    ///        Interaction<Int, None, Void>' to specified type 'Spy<Int, None, Void>'
+    /// ```
+    ///
+    /// The upcast names a type that has no `init` member of its own, so lookup
+    /// falls through to the subscript. It does not change *which* storage is
+    /// read: that subscript keys on `Self`, which stays the mock's own type. The
+    /// interaction sidesteps the same collision with `super`, which an instance
+    /// initializer cannot use to reach static storage.
+    private static func initializerSpyReference(
+        spyAccess: SpyAccess,
+        mockName: String
+    ) -> ExprSyntax {
+        switch spyAccess {
+        case .inherited:
+            return ExprSyntax(
+                MemberAccessExprSyntax(
+                    base: TupleExprSyntax {
+                        LabeledExprSyntax(
+                            expression: SequenceExprSyntax {
+                                // `.self` is required: a bare type name is not
+                                // a value expression, so `Mock as Mock.Type`
+                                // does not parse.
+                                MemberAccessExprSyntax(
+                                    base: DeclReferenceExprSyntax(
+                                        baseName: .identifier(mockName)
+                                    ),
+                                    name: .keyword(.self),
+                                    trailingTrivia: .space
+                                )
+                                UnresolvedAsExprSyntax(trailingTrivia: .space)
+                                TypeExprSyntax(
+                                    type: TypeSyntax(stringLiteral: "Mock.Type")
+                                )
+                            }
+                        )
+                    },
+                    name: escapedIdentifier(initializerSpyName)
+                )
+            )
+        case .composed:
+            return ExprSyntax(
+                MemberAccessExprSyntax(
+                    base: MemberAccessExprSyntax(
+                        base: DeclReferenceExprSyntax(baseName: .identifier(mockName)),
+                        name: .identifier(SpyAccess.staticStoredPropertyName)
+                    ),
+                    name: escapedIdentifier(initializerSpyName)
+                )
+            )
+        }
     }
 
     /// Generates a function declaration that fulfills a protocol requirement.

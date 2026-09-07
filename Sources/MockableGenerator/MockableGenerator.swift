@@ -58,7 +58,11 @@ public enum MockableGenerator {
         let typeAliases = makeTypeAliases(protocolDecl)
         let spyStorage = makeSpyStorage(protocolDecl: protocolDecl, spyAccess: spyAccess, mockName: mockName)
         let interactions = makeInteractions(protocolDecl: protocolDecl, spyAccess: spyAccess)
-        let conformanceRequirements = makeConformanceRequirements(for: protocolDecl, spyAccess: spyAccess)
+        let conformanceRequirements = makeConformanceRequirements(
+            for: protocolDecl,
+            spyAccess: spyAccess,
+            mockName: mockName
+        )
 
         let members = separatedByBlankLines(typeAliases + spyStorage + interactions + conformanceRequirements)
             .map { MemberBlockItemSyntax(decl: $0) }
@@ -248,6 +252,11 @@ public enum MockableGenerator {
     /// Subscripts count alongside functions and variables: a `static subscript`
     /// generates members that read `staticMock`, so omitting it from this check
     /// produced a mock referencing storage that was never declared.
+    ///
+    /// Initializer requirements count too, without carrying the modifier: they
+    /// record on static storage because instance storage does not yet exist when
+    /// an initializer runs. See
+    /// ``MockableGenerator/initializerRequirement(_:spyAccess:mockName:hasSuperclass:)``.
     private static func hasStaticMembers(protocolDecl: ProtocolDeclSyntax) -> Bool {
         protocolDecl.memberBlock.members.contains { member in
             let modifiers: DeclModifierListSyntax?
@@ -255,6 +264,7 @@ public enum MockableGenerator {
             case .functionDecl(let decl): modifiers = decl.modifiers
             case .variableDecl(let decl): modifiers = decl.modifiers
             case .subscriptDecl(let decl): modifiers = decl.modifiers
+            case .initializerDecl: return true
             default: modifiers = nil
             }
             return modifiers?.contains(where: \.isStatic) ?? false

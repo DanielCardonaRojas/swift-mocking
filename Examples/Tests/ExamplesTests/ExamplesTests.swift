@@ -6,6 +6,16 @@ import Foundation
 
 @Suite
 struct ExampleTests {
+    /// Construction is recorded on static storage, since an initializer runs
+    /// before the instance — and its spy storage — exists.
+    @Test func testMockInitializer() {
+        MockInitializerService.staticMock.clear()
+
+        _ = MockInitializerService(value: 77)
+
+        verify(MockInitializerService.`init`(value: .equal(77))).called(1)
+    }
+
     @Test func testMockitoBuilder() {
         let mock = MockPricingService()
         let store = Store(pricingService: mock)
