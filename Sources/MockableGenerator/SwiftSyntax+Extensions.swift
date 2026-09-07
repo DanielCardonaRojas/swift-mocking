@@ -13,6 +13,29 @@ extension DeclModifierSyntax {
     }
 }
 
+/// Keywords a generated member's name can collide with.
+///
+/// Spelled out rather than derived from `SwiftSyntax.Keyword`, whose only
+/// text-based initializer is `@_spi(RawSyntax)` and so not available to clients.
+/// Listing every Swift keyword would be both unnecessary and a maintenance
+/// burden: a protocol requirement's name can only collide with a keyword that is
+/// legal in declaration position, and `init`, `subscript` and `deinit` are the
+/// ones a protocol can actually declare.
+private let keywordsRequiringEscaping: Set<String> = ["init", "subscript", "deinit"]
+
+/// An identifier token, backticked when the name is a Swift keyword.
+///
+/// `TokenSyntax.identifier(_:)` emits the text verbatim, so a keyword-named
+/// member prints as bare `init` and fails to parse. Initializer requirements are
+/// the case that needs this — their generated interaction is named `init` — but
+/// the escaping is applied by name rather than by call site so any other
+/// keyword-named member is handled the same way.
+func escapedIdentifier(_ name: String) -> TokenSyntax {
+    keywordsRequiringEscaping.contains(name)
+        ? .identifier("`\(name)`")
+        : .identifier(name)
+}
+
 /// How generated members reach the spies backing them.
 ///
 /// The two strategies differ only in the expression naming a spy and in whether
