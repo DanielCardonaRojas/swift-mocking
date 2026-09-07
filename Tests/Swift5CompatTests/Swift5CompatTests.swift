@@ -17,6 +17,11 @@ protocol CompatGreetingService {
     func fetchCount(for id: String) async throws -> Int
 }
 
+@Mockable
+protocol CompatInitializerService {
+    init(value: Int)
+}
+
 /// A deliberately non-Sendable value.
 final class CompatSession {
     let token = "opaque"
@@ -39,6 +44,25 @@ final class Swift5CompatTests: XCTestCase {
 
         XCTAssertEqual(count, 42)
         verify(mock.fetchCount(for: .equal("abc"))).called()
+    }
+
+    /// The generated initializer binds its spy to an explicitly spelled `Spy<…>`
+    /// type. Swift 5 mode is the lane where inference is most likely to differ,
+    /// so this pins that the annotation is enough there too.
+    func testInitializerRequirementRecords() {
+        MockCompatInitializerService.clear()
+
+        _ = MockCompatInitializerService(value: 5)
+
+        verify(MockCompatInitializerService.`init`(value: .equal(5))).called(1)
+    }
+
+    func testInitializerMockRemainsDefaultConstructible() {
+        MockCompatInitializerService.clear()
+
+        _ = MockCompatInitializerService()
+
+        verify(MockCompatInitializerService.`init`(value: .any)).called(0)
     }
 
     func testSendableClosureCaptureDegradesToWarning() {

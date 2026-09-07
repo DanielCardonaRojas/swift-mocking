@@ -105,10 +105,68 @@ public extension MockableGenerator {
                 members.append(contentsOf: stubFunctions)
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
                 members.append(contentsOf: processSubscript(subscriptDecl, spyAccess: spyAccess))
+            } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
+                members.append(processInit(initDecl, spyAccess: spyAccess))
             }
         }
 
         return members
+    }
+
+    /// The spy name — and generated interaction name — for an initializer requirement.
+    ///
+    /// `init` is a keyword, so every reference to it is backticked: the
+    /// interaction is declared as `static func \`init\`(…)` and called as
+    /// ``MockMyService.`init`(value: .equal(7))``. The spy is keyed by the plain
+    /// string `"init"`, which cannot collide with a method spy — a protocol
+    /// cannot declare `func init()`.
+    static let initializerSpyName = "init"
+
+    /// Processes an initializer requirement into a static stubbing function.
+    ///
+    /// For `init(value: Int)`, this generates:
+    /// ```swift
+    /// static func `init`(value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
+    ///     Interaction(value, spy: Mock.staticMock.`init`)
+    /// }
+    /// ```
+    ///
+    /// The interaction is `static` because the conformance records the call
+    /// *before* `self` exists — see
+    /// ``MockableGenerator/initializerRequirement(_:spyAccess:mockName:hasSuperclass:)``. Both sides
+    /// must therefore reach the same static storage, so this is generated as a
+    /// static member regardless of anything on the requirement itself.
+    ///
+    /// An initializer returns the instance, not a value, so the interaction's
+    /// output is `Void`: there is nothing to stub, only calls to verify.
+    /// Failable and throwing initializers are recorded the same way — the effect
+    /// belongs to construction, which stubbing cannot influence.
+    private static func processInit(
+        _ initDecl: InitializerDeclSyntax,
+        spyAccess: SpyAccess = .inherited
+    ) -> DeclSyntax {
+        let funcDecl = FunctionDeclSyntax(
+            modifiers: DeclModifierListSyntax {
+                DeclModifierSyntax(name: .keyword(.static))
+            },
+            name: .identifier(initializerSpyName),
+            genericParameterClause: initDecl.genericParameterClause,
+            signature: FunctionSignatureSyntax(
+                parameterClause: initDecl.signature.parameterClause
+            ),
+            genericWhereClause: initDecl.genericWhereClause
+        )
+
+        return DeclSyntax(
+            createStubFunction(
+                name: initializerSpyName,
+                spyPropertyName: initializerSpyName,
+                funcDecl: funcDecl,
+                genericParameterClause: initDecl.genericParameterClause,
+                genericWhereClause: initDecl.genericWhereClause,
+                spyAccess: spyAccess
+            )
+        )
     }
 
     /// Processes a function declaration to generate a spy property and a stubbing function.
@@ -743,7 +801,7 @@ public extension MockableGenerator {
 
         return FunctionDeclSyntax(
             modifiers: funcDecl.modifiers.withoutValueTypeModifiers.trimmed,
-            name: TokenSyntax.identifier(name),
+            name: escapedIdentifier(name),
             genericParameterClause: genericParameterClause,
             signature: FunctionSignatureSyntax(
                 parameterClause: functionParamClause,
@@ -948,7 +1006,7 @@ public extension MockableGenerator {
                 label: "spy",
                 expression: spyIsLocalBinding
                     ? ExprSyntax(DeclReferenceExprSyntax(baseName: .identifier(spyPropertyName)))
-                    : spyAccess.spyReference(.identifier(spyPropertyName), isStatic: isStatic)
+                    : spyAccess.spyReference(escapedIdentifier(spyPropertyName), isStatic: isStatic)
             )
 
         }
