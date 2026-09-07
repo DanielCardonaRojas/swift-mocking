@@ -14,7 +14,6 @@ final class Recorder: @unchecked Sendable {
 }
 
 @Test
-@Test
 func sideEffects() {
     let mock = MockSyncEngine()
     let refreshed = Recorder()

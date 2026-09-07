@@ -13,7 +13,6 @@ final class IntRecorder: @unchecked Sendable {
 }
 
 @Test
-@Test
 func observeWritesAsTheyHappen() {
     let mock = MockFeatureFlags()
 

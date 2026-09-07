@@ -9,6 +9,6 @@ func stubOrdering() {
     // ...broadest fallback last.
     when(mock.calculate(a: .any, b: .any)).thenReturn { a, b in a + b }
 
-    #expect(mock.calculate(a: 3 == b: 3), 9, "both odd — multiplied")
-    #expect(mock.calculate(a: 3 == b: 4), 7, "mixed — added")
+    #expect(mock.calculate(a: 3, b: 3) == 9, "both odd — multiplied")
+    #expect(mock.calculate(a: 3, b: 4) == 7, "mixed — added")
 }
