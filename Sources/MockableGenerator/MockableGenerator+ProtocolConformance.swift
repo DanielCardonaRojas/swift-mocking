@@ -27,7 +27,11 @@ extension MockableGenerator {
         mockName: String
     ) -> [DeclSyntax] {
         var declarations = [DeclSyntax]()
-        var declaresInitializer = false
+        // Tracked separately: a protocol declaring both `init()` and
+        // `init(value:)` needs no synthesized initializer, but seeing either one
+        // alone is not enough to decide that.
+        var declaresAnyInitializer = false
+        var declaresZeroArgumentInitializer = false
         // Whether the generated mock has a superclass to chain `super.init` to.
         // An inheriting mock always does (`Mock`); a composed one does only if
         // its protocol's inheritance clause could name a class, which is the
@@ -52,12 +56,16 @@ extension MockableGenerator {
                 // A protocol may declare `init()` itself, in which case the
                 // requirement above already provides it and restating it would
                 // be an invalid redeclaration.
-                declaresInitializer = declaresInitializer
-                    || !initDecl.signature.parameterClause.parameters.isEmpty
+                declaresAnyInitializer = true
+                if initDecl.signature.parameterClause.parameters.isEmpty {
+                    declaresZeroArgumentInitializer = true
+                }
             }
         }
 
-        if declaresInitializer {
+        if declaresAnyInitializer
+            && !declaresZeroArgumentInitializer
+            && canSynthesizeDefaultInitializer(for: protocolDecl, spyAccess: spyAccess) {
             declarations.append(
                 DeclSyntax(defaultInitializer(spyAccess: spyAccess, hasSuperclass: hasSuperclass))
             )
@@ -81,29 +89,19 @@ extension MockableGenerator {
     /// Tests construct mocks with `MockMyService()` and stub afterwards; the
     /// requirement's own initializer exists to satisfy the protocol.
     ///
-    /// The body chains to `super.init()` only when the mock has a superclass to
-    /// chain to — `super.init()` in a root class is an error.
+    /// Only emitted when it can be spelled correctly — see
+    /// ``canSynthesizeDefaultInitializer(for:spyAccess:)``.
     ///
-    /// A composed mock's `init()` is also marked `override`, because the
-    /// superclass it chains to necessarily declares the `init()` it is calling.
-    /// The inheriting strategy must *not* be marked: `Mock.init()` is a
-    /// convenience initializer, which a subclass's designated `init()` does not
-    /// override.
+    /// The body chains to `super.init()` only when the mock has a superclass to
+    /// chain to — `super.init()` in a root class is an error. `override` is
+    /// never emitted: an inheriting mock does not override `Mock`'s
+    /// *convenience* `init()`, and the only composed case that reaches here has
+    /// no superclass to override.
     static func defaultInitializer(
         spyAccess: SpyAccess,
         hasSuperclass: Bool
     ) -> InitializerDeclSyntax {
-        let overridesSuperclassInit: Bool
-        switch spyAccess {
-        case .inherited: overridesSuperclassInit = false
-        case .composed: overridesSuperclassInit = hasSuperclass
-        }
-        return InitializerDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                if overridesSuperclassInit {
-                    DeclModifierSyntax(name: .keyword(.override))
-                }
-            },
+        InitializerDeclSyntax(
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(
                     parameters: FunctionParameterListSyntax([])
@@ -115,6 +113,35 @@ extension MockableGenerator {
                 }
             }
         )
+    }
+
+    /// Whether a zero-argument `init()` can be synthesized correctly.
+    ///
+    /// An inheriting mock's superclass is always `Mock`, so it always can.
+    ///
+    /// A composed mock's superclass is whatever its protocol's inheritance
+    /// clause names — and a bare identifier there is undecidable at expansion
+    /// time, since the macro sees only syntax and cannot tell `BaseService` from
+    /// `SomeBaseClass`. Both spellings of `init()` are wrong for one of those:
+    ///
+    /// - With a *class* parent declaring `init()`, omitting `override` is
+    ///   `error: overriding declaration requires an 'override' keyword`.
+    /// - With a *protocol* parent there is no superclass, so `override` is
+    ///   `error: 'init()' does not override any declaration` and `super.init()`
+    ///   is `error: 'super' cannot be used in class 'MockX' because it has no
+    ///   superclass`.
+    ///
+    /// Rather than guess, nothing is emitted when a composed protocol has any
+    /// inherited types. The mock is still constructible through the
+    /// requirement's own initializer; it simply does not gain the extra
+    /// zero-argument one. This mirrors ``isStrictlySendable(protocolDecl:spyAccess:)``,
+    /// which is conservative in the same place and for the same reason.
+    static func canSynthesizeDefaultInitializer(
+        for protocolDecl: ProtocolDeclSyntax,
+        spyAccess: SpyAccess
+    ) -> Bool {
+        guard case .composed = spyAccess else { return true }
+        return protocolDecl.inheritanceClause?.inheritedTypes.isEmpty ?? true
     }
 
     /// Generates a `required` initializer declaration that records its call.

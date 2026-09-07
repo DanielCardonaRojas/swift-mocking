@@ -76,6 +76,15 @@ protocol InitializerShape: ShapeBase {
     init(value: Int)
 }
 
+/// A composed protocol with *no* inheritance clause and an `init` requirement.
+///
+/// The mock is a root class, so neither generated initializer may chain to a
+/// superclass and the synthesized `init()` is not an `override`.
+@Mockable([.composition])
+protocol RootInitializerShape {
+    init(value: Int)
+}
+
 /// Exercises each shape in the matrix above.
 ///
 /// Every test here would have passed as a no-op if the file merely compiled, so
@@ -183,8 +192,8 @@ final class CompositionShapeMatrixTests: XCTestCase {
     /// cannot pass arguments. `ConfiguredBase` above is the case that does not
     /// compile.
     ///
-    /// Construction records on static storage, so the mock is still constructed
-    /// through the generated zero-argument `init()` in every other test here.
+    /// Construction records on static storage, since instance storage does not
+    /// exist while an initializer runs.
     func testInitializerRequirementRecords() {
         MockInitializerShape.staticMock.clear()
 
@@ -199,11 +208,27 @@ final class CompositionShapeMatrixTests: XCTestCase {
     /// Declaring `init(value:)` suppresses the initializer the mock would
     /// otherwise get, so without the generated `init()` this line fails with
     /// `missing argument for parameter 'value'`.
-    func testInitializerShapeRemainsDefaultConstructible() {
-        MockInitializerShape.staticMock.clear()
+    ///
+    /// Only a composed protocol with no inheritance clause gets one: with a
+    /// non-empty clause the macro cannot tell a class parent from a protocol
+    /// one, and `init()` needs `override` for the first and must not have it for
+    /// the second. `MockInitializerShape` is therefore constructed only through
+    /// its requirement's initializer.
+    func testRootInitializerShapeRemainsDefaultConstructible() {
+        MockRootInitializerShape.staticMock.clear()
 
-        _ = MockInitializerShape()
+        _ = MockRootInitializerShape()
 
-        verify(MockInitializerShape.`init`(value: .any)).called(0)
+        verify(MockRootInitializerShape.`init`(value: .any)).called(0)
+    }
+
+    /// A root composed mock records construction without chaining to any
+    /// superclass.
+    func testRootInitializerRequirementRecords() {
+        MockRootInitializerShape.staticMock.clear()
+
+        _ = MockRootInitializerShape(value: 4)
+
+        verify(MockRootInitializerShape.`init`(value: .equal(4))).called(1)
     }
 }

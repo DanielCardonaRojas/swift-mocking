@@ -18,6 +18,18 @@ protocol ParameterlessInitializerRepository {
     init()
 }
 
+/// Declares `init()` *and* a parameterized initializer.
+///
+/// The synthesized zero-argument initializer must be suppressed by the `init()`
+/// requirement regardless of declaration order. Tracking only "declares a
+/// parameterized init" emitted both, which is
+/// `error: 'init()' has already been overridden`.
+@Mockable
+protocol MixedInitializerRepository {
+    init()
+    init(value: Int)
+}
+
 /// Tests for `init` requirements under the default (inheriting) strategy.
 ///
 /// Two defects motivated these. Declaring `required init(value:)` suppressed the
@@ -119,5 +131,18 @@ final class InitializerRequirementTests: XCTestCase {
         _ = MockParameterlessInitializerRepository()
 
         verify(MockParameterlessInitializerRepository.`init`()).called(1)
+    }
+
+    /// A protocol declaring both `init()` and `init(value:)` gets exactly one
+    /// zero-argument initializer — the requirement's, which records. This is
+    /// primarily a compile-time assertion; emitting a second was an error.
+    func testMixedInitializersEmitOneZeroArgumentInitializer() {
+        MockMixedInitializerRepository.clear()
+
+        _ = MockMixedInitializerRepository()
+        _ = MockMixedInitializerRepository(value: 9)
+
+        verify(MockMixedInitializerRepository.`init`()).called(1)
+        verify(MockMixedInitializerRepository.`init`(value: .equal(9))).called(1)
     }
 }

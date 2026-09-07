@@ -157,6 +157,12 @@ final class MacroOptionsTests: MacroTestCase {
     /// Construction records on `staticMock`, which is emitted here even though
     /// the protocol declares no `static` members: instance storage does not
     /// exist yet while an initializer runs.
+    ///
+    /// No zero-argument `init()` is synthesized. With a non-empty inheritance
+    /// clause the macro cannot tell a class parent from a protocol one, and
+    /// `init()` requires `override` for the first while it must be absent for
+    /// the second — see `canSynthesizeDefaultInitializer`. Contrast
+    /// ``testCompositionOptionWithInitializerRequirementAndNoSuperclass()``.
     func testCompositionOptionWithInitializerRequirement() {
         assertMacro {
             """
@@ -184,10 +190,6 @@ final class MacroOptionsTests: MacroTestCase {
                 required init(value: Int) {
                     let spy: Spy<Int, None, Void> = MockMyService.staticMock.`init`
                     Mock.adapt(spy, value)
-                    super.init()
-                }
-
-                override init() {
                     super.init()
                 }
             }
@@ -231,6 +233,54 @@ final class MacroOptionsTests: MacroTestCase {
                 }
 
                 init() {
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// A protocol declaring both `init()` and a parameterized initializer gets
+    /// exactly one zero-argument initializer — the requirement's, which records.
+    ///
+    /// Tracking only "declares a parameterized initializer" emitted a second,
+    /// synthesized one: `error: 'init()' has already been overridden`.
+    func testInitializerRequirementsIncludingZeroArgument() {
+        assertMacro {
+            """
+            @Mockable
+            protocol MyService {
+                init()
+                init(value: Int)
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService {
+                init()
+                init(value: Int)
+            }
+
+            #if DEBUG
+            class MockMyService: Mock, @unchecked Sendable, MyService {
+                static func `init`() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: super.`init`)
+                }
+
+                static func `init`(value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
+                    Interaction(value, spy: super.`init`)
+                }
+
+                required init() {
+                    let spy: Spy<Void, None, Void> = (MockMyService.self as Mock.Type).`init`
+                    Mock.adapt(spy, ())
+                    super.init(scopedStorageKey: nil)
+                }
+
+                required init(value: Int) {
+                    let spy: Spy<Int, None, Void> = (MockMyService.self as Mock.Type).`init`
+                    Mock.adapt(spy, value)
+                    super.init(scopedStorageKey: nil)
                 }
             }
             #endif
