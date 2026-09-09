@@ -29,7 +29,9 @@ final class AssertTests: XCTestCase {
             guard let error = $0 as? MockingError else {
                 return XCTFail("Wrong error type")
             }
-            XCTAssertEqual(error, .unfulfilledCallCount(0))
+            XCTAssertTrue(error.message.contains("Unfulfilled call count"), error.message)
+            XCTAssertTrue(error.message.contains("at least 1 call"), error.message)
+            XCTAssertTrue(error.message.contains("No invocations were recorded"), error.message)
         }
     }
 
@@ -40,7 +42,9 @@ final class AssertTests: XCTestCase {
             guard let error = $0 as? MockingError else {
                 return XCTFail("Wrong error type")
             }
-            XCTAssertEqual(error, .unfulfilledCallCount(0))
+            XCTAssertTrue(error.message.contains("Unfulfilled call count"), error.message)
+            // The recorded-but-unmatched invocation is what explains the failure.
+            XCTAssertTrue(error.message.contains("(other)"), error.message)
         }
     }
 
@@ -62,7 +66,10 @@ final class AssertTests: XCTestCase {
             guard let error = $0 as? MockingError else {
                 return XCTFail("Wrong error type")
             }
-            XCTAssertEqual(error, .didNotThrow)
+            XCTAssertTrue(
+                error.message.contains("Did not find any invocation that throws"),
+                error.message
+            )
         }
     }
 
@@ -85,7 +92,8 @@ final class AssertTests: XCTestCase {
             guard let error = $0 as? MockingError else {
                 return XCTFail("Wrong error type")
             }
-            XCTAssertEqual(error, .didNotMatchThrown([AnotherError()]))
+            XCTAssertTrue(error.message.contains("Did not match any thrown error"), error.message)
+            XCTAssertTrue(error.message.contains("AnotherError"), error.message)
         }
     }
 
@@ -205,24 +213,36 @@ final class AssertTests: XCTestCase {
     
     func testCapturedThrowsWhenNoMatchingInvocations() {
         let assert = Assert(spy: spy)
-        
+
         XCTAssertThrowsError(try assert.captures { _ in }) { error in
             guard let mockingError = error as? MockingError else {
                 return XCTFail("Wrong error type")
             }
-            XCTAssertEqual(mockingError, .noMatchingInvocations)
+            XCTAssertTrue(
+                mockingError.message.contains("No matching invocations found"),
+                mockingError.message
+            )
+            XCTAssertTrue(
+                mockingError.message.contains("No invocations were recorded"),
+                mockingError.message
+            )
         }
     }
-    
+
     func testCapturedThrowsWhenNoMatchingInvocationsWithMatcher() {
         spy("hello")
         let assert = Assert(invocationMatcher: .init(matchers: .equal("world")), spy: spy)
-        
+
         XCTAssertThrowsError(try assert.captures { _ in }) { error in
             guard let mockingError = error as? MockingError else {
                 return XCTFail("Wrong error type")
             }
-            XCTAssertEqual(mockingError, .noMatchingInvocations)
+            XCTAssertTrue(
+                mockingError.message.contains("No matching invocations found"),
+                mockingError.message
+            )
+            // Surfacing the non-matching invocation is the point of the enriched message.
+            XCTAssertTrue(mockingError.message.contains("(hello)"), mockingError.message)
         }
     }
     
