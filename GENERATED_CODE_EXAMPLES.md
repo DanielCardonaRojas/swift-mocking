@@ -207,6 +207,96 @@ class MockMyService: Mock, MyService {
 ```
 </details>
 
+### Macro Option: `.composition`
+
+By default the mock *inherits* `Mock` and reaches its spies through `super`. That is impossible when the mock must already inherit something else — most notably a protocol carrying a class constraint, since Swift permits only one superclass. `.composition` makes the mock **hold** a `Mock` in a stored `mock` property instead, freeing the superclass slot.
+
+Note the three differences from the inheriting strategy: the mock inherits `SampleBase` rather than `Mock`, spies are reached through `self.mock` rather than `super`, and it calls the *static* `Mock.adapt` — a composing type inherits no instance adapters. The generated mock also conforms to `MockProviding`, so `verifyZeroInteractions` works with either strategy.
+
+```swift
+@Mockable([.composition])
+protocol MyService: SampleBase {
+    func doSomething()
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class MockMyService: SampleBase, MyService, MockProviding, @unchecked Sendable {
+    let mock = Mock()
+
+    func doSomething() -> Interaction<Void, None, Void> {
+        Interaction(.any, spy: self.mock.doSomething)
+    }
+
+    func doSomething() {
+        return Mock.adapt(self.mock.doSomething, ())
+    }
+}
+```
+</details>
+
+Without this option that protocol cannot be mocked at all — the generated class fails with `requires that 'MockMyService' inherit from 'SampleBase'`.
+
+#### Composition without a class constraint
+
+A composed protocol with no inheritance clause has no superclass to restate, so the mock becomes `final` and conforms to plain `Sendable` rather than `@unchecked Sendable`. The two go together: a non-final class cannot conform to `Sendable`, and a `Sendable` class cannot inherit another class. Here the conformance is *checked* rather than asserted — the mock's only storage is `let mock`, so the compiler rejects any mutable stored property.
+
+```swift
+@Mockable([.composition])
+protocol MyService {
+    func doSomething()
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+final class MockMyService: MyService , MockProviding, Sendable {
+    let mock = Mock()
+
+    func doSomething() -> Interaction<Void, None, Void> {
+        Interaction(.any, spy: self.mock.doSomething)
+    }
+
+    func doSomething() {
+        return Mock.adapt(self.mock.doSomething, ())
+    }
+}
+```
+</details>
+
+#### Composition with static requirements
+
+Static members cannot reach an instance property, so a composed protocol with static requirements gets a *second* `Mock` for them. It carries the mock's own type name as its scoped storage key, so those spies land in `MockScope` — isolated by `.mocking` exactly like an inheriting mock's static spies, and reachable by `MockProviding`'s static `clear()`.
+
+```swift
+@Mockable([.composition])
+protocol MyService: SampleBase {
+    static func reset()
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class MockMyService: SampleBase, MyService, MockProviding, @unchecked Sendable {
+    let mock = Mock()
+
+    static let staticMock = Mock(scopedStorageKey: "MockMyService")
+
+    static func reset() -> Interaction<Void, None, Void> {
+        Interaction(.any, spy: staticMock.reset)
+    }
+
+    static func reset() {
+        return Mock.adapt(staticMock.reset, ())
+    }
+}
+```
+</details>
+
 ## Advanced Protocol Features
 
 ### Protocol with Associated Type

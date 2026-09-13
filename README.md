@@ -20,6 +20,7 @@ The CLI shares its generator with the macro, so it produces the same output and 
 *   [Installation](#-installation)
 *   [Agent Skill & CLI](#-agent-skill)
 *   [Example](#-example)
+*   [Generated Code Examples](GENERATED_CODE_EXAMPLES.md)
 *   [Documentation](#-documentation)
 *   [Protocol Inheritance](#-protocol-inheritance-is-not-supported-by-macros)
 *   [Swift 6 and Sendable](#-swift-6-and-sendable)
@@ -66,7 +67,7 @@ The CLI shares its generator with the macro, so it produces the same output and 
 To add `SwiftMocking` to your Swift package, add it as a dependency in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.7.2"),
+.package(url: "https://github.com/DanielCardonaRojas/swift-mocking.git", from: "0.8.1"),
 ```
 
 Then, add `SwiftMocking` to your target's dependencies:
@@ -131,24 +132,25 @@ import SwiftMocking
 
 @Mockable
 protocol PricingService {
-    func price(_ item: String) throws -> Int
+    func price(for item: String) -> Int
 }
 ```
 <details>
 <summary>Generated Code</summary>
 
 ```swift
-class PricingServiceMock: Mock, PricingService {
-    func price(_ item: ArgMatcher<String>) -> Interaction<String, Throws, Int> {
+class MockPricingService: Mock, @unchecked Sendable, PricingService {
+    func price(for item: ArgMatcher<String>) -> Interaction<String, None, Int> {
         Interaction(item, spy: super.price)
     }
-    func price(_ item: String) throws -> Int {
-        return try adaptThrowing(super.price, item)
+    func price(for item: String) -> Int {
+        return adapt(super.price, item)
     }
 }
 ```
 </details>
 
+See [Generated Code Examples](GENERATED_CODE_EXAMPLES.md) for how the macro expands every other protocol feature — `async`, typed throws, properties, subscripts, associated types, and the `.composition` and name-affix options.
 
 Here is an example of a `Store` class that uses the `PricingService`.
 
@@ -157,7 +159,7 @@ class Store {
     var items: [String] = []
     var prices: [String: Int] =  [:]
     let pricingService: any PricingService
-    init<Service: PricingService>(pricingService: Service) {
+    init(pricingService: any PricingService) {
         self.pricingService = pricingService
     }
 

@@ -7,5 +7,5 @@ func computedReturn() {
         a * b
     }
 
-    #expect(mock.calculate(a: 6 == b: 7), 42)
+    #expect(mock.calculate(a: 6, b: 7) == 42)
 }
