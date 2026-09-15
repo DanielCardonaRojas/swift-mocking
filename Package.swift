@@ -52,7 +52,26 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", "509.0.0"..<"602.0.0"),
+        // Widened past 602 so swift-mocking can share a package graph with other macro
+        // packages that have moved to 602+ (e.g. SafeDI 2.x). SwiftPM resolves a single
+        // swift-syntax for the whole graph, so a narrow ceiling here makes those graphs
+        // unresolvable rather than merely untested.
+        //
+        // Floor is 600: on 510.0.3 MockableGenerator fails to compile against the renamed
+        // `specifier:`/`specifiers:` label on AttributedTypeSyntax.
+        //
+        // Known bad: exactly 602.0.0 and 603.0.0. Building a *client* of SwiftMocking
+        // against either fails with "no such module 'SwiftMockingOptions'", while the
+        // package's own build and test suite pass. Verified specific to those two releases:
+        // 600.0.0, 600.0.1, 601.0.0, 601.0.1, 603.0.1 and 603.0.2 all build clients fine,
+        // so this is a build-ordering defect in those two initial major releases, not an
+        // API break. SwiftPM ranges cannot exclude individual versions, but resolution
+        // prefers the newest match (603.0.2 today), so both are only reachable if a client
+        // pins them explicitly — in which case moving to 603.0.1+ is the fix.
+        .package(
+            url: "https://github.com/swiftlang/swift-syntax.git",
+            "600.0.0"..<"605.0.0"
+        ),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.7.0"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.5"),
         // NOTE: This is the pre-2.0 name of swift-issue-reporting. Migrating to
