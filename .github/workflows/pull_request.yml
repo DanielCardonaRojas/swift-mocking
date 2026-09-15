@@ -72,11 +72,38 @@ jobs:
           -enableCodeCoverage NO \
           clean test
 
-  # The matrix above only ever exercises whichever swift-syntax resolution happens to
+  # The build matrix above only exercises whichever swift-syntax resolution happens to
   # pick — the newest in range — so the rest of the supported range goes untested, and
   # the version under test changes on its own whenever swift-syntax ships a release.
-  # This job pins each supported major explicitly.
+  #
+  # The majors come from the pin files themselves rather than a hardcoded list, so
+  # adding one stays a single-file change: drop in
+  # Examples/CompatibilityPins/swift-syntax-<major>.resolved and it gets its own job.
+  swift-syntax-pins:
+    runs-on: macos-15
+    outputs:
+      majors: ${{ steps.discover.outputs.majors }}
+    steps:
+    - uses: actions/checkout@v4
+    - id: discover
+      run: |
+        majors=$(ls Examples/CompatibilityPins/*.resolved \
+          | sed 's#.*/swift-syntax-##; s#\.resolved$##' \
+          | sort -V \
+          | python3 -c 'import sys,json; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
+        echo "majors=$majors" >> "$GITHUB_OUTPUT"
+        echo "Discovered majors: $majors"
+
   swift-syntax-compatibility:
+    needs: swift-syntax-pins
+    # One job per pinned major: they are independent, so running them in parallel keeps
+    # wall-clock flat as majors are added, and a failure names the version in the job
+    # title instead of being buried in a serial log.
+    strategy:
+      fail-fast: false
+      matrix:
+        major: ${{ fromJSON(needs.swift-syntax-pins.outputs.majors) }}
+    name: swift-syntax ${{ matrix.major }}
     runs-on: macos-15
     steps:
     - uses: actions/checkout@v4
@@ -84,5 +111,5 @@ jobs:
       run: sudo xcode-select -s /Applications/Xcode_26.2.app
     - name: Skip macro validation
       run: defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
-    - name: Test Examples against every pinned swift-syntax version
-      run: Scripts/test-swift-syntax-compat.sh
+    - name: Test Examples against swift-syntax ${{ matrix.major }}
+      run: Scripts/test-swift-syntax-compat.sh ${{ matrix.major }}
