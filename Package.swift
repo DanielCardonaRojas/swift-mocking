@@ -4,24 +4,34 @@
 import PackageDescription
 import CompilerPluginSupport
 
-// Conditional compilation settings based on Swift version
-// The -O flag enables optimizations which allows @inline(__always) to work correctly.
-// We use @inline(__always) to ensure fatalError() calls for unstubbed values are surfaced
-// in the client code stack traces, not in SwiftMocking's internal code.
-// This improves debugging by showing errors at the call site in user tests.
-// Applies to unstubbed non-throwing spies (Async and None effects).
-// Only enabled for Swift 6.2+ to avoid compiler issues in earlier versions.
+// Nothing here may use `.unsafeFlags`. SwiftPM rejects any package graph in which a
+// *version-pinned* dependency declares unsafe flags on a target reachable from a
+// product, so a single such flag makes the library unusable through a normal
+// `from:`/`exact:` requirement — resolution still succeeds, and only the eventual
+// build fails, which makes it slow to diagnose. See issue #124.
+//
+// This previously carried `.unsafeFlags(["-O"])` under `#if swift(>=6.2)`, on the
+// theory that optimization was needed for the `@inline(__always)` adapters to surface
+// unstubbed-value `fatalError`s in client stack traces rather than in SwiftMocking's
+// own code. Measured directly, it did not do that: with and without `-O`, the trap is
+// reported identically at `SwiftMocking/Mock+Adapters.swift:53`. That is expected —
+// `fatalError` captures `#file`/`#line` at its definition site, and no optimization
+// level changes which literal the compiler bakes in. Attributing the trap to the call
+// site requires threading `#file`/`#line` through the adapters as default arguments,
+// which is a source change and needs no build flags.
 var swiftSettings: [SwiftSetting] = [
     .swiftLanguageMode(.v6)
 ]
-#if swift(>=6.2)
-swiftSettings.append(.unsafeFlags(["-O"]))
-#endif
 
 // Opt-in emission of `.swiftinterface` files for the library targets, used by
 // Scripts/generate-interface.sh to refresh the agent skill's API reference.
 // Off by default: library evolution cannot be applied package-wide because the
 // swift-syntax dependency does not build under it.
+//
+// This does use `.unsafeFlags`, but only when SWIFTMOCKING_EMIT_INTERFACE is set,
+// which happens solely in that script. Consumers never set it, so the flags are
+// absent from the manifest they resolve and the restriction described above does
+// not apply. Keep it that way: any unconditional unsafe flag breaks #124 again.
 let emitInterface = Context.environment["SWIFTMOCKING_EMIT_INTERFACE"] != nil
 let interfaceSettings: [SwiftSetting] = emitInterface
     ? [.unsafeFlags(["-enable-library-evolution", "-emit-module-interface"])]
