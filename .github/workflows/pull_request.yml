@@ -12,14 +12,25 @@ on:
 
 jobs:
   build:
+    # Matrix entries are named for the Swift version the selected Xcode actually
+    # ships, verified from the "Print Swift version" step below. The previous
+    # '5.9'/'6.0' labels were wrong — Xcode 16.0 ships Swift 6.0 and Xcode 16.4
+    # ships Swift 6.1, so neither job ever ran the version it claimed. Nothing can
+    # run below 6.0 regardless: Package.swift declares swift-tools-version 6.0, so
+    # an older toolchain cannot load the manifest at all.
     strategy:
+      fail-fast: false
       matrix:
-        swift-version: ['5.9', '6.0']
         include:
-          - swift-version: '5.9'
-            xcode-version: 'Xcode_16.0.app'
           - swift-version: '6.0'
+            xcode-version: 'Xcode_16.0.app'
+          - swift-version: '6.1'
             xcode-version: 'Xcode_16.4.app'
+          # Covers the swift-syntax 603.x path, which is what resolution actually
+          # picks now that the range reaches 605. Without this job every CI run
+          # would build an older swift-syntax than real consumers get.
+          - swift-version: '6.2'
+            xcode-version: 'Xcode_26.2.app'
 
     runs-on: macos-15
     steps:
@@ -34,6 +45,13 @@ jobs:
       run: xcodebuild -version
     - name: Skip macro validation
       run: defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+    # Package.resolved is gitignored, so each job resolves fresh and may pick a
+    # different swift-syntax than the others. Log it: when a job fails, the first
+    # thing worth knowing is which swift-syntax it actually built against.
+    - name: Print resolved swift-syntax version
+      run: |
+        swift package resolve
+        grep -A6 '"identity" : "swift-syntax"' Package.resolved | grep '"version"'
     - name: Run main project tests
       run: |
         xcrun xcodebuild \
