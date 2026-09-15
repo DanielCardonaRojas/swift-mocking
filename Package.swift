@@ -57,20 +57,27 @@ let package = Package(
         // swift-syntax for the whole graph, so a narrow ceiling here makes those graphs
         // unresolvable rather than merely untested.
         //
-        // Floor is 600: on 510.0.3 MockableGenerator fails to compile against the renamed
-        // `specifier:`/`specifiers:` label on AttributedTypeSyntax.
+        // 509 and 510 are supported through the version shims in
+        // MockableGenerator/SwiftSyntax+Extensions.swift. Note that typed throws cannot be
+        // detected on those versions — `ThrowsClauseSyntax` only exists from 600 — but that
+        // costs nothing in practice, since a toolchain of that vintage cannot parse
+        // `throws(MyError)` to begin with.
         //
-        // Known bad: exactly 602.0.0 and 603.0.0. Building a *client* of SwiftMocking
-        // against either fails with "no such module 'SwiftMockingOptions'", while the
-        // package's own build and test suite pass. Verified specific to those two releases:
-        // 600.0.0, 600.0.1, 601.0.0, 601.0.1, 603.0.1 and 603.0.2 all build clients fine,
-        // so this is a build-ordering defect in those two initial major releases, not an
-        // API break. SwiftPM ranges cannot exclude individual versions, but resolution
-        // prefers the newest match (603.0.2 today), so both are only reachable if a client
-        // pins them explicitly — in which case moving to 603.0.1+ is the fix.
+        // Known bad: exactly 602.0.0 and 603.0.0, where building a *client* of SwiftMocking
+        // fails with "no such module 'SwiftMockingOptions'". This is an upstream SwiftPM
+        // defect, not an API break: when a package containing a `.macro` target is consumed
+        // as a dependency, plain targets reachable from that macro are misclassified as
+        // tool-only and emitted solely into `Modules-tool/`, so the library target cannot
+        // import them. Reproduced on a minimal package with none of our code, and no
+        // manifest-level workaround exists (declaring the dependency explicitly, reordering
+        // it, and vending it as a product were all tried). Every other release in this range
+        // builds clients cleanly: 509.0.2, 509.1.1, 510.0.0, 510.0.3, 600.0.0, 600.0.1,
+        // 601.0.0, 601.0.1, 603.0.1 and 603.0.2. SwiftPM ranges cannot exclude individual
+        // versions, but resolution prefers the newest match, so the two bad releases are
+        // only reachable via an explicit pin — for which the fix is to move to 603.0.1+.
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
-            "600.0.0"..<"605.0.0"
+            "509.0.0"..<"605.0.0"
         ),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.7.0"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.5"),

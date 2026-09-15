@@ -148,8 +148,7 @@ public enum MockableGenerator {
         // `Mock` is `@unchecked Sendable`; conformers must restate the
         // conformance to stay warning-free under Swift 6 concurrency.
         let uncheckedSendable = TypeSyntax(
-            AttributedTypeSyntax(
-                specifiers: [],
+            makeAttributedType(
                 attributes: [.attribute(
                     AttributeSyntax(attributeName: IdentifierTypeSyntax(name: .identifier("unchecked")))
                 )],
@@ -259,14 +258,13 @@ public enum MockableGenerator {
     /// ``MockableGenerator/initializerRequirement(_:spyAccess:mockName:hasSuperclass:)``.
     private static func hasStaticMembers(protocolDecl: ProtocolDeclSyntax) -> Bool {
         protocolDecl.memberBlock.members.contains { member in
-            let modifiers: DeclModifierListSyntax?
-            switch member.decl.as(DeclSyntaxEnum.self) {
-            case .functionDecl(let decl): modifiers = decl.modifiers
-            case .variableDecl(let decl): modifiers = decl.modifiers
-            case .subscriptDecl(let decl): modifiers = decl.modifiers
-            case .initializerDecl: return true
-            default: modifiers = nil
-            }
+            // Spelled as a chain of casts rather than a switch over `DeclSyntaxEnum`,
+            // which swift-syntax only gained in 510.
+            if member.decl.is(InitializerDeclSyntax.self) { return true }
+            let modifiers: DeclModifierListSyntax? =
+                member.decl.as(FunctionDeclSyntax.self)?.modifiers
+                ?? member.decl.as(VariableDeclSyntax.self)?.modifiers
+                ?? member.decl.as(SubscriptDeclSyntax.self)?.modifiers
             return modifiers?.contains(where: \.isStatic) ?? false
         }
     }

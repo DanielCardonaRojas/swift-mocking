@@ -724,11 +724,11 @@ public extension MockableGenerator {
     static func getFunctionEffectType(_ funcDecl: FunctionDeclSyntax) -> EffectType {
         let effects = funcDecl.signature.effectSpecifiers
         let isAsync = effects?.asyncSpecifier != nil
-        guard let throwsClause = effects?.throwsClause else {
+        guard let thrownType = thrownErrorTypeSyntax(effects) else {
             return isAsync ? .async : .none
         }
 
-        switch thrownErrorType(throwsClause) {
+        switch thrownErrorType(thrownType) {
         case .untyped:
             return isAsync ? .asyncThrows : .throws
         case .never:
@@ -750,13 +750,14 @@ public extension MockableGenerator {
         case typed(String)
     }
 
-    /// Classifies a `throws` clause by the error type it names.
+    /// Classifies a `throws` clause by the error type it names, given the type the
+    /// clause spells out (`nil` for a bare `throws`).
     ///
     /// `throws(any Error)` is the canonical desugaring of an untyped `throws`, so it is
     /// folded into ``ThrownErrorType/untyped`` and keeps using the existing untyped
     /// machinery rather than generating a pointless `TypedThrows<any Error>`.
-    private static func thrownErrorType(_ throwsClause: ThrowsClauseSyntax) -> ThrownErrorType {
-        guard let type = throwsClause.type else { return .untyped }
+    private static func thrownErrorType(_ thrownType: TypeSyntax?) -> ThrownErrorType {
+        guard let type = thrownType else { return .untyped }
         switch type.trimmedDescription {
         case "any Error", "Error":
             return .untyped
