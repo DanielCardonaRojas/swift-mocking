@@ -142,6 +142,22 @@ final class IssueLocationTests: XCTestCase {
         assertAttributedToThisFile(captured, expectedLine: line)
     }
 
+    /// The enriched message must name the method and show what was actually recorded,
+    /// so a failure is diagnosable without re-reading the test.
+    func testReportedMessageNamesTheMethodAndRecordedInvocations() {
+        let mock = Mock()
+        let spy: Spy<String, None, Void> = mock.fetch
+        when(spy(.any)).thenReturn(())
+        spy("actual")
+
+        let captured = captureIssues {
+            verify(spy(.equal("expected"))).called(1)
+        }
+        let message = captured.first?.message ?? ""
+        XCTAssertTrue(message.contains("fetch"), message)
+        XCTAssertTrue(message.contains("(actual)"), message)
+    }
+
     /// A verification that passes must report nothing at all.
     func testNoIssueReportedOnSuccess() {
         let spy = Spy<String, None, Void>()
