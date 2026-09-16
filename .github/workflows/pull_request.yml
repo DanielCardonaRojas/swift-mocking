@@ -10,6 +10,11 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# Every job here only checks out and builds; none write back to the repo or its
+# API. Without this block the token would default to write access.
+permissions:
+  contents: read
+
 jobs:
   build:
     # Matrix entries are named for the Swift version the selected Xcode actually
@@ -75,6 +80,11 @@ jobs:
   # The build matrix above only exercises whichever swift-syntax resolution happens to
   # pick — the newest in range — so the rest of the supported range goes untested, and
   # the version under test changes on its own whenever swift-syntax ships a release.
+  #
+  # The pins deliberately span both API families that
+  # MockableGenerator/SwiftSyntax+Extensions.swift branches on: 509 and 510 compile the
+  # pre-600 `#else` arms, 601/603/604 the `canImport(SwiftSyntax600)` arms. Dropping the
+  # pre-600 pins would leave that half of the shims uncompiled anywhere in CI.
   #
   # The majors come from the pin files themselves rather than a hardcoded list, so
   # adding one stays a single-file change: drop in
