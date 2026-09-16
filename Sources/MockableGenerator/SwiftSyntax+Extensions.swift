@@ -13,6 +13,44 @@ extension DeclModifierSyntax {
     }
 }
 
+// MARK: - swift-syntax version shims
+//
+// The package supports swift-syntax 509 through 604. Two nodes changed shape in
+// 600 and are reached through the helpers below so the call sites stay uniform.
+// `SwiftSyntax600` and friends are version-marker modules that swift-syntax vends
+// precisely so downstream packages can branch on them.
+
+/// The error type named by a function's `throws` clause, or `nil` when the
+/// function does not throw.
+///
+/// Typed throws (`throws(MyError)`) is a Swift 6 feature: swift-syntax gained
+/// `ThrowsClauseSyntax` in 600, and before that a `throws` clause was just a bare
+/// `throwsSpecifier` token with no room for an error type. On 509/510 this
+/// therefore reports `.some(nil)` for any `throws` — untyped — which is accurate,
+/// since a toolchain of that vintage cannot parse typed throws in the first place.
+func thrownErrorTypeSyntax(_ effects: FunctionEffectSpecifiersSyntax?) -> TypeSyntax?? {
+    #if canImport(SwiftSyntax600)
+    guard let throwsClause = effects?.throwsClause else { return TypeSyntax??.none }
+    return .some(throwsClause.type)
+    #else
+    guard effects?.throwsSpecifier != nil else { return TypeSyntax??.none }
+    return .some(nil)
+    #endif
+}
+
+/// Builds an `AttributedTypeSyntax`, papering over the 600 rename of its
+/// `specifier` parameter to the plural `specifiers`.
+func makeAttributedType(
+    attributes: AttributeListSyntax,
+    baseType: some TypeSyntaxProtocol
+) -> AttributedTypeSyntax {
+    #if canImport(SwiftSyntax600)
+    AttributedTypeSyntax(specifiers: [], attributes: attributes, baseType: baseType)
+    #else
+    AttributedTypeSyntax(specifier: nil, attributes: attributes, baseType: baseType)
+    #endif
+}
+
 /// Keywords a generated member's name can collide with.
 ///
 /// Spelled out rather than derived from `SwiftSyntax.Keyword`, whose only
