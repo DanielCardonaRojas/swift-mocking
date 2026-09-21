@@ -85,7 +85,36 @@ final class TypedThrowsTests: MockingTestCase {
         _ = try? mock.load(1)
 
         verify(mock.load(.equal(1))).called(1)
-        try verify(mock.load(.any)).doesThrow(.error(TestError.self))
+        try verify(mock.load(.any)).didThrow(.error(TestError.self))
+    }
+
+    /// The defaulted matcher accepts any error of the declared failure type, so
+    /// `didThrow()` asserts only that something was thrown.
+    func testTypedThrows_DidThrowDefaultsToAnyFailure() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenThrow(.example)
+
+        _ = try? mock.load(1)
+
+        try verify(mock.load(.any)).didThrow()
+    }
+
+    func testTypedThrows_DidThrowFailsWhenErrorDoesNotMatch() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenThrow(.example)
+
+        _ = try? mock.load(1)
+
+        XCTAssertThrowsError(try verify(mock.load(.any)).didThrow(.equal(.other)))
+    }
+
+    func testTypedThrows_DidThrowFailsWhenNothingThrown() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenReturn("ok")
+
+        _ = try? mock.load(1)
+
+        XCTAssertThrowsError(try verify(mock.load(.any)).didThrow())
     }
 
     func testTypedThrows_FluentThrowsVerification() {
@@ -163,7 +192,30 @@ final class TypedThrowsTests: MockingTestCase {
         _ = try? await mock.fetch(1)
 
         verify(mock.fetch(.equal(1))).called(1)
-        try await verify(mock.fetch(.any)).doesThrow(.error(TestError.self))
+        try await verify(mock.fetch(.any)).didThrow(.error(TestError.self))
+    }
+
+    func testAsyncTypedThrows_DidThrowDefaultsToAnyFailure() async throws {
+        let mock = MockTypedThrowingService()
+        when(mock.fetch(.any)).thenThrow(.example)
+
+        _ = try? await mock.fetch(1)
+
+        try await verify(mock.fetch(.any)).didThrow()
+    }
+
+    func testAsyncTypedThrows_DidThrowFailsWhenErrorDoesNotMatch() async throws {
+        let mock = MockTypedThrowingService()
+        when(mock.fetch(.any)).thenThrow(.example)
+
+        _ = try? await mock.fetch(1)
+
+        do {
+            try await verify(mock.fetch(.any)).didThrow(.equal(.other))
+            XCTFail("Expected verification to fail for a non-matching error")
+        } catch {
+            // Expected: the thrown .example does not match .other
+        }
     }
 }
 
