@@ -116,10 +116,10 @@ when(mock.handleOptional(.nil())).thenReturn(0)
 enum MyError: Error { case invalid }
 
 // Verify a method threw any error
-verify(mock.performAction()).throws(.anyError())
+verify(mock.performAction()).didThrow(.anyError())
 
 // Verify a method threw an error of type MyError
-verify(mock.processData()).throws(.error(MyError.self))
+verify(mock.processData()).didThrow(.error(MyError.self))
 ```
 
 ### Verifying Call Order Across Mocks

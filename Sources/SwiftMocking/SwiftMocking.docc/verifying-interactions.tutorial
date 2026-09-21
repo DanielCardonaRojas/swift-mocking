@@ -112,7 +112,7 @@
             }
 
             @Step {
-                For an `async throws` requirement the assertion is itself awaited — `await verify(...).throws(...)`. Note that `called(_:)` never needs `await`, whatever the effect.
+                For an `async throws` requirement the assertion is itself awaited — `await verify(...).didThrow(...)`. Note that `called(_:)` never needs `await`, whatever the effect.
 
                 @Code(name: "PaymentTests.swift", file: "04-4-4-throwing.swift", reset: true)
             }

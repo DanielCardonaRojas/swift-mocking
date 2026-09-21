@@ -331,7 +331,7 @@ public extension ArgMatcher {
     ///
     /// ```swift
     /// // Verifying a method threw any error
-    /// verify(spy.performAction()).throws(.anyError())
+    /// verify(spy.performAction()).didThrow(.anyError())
     /// ```
     static func anyError() -> Self {
         .init(precedence: .typeMatch) { $0 as? Error != nil }
@@ -345,7 +345,7 @@ public extension ArgMatcher where Argument: Error {
     /// ```swift
     /// enum MyError: Error { case invalid }
     /// // Verifying a method threw an error of type MyError
-    /// verify(spy.processData()).throws(.error(MyError.self))
+    /// verify(spy.processData()).didThrow(.error(MyError.self))
     /// ```
     static func error<E: Error>(_ type: E.Type) -> Self {
         .init(precedence: .typeMatch) { $0 as? E != nil }

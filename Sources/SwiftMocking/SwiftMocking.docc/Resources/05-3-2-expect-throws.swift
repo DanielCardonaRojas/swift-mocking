@@ -15,5 +15,5 @@ func reportsInsufficientFunds() throws {
     }
 
     // And SwiftMocking asserts it from the mock's side.
-    verify(mock.charge(amountCents: .any)).throws(.error(PaymentError.self))
+    verify(mock.charge(amountCents: .any)).didThrow(.error(PaymentError.self))
 }

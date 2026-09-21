@@ -54,7 +54,7 @@ final class AssertTests: XCTestCase {
         _ = try? throwingSpy("test")
 
         let assert = Assert(spy: throwingSpy)
-        try assert.didThrow()
+        try assert.assertThrew(nil)
     }
 
     func testDoesThrowFailsWhenNoErrorThrown() {
@@ -62,7 +62,7 @@ final class AssertTests: XCTestCase {
         _ = try? throwingSpy("test")
 
         let assert = Assert(spy: throwingSpy)
-        XCTAssertThrowsError(try assert.didThrow()) {
+        XCTAssertThrowsError(try assert.assertThrew(nil)) {
             guard let error = $0 as? MockingError else {
                 return XCTFail("Wrong error type")
             }
@@ -79,7 +79,7 @@ final class AssertTests: XCTestCase {
         _ = try? throwingSpy("test")
 
         let assert = Assert(spy: throwingSpy)
-        try assert.didThrow(.error(TestError.self))
+        try assert.assertThrew(.error(TestError.self))
     }
 
     func testDoesThrowWithMatcherFailsWhenWrongError() {
@@ -88,7 +88,7 @@ final class AssertTests: XCTestCase {
         _ = try? throwingSpy("test")
 
         let assert = Assert(spy: throwingSpy)
-        XCTAssertThrowsError(try assert.didThrow(.error(TestError.self))) {
+        XCTAssertThrowsError(try assert.assertThrew(.error(TestError.self))) {
             guard let error = $0 as? MockingError else {
                 return XCTFail("Wrong error type")
             }
@@ -123,7 +123,7 @@ final class AssertTests: XCTestCase {
 
         _ = try? await asyncSpy("value")
 
-        await verify(asyncSpy(.any)).throws()
+        await verify(asyncSpy(.any)).didThrow()
     }
     
     // MARK: - verifyZeroInteractions Tests
