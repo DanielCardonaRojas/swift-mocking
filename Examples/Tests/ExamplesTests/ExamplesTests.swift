@@ -208,6 +208,13 @@ struct ExampleTests {
         verify(mock[3]).called()
     }
 
+    @Test func testDidThrowSomeError() throws {
+        let spy = Spy<Int, String, TypedThrows<TestError>, Bool>()
+        when(spy(.any, .any)).thenThrow(.example)
+        _ = try? spy(0, "")
+        try verify(spy(.any, .any)).didThrow()
+    }
+
     @Test func testPropertyService() {
         let mock = MockPropertyService()
 
