@@ -33,6 +33,14 @@
         @TutorialReference(tutorial: "doc:verifying-interactions")
     }
 
+    @Chapter(name: "Beyond Protocols") {
+        @Image(source: chapter-matching, alt: "A struct of closures and a concrete class side by side, each feeding calls into a spy.")
+
+        Mock dependencies the macro can't reach: structs of closures, concrete classes, and types that can't inherit from `Mock`.
+
+        @TutorialReference(tutorial: "doc:mocking-without-protocols")
+    }
+
     @Chapter(name: "Swift Testing Integration") {
         @Image(source: chapter-advanced, alt: "Two test cases running side by side, each with its own isolated box of mock state.")
 

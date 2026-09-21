@@ -1,0 +1,135 @@
+@Tutorial(time: 20) {
+    @Intro(title: "Mock Without a Protocol") {
+        `@Mockable` accepts protocols and nothing else — but protocols aren't the only way to inject a dependency. Some codebases pass **structs of closures**; others depend on a **concrete class** from a library you don't own.
+
+        Both are fully supported, and neither is a workaround of last resort. The key is that a ``Spy`` is a standalone recorder: it needs no macro and no `Mock` subclass, yet the entire `when` / `verify` vocabulary works on it unchanged.
+
+        @Image(source: intro-dynamic, alt: "A spy object sitting between a struct of closures on one side and a concrete class on the other, recording calls from both.")
+    }
+
+    @Section(title: "Meet the closure-based dependency") {
+        @ContentAndMedia {
+            A struct whose properties are closures is a common alternative to a protocol — it's the shape The Composable Architecture and similar dependency systems use. There's nothing to annotate: no protocol, no requirements, just function values.
+
+            @Image(source: chapter-advanced, alt: "A struct card whose three fields are arrows representing function values.")
+        }
+
+        @Steps {
+            @Step {
+                Create `FeatureFlagClient.swift`. Each property is a closure, and the three cover a useful spread of effects: plain, `async throws`, and `throws`.
+
+                @Code(name: "FeatureFlagClient.swift", file: "06-1-1-feature-flag-client.swift")
+            }
+
+            @Step {
+                Add the system under test. `RolloutModel` refreshes the flags, picks a banner from one of them, and records the result — three closure calls to stub and verify.
+
+                @Code(name: "FeatureFlagClient.swift", file: "06-1-2-rollout-model.swift")
+            }
+        }
+    }
+
+    @Section(title: "Back each closure with a spy") {
+        @ContentAndMedia {
+            Create one `Spy` per closure, stub it as usual, then hand the model a client built from `adapt(spy)` — a `@Sendable` function value the struct accepts directly.
+
+            Read the spy's generics straight off the closure type: **input types in order, then the effect marker, then the output**. `() async throws -> Void` becomes `Spy<Void, AsyncThrows, Void>`.
+
+            @Image(source: intro-dynamic, alt: "Three spies each converted by adapt into a function value slotting into a struct's fields.")
+        }
+
+        @Steps {
+            @Step {
+                Create `RolloutModelTests.swift` and declare a spy per closure. No macro ran here — you're constructing the recorders yourself.
+
+                @Code(name: "RolloutModelTests.swift", file: "06-2-1-spies.swift", reset: true)
+            }
+
+            @Step {
+                Stub them. This is the same `when` you'd use on a generated mock, matchers included — the specific `.equal("checkout-v2")` stub outranks the `.any` fallback by precedence, exactly as it would on a protocol mock.
+
+                @Code(name: "RolloutModelTests.swift", file: "06-2-2-stub.swift")
+            }
+
+            @Step {
+                Build the client with `adapt`. It converts a spy into the plain function value each property expects, so `FeatureFlagClient` is a perfectly ordinary instance — it has no idea spies are behind it.
+
+                @Code(name: "RolloutModelTests.swift", file: "06-2-3-adapt.swift")
+            }
+
+            @Step {
+                Act and assert. The model runs its real logic, and `verify` reads identically to every other tutorial — including matching on concrete arguments with `recordSpy("checkout-v2", 1)`.
+
+                @Code(name: "RolloutModelTests.swift", file: "06-2-4-verify.swift")
+            }
+
+            @Step {
+                Error paths work the same way. `thenThrow` on the spy makes the adapted closure throw, and only the closure under test needs a spy — the others can stay plain.
+
+                @Code(name: "RolloutModelTests.swift", file: "06-2-5-throwing.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Fake a concrete class") {
+        @ContentAndMedia {
+            When the dependency is a class with no protocol, subclass it and route each override to a spy you own. This is the one technique that reaches a type `@Mockable` cannot touch at all.
+
+            @Image(source: chapter-getting-started, alt: "A subclass box overriding two members of a base class, each override wired to its own spy.")
+        }
+
+        @Steps {
+            @Step {
+                Start with the class you don't control. It has real behavior you want to keep out of your tests.
+
+                @Code(name: "ImageLoader.swift", file: "06-3-1-image-loader.swift", reset: true)
+            }
+
+            @Step {
+                Subclass it and back each override with a spy. Give the spies **distinct names** — `loadSpy`, not `load` — so nothing competes with the override for overload resolution, keeping literals and zero-argument calls unambiguous.
+
+                @Code(name: "SpyBackedImageLoader.swift", file: "06-3-2-spy-backed.swift", reset: true)
+            }
+
+            @Step {
+                Stub and verify through the spy properties, but exercise the fake through the **base class type**. Your production code keeps its `ImageLoader` parameter and never learns it's talking to a test double.
+
+                Only overridable members can be faked this way: a `final` class or `final` member can't be intercepted by any technique — extract a protocol for those.
+
+                @Code(name: "ImageLoaderTests.swift", file: "06-3-3-class-test.swift", reset: true)
+            }
+        }
+    }
+
+    @Section(title: "Compose a Mock into a struct") {
+        @ContentAndMedia {
+            Raw spies are quick, but they give tests a non-standard call site (`loader.loadSpy(.any)`). When you want the *exact* generated-mock API on a type that can't inherit from `Mock` — a struct, an actor, or a class that already has a superclass — hold a `Mock` as a property instead.
+
+            This works because `Mock`'s `@dynamicMemberLookup` subscript is `public`: `mock.someName` resolves a spy from outside the class just as well as from a subclass.
+
+            @Image(source: chapter-matching, alt: "A struct containing a Mock property, exposing the same two-member API as a generated mock.")
+        }
+
+        @Steps {
+            @Step {
+                Write the mock by hand with the same **two members per requirement** a generated mock has: the `ArgMatcher` overload returning an `Interaction`, and the real one.
+
+                Two substitutions convert the inheriting recipe to the composed one: `super.track` becomes `self.mock.track`, and the instance `adapt(...)` becomes the static `Mock.adapt(...)`. Spell out `self.` — Swift requires it wherever the spy is read inside a closure. Conforming to `MockProviding` is what supplies `clear()`.
+
+                @Code(name: "StructAnalytics.swift", file: "06-4-1-struct-analytics.swift", reset: true)
+            }
+
+            @Step {
+                Now the call site is indistinguishable from a generated mock — same `when`, same `verify`, same `clear()`. Note that no `mutating` is needed: `Mock` is a reference type, so recording works through the `let`.
+
+                @Code(name: "StructAnalyticsTests.swift", file: "06-4-2-struct-test.swift", reset: true)
+            }
+
+            @Step {
+                One caveat worth knowing: because the spy store lives behind a reference, **copying the struct shares it**. Two copies record into the same spies.
+
+                You've now covered every dependency shape: `@Mockable` for protocols, `adapt(spy)` for closures, subclass-plus-spy for concrete classes, and a composed `Mock` when inheritance isn't available.
+            }
+        }
+    }
+}
