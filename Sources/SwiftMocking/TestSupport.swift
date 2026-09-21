@@ -490,6 +490,19 @@ public extension Assert where Eff: SyncTypedThrowingEffect {
             SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
     }
+
+    /// Asserts that the mocked method threw a specific error.
+    ///
+    /// Shorthand for `throws(.equal(error))`.
+    func `throws`(
+        _ error: Eff.Failure,
+        fileID: StaticString = #fileID,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) where Eff.Failure: Equatable {
+        `throws`(.equal(error), fileID: fileID, file: file, line: line, column: column)
+    }
 }
 
 public extension Assert where Eff: AsyncTypedThrowingEffect {
@@ -513,6 +526,19 @@ public extension Assert where Eff: AsyncTypedThrowingEffect {
         } catch {
             SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
+    }
+
+    /// Asserts asynchronously that the mocked method threw a specific error.
+    ///
+    /// Shorthand for `throws(.equal(error))`.
+    func `throws`(
+        _ error: Eff.Failure,
+        fileID: StaticString = #fileID,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) async where Eff.Failure: Equatable {
+        await `throws`(.equal(error), fileID: fileID, file: file, line: line, column: column)
     }
 }
 

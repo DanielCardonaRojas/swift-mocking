@@ -227,6 +227,19 @@ extension Assert where Eff: SyncTypedThrowingEffect {
         }
     }
 
+    /// Asserts that the spy's method threw a specific error.
+    ///
+    /// Shorthand for `didThrow(.equal(error))`. Without it the declared error type has
+    /// to be spelled through the matcher — `ArgMatcher<TestError>` has no member
+    /// `example`, so a bare `.didThrow(.example)` would not compile.
+    /// - Parameter error: The error expected to have been thrown.
+    /// - Throws:
+    ///   - ``MockingError/didNotThrow`` if no error was thrown.
+    ///   - ``MockingError/didNotMatchThrown(_:)`` if no thrown error equals `error`.
+    public func didThrow(_ error: Eff.Failure) throws where Eff.Failure: Equatable {
+        try didThrow(.equal(error))
+    }
+
     private static func collectTypedErrors<O>(_ result: Return<Eff, O>, errors: inout [any Error]) {
         guard let resolved = result.resolveIfSynchronous() else {
             return
@@ -273,6 +286,17 @@ extension Assert where Eff: AsyncTypedThrowingEffect {
         if !errors.contains(where: { ($0 as? Eff.Failure).map(errorMatcher.callAsFunction) ?? false }) {
             throw MockingError.didNotMatchThrown(errors, method: spy.methodLabel)
         }
+    }
+
+    /// Asserts that the spy's asynchronous method threw a specific error.
+    ///
+    /// See the synchronous overload for why this shorthand is needed.
+    /// - Parameter error: The error expected to have been thrown.
+    /// - Throws:
+    ///   - ``MockingError/didNotThrow`` if no error was thrown.
+    ///   - ``MockingError/didNotMatchThrown(_:)`` if no thrown error equals `error`.
+    public func didThrow(_ error: Eff.Failure) async throws where Eff.Failure: Equatable {
+        try await didThrow(.equal(error))
     }
 
     private static func collectTypedErrorsAsync<O>(_ result: Return<Eff, O>, errors: inout [any Error]) async {

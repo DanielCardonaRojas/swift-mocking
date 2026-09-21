@@ -108,6 +108,19 @@ final class TypedThrowsTests: MockingTestCase {
         XCTAssertThrowsError(try verify(mock.load(.any)).didThrow(.equal(.other)))
     }
 
+    /// The `Equatable` shorthand compares by value, so a bare case can be passed
+    /// without spelling out `.equal(_:)`.
+    func testTypedThrows_DidThrowEquatableShorthand() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenThrow(.example)
+
+        _ = try? mock.load(1)
+
+        try verify(mock.load(.any)).didThrow(.example)
+        XCTAssertThrowsError(try verify(mock.load(.any)).didThrow(.other))
+        verify(mock.load(.any)).throws(.example)
+    }
+
     func testTypedThrows_DidThrowFailsWhenNothingThrown() throws {
         let mock = MockTypedThrowingService()
         when(mock.load(.any)).thenReturn("ok")
@@ -202,6 +215,16 @@ final class TypedThrowsTests: MockingTestCase {
         _ = try? await mock.fetch(1)
 
         try await verify(mock.fetch(.any)).didThrow()
+    }
+
+    func testAsyncTypedThrows_DidThrowEquatableShorthand() async throws {
+        let mock = MockTypedThrowingService()
+        when(mock.fetch(.any)).thenThrow(.example)
+
+        _ = try? await mock.fetch(1)
+
+        try await verify(mock.fetch(.any)).didThrow(.example)
+        await verify(mock.fetch(.any)).throws(.example)
     }
 
     func testAsyncTypedThrows_DidThrowFailsWhenErrorDoesNotMatch() async throws {
