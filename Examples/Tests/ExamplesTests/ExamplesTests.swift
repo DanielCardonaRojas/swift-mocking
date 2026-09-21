@@ -116,7 +116,7 @@ struct ExampleTests {
         store.register("banana")
         store.register("rotten")
 
-        verify(mock.price("rotten")).throws()
+        verify(mock.price("rotten")).didThrow()
     }
 
     @Test func test_inspect_arguments() throws {
@@ -148,7 +148,7 @@ struct ExampleTests {
         } catch {
             #expect(error is TestError)
         }
-        await verify(mock.fetchDataThrows(id: "error_id")).throws()
+        await verify(mock.fetchDataThrows(id: "error_id")).didThrow()
 
         // Stub async throws method with success
         when(mock.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
@@ -212,7 +212,7 @@ struct ExampleTests {
         let spy = Spy<Int, String, TypedThrows<TestError>, Bool>()
         when(spy(.any, .any)).thenThrow(.example)
         _ = try? spy(0, "")
-        try verify(spy(.any, .any)).didThrow()
+        verify(spy(.any, .any)).didThrow(.example)
     }
 
     @Test func testPropertyService() {
@@ -279,7 +279,7 @@ struct ExampleTests {
         } catch {
             #expect(error is TestError)
         }
-        verify(mock.delete(key: "deleteKey")).throws()
+        verify(mock.delete(key: "deleteKey")).didThrow()
     }
 
     @Test func testCallbackService() {

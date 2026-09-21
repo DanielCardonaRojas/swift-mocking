@@ -85,7 +85,7 @@ final class TypedThrowsTests: MockingTestCase {
         _ = try? mock.load(1)
 
         verify(mock.load(.equal(1))).called(1)
-        try verify(mock.load(.any)).didThrow(.error(TestError.self))
+        verify(mock.load(.any)).didThrow(.error(TestError.self))
     }
 
     /// The defaulted matcher accepts any error of the declared failure type, so
@@ -96,7 +96,7 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? mock.load(1)
 
-        try verify(mock.load(.any)).didThrow()
+        verify(mock.load(.any)).didThrow()
     }
 
     func testTypedThrows_DidThrowFailsWhenErrorDoesNotMatch() throws {
@@ -105,7 +105,10 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? mock.load(1)
 
-        XCTAssertThrowsError(try verify(mock.load(.any)).didThrow(.equal(.other)))
+        // `didThrow` reports rather than throws, so the expected failure is
+        // captured instead of caught.
+        XCTExpectFailure("thrown .example does not match .other")
+        verify(mock.load(.any)).didThrow(.equal(.other))
     }
 
     /// The `Equatable` shorthand compares by value, so a bare case can be passed
@@ -116,9 +119,9 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? mock.load(1)
 
-        try verify(mock.load(.any)).didThrow(.example)
-        XCTAssertThrowsError(try verify(mock.load(.any)).didThrow(.other))
-        verify(mock.load(.any)).throws(.example)
+        verify(mock.load(.any)).didThrow(.example)
+        XCTExpectFailure("thrown .example does not match .other")
+        verify(mock.load(.any)).didThrow(.other)
     }
 
     func testTypedThrows_DidThrowFailsWhenNothingThrown() throws {
@@ -127,7 +130,8 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? mock.load(1)
 
-        XCTAssertThrowsError(try verify(mock.load(.any)).didThrow())
+        XCTExpectFailure("nothing was thrown")
+        verify(mock.load(.any)).didThrow()
     }
 
     func testTypedThrows_FluentThrowsVerification() {
@@ -136,8 +140,8 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? mock.load(1)
 
-        verify(mock.load(.any)).throws()
-        verify(mock.load(.any)).throws(.error(TestError.self))
+        verify(mock.load(.any)).didThrow()
+        verify(mock.load(.any)).didThrow(.error(TestError.self))
     }
 
     func testTypedThrows_EscapingClosureParameter() throws {
@@ -194,8 +198,8 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? await mock.fetch(1)
 
-        await verify(mock.fetch(.any)).throws()
-        await verify(mock.fetch(.any)).throws(.error(TestError.self))
+        await verify(mock.fetch(.any)).didThrow()
+        await verify(mock.fetch(.any)).didThrow(.error(TestError.self))
     }
 
     func testAsyncTypedThrows_VerifyAndDoesThrow() async throws {
@@ -205,7 +209,7 @@ final class TypedThrowsTests: MockingTestCase {
         _ = try? await mock.fetch(1)
 
         verify(mock.fetch(.equal(1))).called(1)
-        try await verify(mock.fetch(.any)).didThrow(.error(TestError.self))
+        await verify(mock.fetch(.any)).didThrow(.error(TestError.self))
     }
 
     func testAsyncTypedThrows_DidThrowDefaultsToAnyFailure() async throws {
@@ -214,7 +218,7 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? await mock.fetch(1)
 
-        try await verify(mock.fetch(.any)).didThrow()
+        await verify(mock.fetch(.any)).didThrow()
     }
 
     func testAsyncTypedThrows_DidThrowEquatableShorthand() async throws {
@@ -223,8 +227,8 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? await mock.fetch(1)
 
-        try await verify(mock.fetch(.any)).didThrow(.example)
-        await verify(mock.fetch(.any)).throws(.example)
+        await verify(mock.fetch(.any)).didThrow(.example)
+        await verify(mock.fetch(.any)).didThrow(.example)
     }
 
     func testAsyncTypedThrows_DidThrowFailsWhenErrorDoesNotMatch() async throws {
@@ -233,12 +237,8 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? await mock.fetch(1)
 
-        do {
-            try await verify(mock.fetch(.any)).didThrow(.equal(.other))
-            XCTFail("Expected verification to fail for a non-matching error")
-        } catch {
-            // Expected: the thrown .example does not match .other
-        }
+        XCTExpectFailure("thrown .example does not match .other")
+        await verify(mock.fetch(.any)).didThrow(.equal(.other))
     }
 }
 

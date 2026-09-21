@@ -68,8 +68,8 @@ public func when<each Input, Eff: Effect, Output>(
 /// This function is used to assert that a mocked method was called with arguments
 /// matching the provided `Interaction`.
 /// It returns an `Assert` object, which allows you to specify the expected
-/// number of calls using `.called()` or to assert that it threw an error using `.throws()`.
-/// Note that async-throwing interactions require awaiting the `.throws()` assertion (e.g. `await verify(mock.load()).throws()`).
+/// number of calls using `.called()` or to assert that it threw an error using `.didThrow()`.
+/// Note that async-throwing interactions require awaiting the `.didThrow()` assertion (e.g. `await verify(mock.load()).didThrow()`).
 ///
 /// Example:
 /// ```swift
@@ -424,13 +424,13 @@ public extension Assert {
 }
 
 public extension Assert where Eff == Throws {
-    /// Asserts that the mocked method threw an error.
+    /// Asserts that the mocked method threw an error, reporting a test failure if it did not.
     ///
     /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
-    ///   Defaults to `.anyError()` if `nil`, meaning any error is expected.
+    ///   Defaults to `nil`, meaning any error is expected.
     /// - Parameter file: The file where a verification failure is reported.
     /// - Parameter line: The line where a verification failure is reported.
-    func `throws`(
+    func didThrow(
         _ errorMatcher: ArgMatcher<any Error>? = nil,
         fileID: StaticString = #fileID,
         file: StaticString = #filePath,
@@ -438,7 +438,7 @@ public extension Assert where Eff == Throws {
         column: UInt = #column
     ) {
         do {
-            try didThrow(errorMatcher)
+            try assertThrew(errorMatcher)
         } catch {
             SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
@@ -446,13 +446,14 @@ public extension Assert where Eff == Throws {
 }
 
 public extension Assert where Eff == AsyncThrows {
-    /// Asserts asynchronously that the mocked method threw an error.
+    /// Asserts asynchronously that the mocked method threw an error, reporting a test
+    /// failure if it did not.
     ///
     /// - Parameter errorMatcher: An `ArgMatcher<any Error>` to specify the expected error.
-    ///   Defaults to `.anyError()` if `nil`, meaning any error is expected.
+    ///   Defaults to `nil`, meaning any error is expected.
     /// - Parameter file: The file where a verification failure is reported.
     /// - Parameter line: The line where a verification failure is reported.
-    func `throws`(
+    func didThrow(
         _ errorMatcher: ArgMatcher<any Error>? = nil,
         fileID: StaticString = #fileID,
         file: StaticString = #filePath,
@@ -460,7 +461,7 @@ public extension Assert where Eff == AsyncThrows {
         column: UInt = #column
     ) async {
         do {
-            try await didThrow(errorMatcher)
+            try await assertThrew(errorMatcher)
         } catch {
             SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
@@ -468,7 +469,7 @@ public extension Assert where Eff == AsyncThrows {
 }
 
 public extension Assert where Eff: SyncTypedThrowingEffect {
-    /// Asserts that the mocked method threw an error.
+    /// Asserts that the mocked method threw an error, reporting a test failure if it did not.
     ///
     /// The typed-throws counterpart of the ``Throws`` overload. The matcher is narrowed
     /// to the declared failure type, so mismatched error types are a compile error.
@@ -477,7 +478,7 @@ public extension Assert where Eff: SyncTypedThrowingEffect {
     ///   Defaults to ``ArgMatcher/any``, meaning any error of that type is expected.
     /// - Parameter file: The file where a verification failure is reported.
     /// - Parameter line: The line where a verification failure is reported.
-    func `throws`(
+    func didThrow(
         _ errorMatcher: ArgMatcher<Eff.Failure> = .any(Eff.Failure.self),
         fileID: StaticString = #fileID,
         file: StaticString = #filePath,
@@ -485,7 +486,7 @@ public extension Assert where Eff: SyncTypedThrowingEffect {
         column: UInt = #column
     ) {
         do {
-            try didThrow(errorMatcher)
+            try assertThrew(errorMatcher)
         } catch {
             SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
@@ -493,20 +494,22 @@ public extension Assert where Eff: SyncTypedThrowingEffect {
 
     /// Asserts that the mocked method threw a specific error.
     ///
-    /// Shorthand for `throws(.equal(error))`.
-    func `throws`(
+    /// Shorthand for `didThrow(.equal(error))`, so a bare case can be passed where an
+    /// `ArgMatcher<Eff.Failure>` is expected.
+    func didThrow(
         _ error: Eff.Failure,
         fileID: StaticString = #fileID,
         file: StaticString = #filePath,
         line: UInt = #line,
         column: UInt = #column
     ) where Eff.Failure: Equatable {
-        `throws`(.equal(error), fileID: fileID, file: file, line: line, column: column)
+        didThrow(.equal(error), fileID: fileID, file: file, line: line, column: column)
     }
 }
 
 public extension Assert where Eff: AsyncTypedThrowingEffect {
-    /// Asserts asynchronously that the mocked method threw an error.
+    /// Asserts asynchronously that the mocked method threw an error, reporting a test
+    /// failure if it did not.
     ///
     /// See the synchronous overload for how the matcher is narrowed.
     ///
@@ -514,7 +517,7 @@ public extension Assert where Eff: AsyncTypedThrowingEffect {
     ///   Defaults to ``ArgMatcher/any``, meaning any error of that type is expected.
     /// - Parameter file: The file where a verification failure is reported.
     /// - Parameter line: The line where a verification failure is reported.
-    func `throws`(
+    func didThrow(
         _ errorMatcher: ArgMatcher<Eff.Failure> = .any(Eff.Failure.self),
         fileID: StaticString = #fileID,
         file: StaticString = #filePath,
@@ -522,7 +525,7 @@ public extension Assert where Eff: AsyncTypedThrowingEffect {
         column: UInt = #column
     ) async {
         do {
-            try await didThrow(errorMatcher)
+            try await assertThrew(errorMatcher)
         } catch {
             SourceLocation(fileID: fileID, filePath: file, line: line, column: column).report(error)
         }
@@ -530,15 +533,15 @@ public extension Assert where Eff: AsyncTypedThrowingEffect {
 
     /// Asserts asynchronously that the mocked method threw a specific error.
     ///
-    /// Shorthand for `throws(.equal(error))`.
-    func `throws`(
+    /// Shorthand for `didThrow(.equal(error))`.
+    func didThrow(
         _ error: Eff.Failure,
         fileID: StaticString = #fileID,
         file: StaticString = #filePath,
         line: UInt = #line,
         column: UInt = #column
     ) async where Eff.Failure: Equatable {
-        await `throws`(.equal(error), fileID: fileID, file: file, line: line, column: column)
+        await didThrow(.equal(error), fileID: fileID, file: file, line: line, column: column)
     }
 }
 
