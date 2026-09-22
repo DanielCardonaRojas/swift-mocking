@@ -194,7 +194,7 @@ when(mock.price(.any)).thenReturn { (item: String) throws(PricingError) -> Int i
 ```swift
 when(mock.fetchPrice(.any)).thenThrow(.outOfStock)
 _ = try? await mock.fetchPrice("apple")
-try await verify(mock.fetchPrice(.any)).didThrow(.error(PricingError.self))
+await verify(mock.fetchPrice(.any)).didThrow(.error(PricingError.self))
 ```
 
 Two spellings deliberately keep the untyped behaviour, since they mean the same thing as their untyped forms:
