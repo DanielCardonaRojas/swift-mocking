@@ -1,4 +1,5 @@
 import Foundation
+import SwiftMocking
 
 /// A thread-safe collector for values observed inside a stub's handler closure.
 ///
@@ -18,24 +19,24 @@ import Foundation
 /// Prefer `verify(...).captured { ... }` when the assertion is about recorded
 /// invocations; reach for a `CaptureBox` when what matters is that a *stub
 /// handler ran* — with the values it was handed, in order.
-public final class CaptureBox<Value>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: [Value] = []
+///
+/// Values are written inside a `@Sendable` handler and read from the test body, so
+/// `Value` must be `Sendable`. To collect a non-`Sendable` value, capture something
+/// `Sendable` derived from it — an identifier, or a snapshot of the fields under
+/// assertion.
+public final class CaptureBox<Value: Sendable>: Sendable {
+    private let storage = LockIsolated<[Value]>([])
 
     /// Creates an empty box.
     public init() {}
 
     /// Appends a value observed inside a handler closure.
     public func append(_ value: Value) {
-        lock.lock()
-        defer { lock.unlock() }
-        storage.append(value)
+        storage.withLock { $0.append(value) }
     }
 
     /// The values appended so far, in order.
     public var values: [Value] {
-        lock.lock()
-        defer { lock.unlock() }
-        return storage
+        storage.withLock { $0 }
     }
 }
