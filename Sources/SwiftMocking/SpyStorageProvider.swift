@@ -12,35 +12,33 @@ import Foundation
 /// The provider owns the raw dictionary that mirrors the storage layout used by `Mock`.
 /// It can be shared across different execution contexts to coordinate spy access.
 ///
-/// Thread safety is ensured through NSLock-based synchronization, justifying
-/// the `@unchecked Sendable` conformance.
-public final class SpyStorageProvider: @unchecked Sendable {
+/// Thread safety comes from holding the dictionary in a ``LockIsolated`` box.
+public final class SpyStorageProvider: Sendable {
     public typealias Storage = [String: [String: [AnySpy]]]
 
-    private let lock = NSLock()
-    private var _storage: Storage
+    private let _storage: LockIsolated<Storage>
 
     /// Thread-safe access to the underlying storage.
     ///
-    /// All accesses are synchronized through an internal lock to prevent
-    /// data races when multiple threads read or modify the storage concurrently.
+    /// Each individual get or set is synchronized, but a sequence of them is not. Use
+    /// ``withStorage(_:)`` for any read-modify-write.
     public var storage: Storage {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _storage
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _storage = newValue
-        }
+        get { _storage.withLock { $0 } }
+        set { _storage.withLock { $0 = newValue } }
+    }
+
+    /// Performs a read-modify-write against the storage under a single lock acquisition.
+    ///
+    /// - Parameter body: A closure receiving the storage `inout`.
+    /// - Returns: Whatever `body` returns.
+    public func withStorage<R>(_ body: (inout Storage) throws -> R) rethrows -> R {
+        try _storage.withLock(body)
     }
 
     /// Creates a storage provider with an optional pre-populated dictionary.
     /// - Parameter storage: Existing spy storage. Defaults to an empty dictionary.
     public init(storage: Storage = [:]) {
-        self._storage = storage
+        self._storage = LockIsolated(storage)
     }
 }
 

@@ -311,17 +311,16 @@ public func verifyZeroInteractions(
 
 // MARK: - Await utilities
 
-private final class FulfillmentTracker: @unchecked Sendable {
-    private var fulfilled = false
-    private let lock = NSLock()
+private final class FulfillmentTracker: Sendable {
+    private let fulfilled = LockIsolated(false)
 
+    /// Fulfills once, reporting whether this call is the one that did it.
     func tryFulfill() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard !fulfilled else { return false }
-        fulfilled = true
-        return true
+        fulfilled.withLock { fulfilled in
+            guard !fulfilled else { return false }
+            fulfilled = true
+            return true
+        }
     }
 }
 
