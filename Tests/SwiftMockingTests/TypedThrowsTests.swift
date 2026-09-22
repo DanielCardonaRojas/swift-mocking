@@ -85,7 +85,53 @@ final class TypedThrowsTests: MockingTestCase {
         _ = try? mock.load(1)
 
         verify(mock.load(.equal(1))).called(1)
-        try verify(mock.load(.any)).doesThrow(.error(TestError.self))
+        verify(mock.load(.any)).didThrow(.error(TestError.self))
+    }
+
+    /// The defaulted matcher accepts any error of the declared failure type, so
+    /// `didThrow()` asserts only that something was thrown.
+    func testTypedThrows_DidThrowDefaultsToAnyFailure() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenThrow(.example)
+
+        _ = try? mock.load(1)
+
+        verify(mock.load(.any)).didThrow()
+    }
+
+    func testTypedThrows_DidThrowFailsWhenErrorDoesNotMatch() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenThrow(.example)
+
+        _ = try? mock.load(1)
+
+        // `didThrow` reports rather than throws, so the expected failure is
+        // captured instead of caught.
+        XCTExpectFailure("thrown .example does not match .other")
+        verify(mock.load(.any)).didThrow(.equal(.other))
+    }
+
+    /// The `Equatable` shorthand compares by value, so a bare case can be passed
+    /// without spelling out `.equal(_:)`.
+    func testTypedThrows_DidThrowEquatableShorthand() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenThrow(.example)
+
+        _ = try? mock.load(1)
+
+        verify(mock.load(.any)).didThrow(.example)
+        XCTExpectFailure("thrown .example does not match .other")
+        verify(mock.load(.any)).didThrow(.other)
+    }
+
+    func testTypedThrows_DidThrowFailsWhenNothingThrown() throws {
+        let mock = MockTypedThrowingService()
+        when(mock.load(.any)).thenReturn("ok")
+
+        _ = try? mock.load(1)
+
+        XCTExpectFailure("nothing was thrown")
+        verify(mock.load(.any)).didThrow()
     }
 
     func testTypedThrows_FluentThrowsVerification() {
@@ -94,8 +140,8 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? mock.load(1)
 
-        verify(mock.load(.any)).throws()
-        verify(mock.load(.any)).throws(.error(TestError.self))
+        verify(mock.load(.any)).didThrow()
+        verify(mock.load(.any)).didThrow(.error(TestError.self))
     }
 
     func testTypedThrows_EscapingClosureParameter() throws {
@@ -152,8 +198,8 @@ final class TypedThrowsTests: MockingTestCase {
 
         _ = try? await mock.fetch(1)
 
-        await verify(mock.fetch(.any)).throws()
-        await verify(mock.fetch(.any)).throws(.error(TestError.self))
+        await verify(mock.fetch(.any)).didThrow()
+        await verify(mock.fetch(.any)).didThrow(.error(TestError.self))
     }
 
     func testAsyncTypedThrows_VerifyAndDoesThrow() async throws {
@@ -163,7 +209,36 @@ final class TypedThrowsTests: MockingTestCase {
         _ = try? await mock.fetch(1)
 
         verify(mock.fetch(.equal(1))).called(1)
-        try await verify(mock.fetch(.any)).doesThrow(.error(TestError.self))
+        await verify(mock.fetch(.any)).didThrow(.error(TestError.self))
+    }
+
+    func testAsyncTypedThrows_DidThrowDefaultsToAnyFailure() async throws {
+        let mock = MockTypedThrowingService()
+        when(mock.fetch(.any)).thenThrow(.example)
+
+        _ = try? await mock.fetch(1)
+
+        await verify(mock.fetch(.any)).didThrow()
+    }
+
+    func testAsyncTypedThrows_DidThrowEquatableShorthand() async throws {
+        let mock = MockTypedThrowingService()
+        when(mock.fetch(.any)).thenThrow(.example)
+
+        _ = try? await mock.fetch(1)
+
+        await verify(mock.fetch(.any)).didThrow(.example)
+        await verify(mock.fetch(.any)).didThrow(.example)
+    }
+
+    func testAsyncTypedThrows_DidThrowFailsWhenErrorDoesNotMatch() async throws {
+        let mock = MockTypedThrowingService()
+        when(mock.fetch(.any)).thenThrow(.example)
+
+        _ = try? await mock.fetch(1)
+
+        XCTExpectFailure("thrown .example does not match .other")
+        await verify(mock.fetch(.any)).didThrow(.equal(.other))
     }
 }
 

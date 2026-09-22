@@ -10,13 +10,13 @@ func chargeFailsForLargeAmounts() throws {
     _ = try? mock.charge(amountCents: 5000)
     _ = try? mock.charge(amountCents: 10)
 
-    // .throws() asserts some error was thrown by matching calls.
-    verify(mock.charge(amountCents: .greaterThan(1000))).throws()
+    // .didThrow() asserts some error was thrown by matching calls.
+    verify(mock.charge(amountCents: .greaterThan(1000))).didThrow()
 
     // Narrow it: any error, or one of a specific type.
-    verify(mock.charge(amountCents: .greaterThan(1000))).throws(.anyError())
+    verify(mock.charge(amountCents: .greaterThan(1000))).didThrow(.anyError())
     verify(mock.charge(amountCents: .greaterThan(1000)))
-        .throws(.error(PaymentError.self))
+        .didThrow(.error(PaymentError.self))
 
     // Counting still works alongside throwing assertions.
     verify(mock.charge(amountCents: .any)).called(2)

@@ -184,22 +184,42 @@ extension Arrange where Eff == AsyncThrows {
   final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws -> Output) where repeat each I : Sendable
   final public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws -> Void)
 }
+extension Assert where Eff == Throws {
+  @available(*, deprecated, renamed: "didThrow(_:fileID:file:line:column:)", message: "Renamed to didThrow(_:).")
+  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
+}
+extension Assert where Eff == AsyncThrows {
+  @available(*, deprecated, renamed: "didThrow(_:fileID:file:line:column:)", message: "Renamed to didThrow(_:).")
+  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
+}
+extension Assert where Eff : SyncTypedThrowingEffect {
+  @available(*, deprecated, renamed: "didThrow(_:fileID:file:line:column:)", message: "Renamed to didThrow(_:).")
+  public func `throws`(_ errorMatcher: ArgMatcher<Eff.Failure> = .any(Eff.Failure.self), fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
+}
+extension Assert where Eff : AsyncTypedThrowingEffect {
+  @available(*, deprecated, renamed: "didThrow(_:fileID:file:line:column:)", message: "Renamed to didThrow(_:).")
+  public func `throws`(_ errorMatcher: ArgMatcher<Eff.Failure> = .any(Eff.Failure.self), fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
+}
+extension Assert where Eff == Throws {
+  @available(*, deprecated, renamed: "didThrow(_:fileID:file:line:column:)", message: "Renamed to didThrow(_:), which reports the failure instead of throwing — drop the `try`.")
+  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws
+}
+extension Assert where Eff == AsyncThrows {
+  @available(*, deprecated, renamed: "didThrow(_:fileID:file:line:column:)", message: "Renamed to didThrow(_:), which reports the failure instead of throwing — drop the `try`.")
+  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) async throws
+}
+extension Assert where Eff : SyncTypedThrowingEffect {
+  @available(*, deprecated, renamed: "didThrow(_:fileID:file:line:column:)", message: "Renamed to didThrow(_:), which reports the failure instead of throwing — drop the `try`.")
+  public func doesThrow(_ errorMatcher: ArgMatcher<Eff.Failure> = .any(Eff.Failure.self)) throws
+}
+extension Assert where Eff : AsyncTypedThrowingEffect {
+  @available(*, deprecated, renamed: "didThrow(_:fileID:file:line:column:)", message: "Renamed to didThrow(_:), which reports the failure instead of throwing — drop the `try`.")
+  public func doesThrow(_ errorMatcher: ArgMatcher<Eff.Failure> = .any(Eff.Failure.self)) async throws
+}
 public class Assert<each Input, Eff, Output> where Eff : Effect {
   public init(invocationMatcher: InvocationMatcher<repeat each Input>? = nil, spy: Spy<repeat each Input, Eff, Output>)
   public func assert(_ matcher: ArgMatcher<Int>?) throws
   public func neverCalled(fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
-}
-extension Assert where Eff == Throws {
-  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws
-}
-extension Assert where Eff : SyncTypedThrowingEffect {
-  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) throws
-}
-extension Assert where Eff : AsyncTypedThrowingEffect {
-  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) async throws
-}
-extension Assert where Eff == AsyncThrows {
-  public func doesThrow(_ errorMatcher: ArgMatcher<any Error>? = nil) async throws
 }
 public protocol CrossSpyVerifiable {
   var spyID: Foundation.UUID { get }
@@ -461,9 +481,13 @@ public struct MockingError : Error, Equatable, Sendable {
   public let message: String
   public static func unStubbed(_ name: String? = nil, inputs: String? = nil) -> MockingError
   public static let didNotThrow: MockingError
+  public static func didNotThrow(_ method: String?) -> MockingError
   public static func didNotMatchThrown(_ thrown: [any Error]) -> MockingError
+  public static func didNotMatchThrown(_ thrown: [any Error], method: String?) -> MockingError
   public static func unfulfilledCallCount(_ actual: Int) -> MockingError
+  public static func unfulfilledCallCount(_ actual: Int, expected: String?, method: String?, recorded: [String]) -> MockingError
   public static let noMatchingInvocations: MockingError
+  public static func noMatchingInvocations(method: String?, recorded: [String]) -> MockingError
 }
 public enum UntilError : Error, Sendable, CustomStringConvertible {
   case timeout(method: String? = nil, duration: Duration? = nil)
@@ -654,14 +678,16 @@ extension Assert {
   public func captured(_ inspector: @escaping (repeat each Input) throws -> Void, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
 }
 extension Assert where Eff == Throws {
-  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
+  public func didThrow(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
 }
 extension Assert where Eff == AsyncThrows {
-  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
+  public func didThrow(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
 }
 extension Assert where Eff : SyncTypedThrowingEffect {
-  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
+  public func didThrow(_ errorMatcher: ArgMatcher<Eff.Failure> = .any(Eff.Failure.self), fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column)
+  public func didThrow(_ error: Eff.Failure, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) where Eff.Failure : Equatable
 }
 extension Assert where Eff : AsyncTypedThrowingEffect {
-  public func `throws`(_ errorMatcher: ArgMatcher<any Error>? = nil, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
+  public func didThrow(_ errorMatcher: ArgMatcher<Eff.Failure> = .any(Eff.Failure.self), fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async
+  public func didThrow(_ error: Eff.Failure, fileID: StaticString = #fileID, file: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async where Eff.Failure : Equatable
 }

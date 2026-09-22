@@ -113,7 +113,7 @@ final class IssueLocationTests: XCTestCase {
         var line: UInt = 0
         let captured = captureIssues {
             line = UInt(#line + 1)
-            verify(spy(.any)).throws()
+            verify(spy(.any)).didThrow()
         }
         assertAttributedToThisFile(captured, expectedLine: line)
     }

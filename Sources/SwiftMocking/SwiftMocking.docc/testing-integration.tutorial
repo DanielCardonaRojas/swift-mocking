@@ -98,7 +98,7 @@
             }
 
             @Step {
-                For failures you have two complementary assertions. `#expect(throws:)` checks what the *call site* saw; `verify(...).throws(...)` checks what the *mock* recorded. Using both pins down the error's whole round trip.
+                For failures you have two complementary assertions. `#expect(throws:)` checks what the *call site* saw; `verify(...).didThrow(...)` checks what the *mock* recorded. Using both pins down the error's whole round trip.
 
                 @Code(name: "PaymentTests.swift", file: "05-3-2-expect-throws.swift", reset: true)
             }

@@ -117,7 +117,7 @@ final class MockitoTests: XCTestCase {
         store.register("banana")
         store.register("rotten")
 
-        verify(mock.price("rotten")).throws()
+        verify(mock.price("rotten")).didThrow()
     }
 
     func test_inspect_arguments() {
@@ -149,7 +149,7 @@ final class MockitoTests: XCTestCase {
         } catch {
             XCTAssert(error is TestError)
         }
-        await verify(mock.fetchDataThrows(id: "error_id")).throws()
+        await verify(mock.fetchDataThrows(id: "error_id")).didThrow()
 
         // Stub async throws method with success
         when(mock.fetchDataThrows(id: "success_id")).thenReturn("async_data_2")
@@ -316,7 +316,7 @@ final class MockitoTests: XCTestCase {
         } catch {
             XCTAssert(error is TestError)
         }
-        verify(mock.delete(key: "deleteKey")).throws()
+        verify(mock.delete(key: "deleteKey")).didThrow()
     }
 
     func testClosureStruct() async throws {

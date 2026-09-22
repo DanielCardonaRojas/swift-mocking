@@ -118,11 +118,12 @@ when(mock.fetch(.equal(url))).thenReturn { _ in callCount == 1 ? throw Timeout :
 verify(mock.process(.any)).called()             // ≥ 1 (default)
 verify(mock.process(.any)).called(3)            // exactly 3
 verify(mock.process(.any)).neverCalled()        // or verifyNever(mock.process(.any))
-verify(mock.validate("bad")).throws()           // any error (Throws effect)
-verify(mock.validate("bad")).throws(ValidationError.self)
-await verify(mock.upload(.any)).throws()        // async spies: await the throws() form
+verify(mock.validate("bad")).didThrow()         // any error (Throws effect)
+verify(mock.validate("bad")).didThrow(.error(ValidationError.self))
+verify(mock.validate("bad")).didThrow(.invalid) // typed throws + Equatable: bare case
+await verify(mock.upload(.any)).didThrow()      // async spies: await the didThrow() form
 verifyInOrder([mock.auth(.any), mock.data(.any)])  // call order across spies
-`called(n)` is synchronous for all effect types; only `.throws()` on async spies needs `await`. Verification failures are reported through [IssueReporting](https://github.com/pointfreeco/swift-issue-reporting) — they record issues inside XCTest/swift-testing runs and are **silent in plain executables**, so validate mocks in a real test context.
+`called(n)` is synchronous for all effect types; only `.didThrow()` on async spies needs `await`. Verification failures are reported through [IssueReporting](https://github.com/pointfreeco/swift-issue-reporting) — they record issues inside XCTest/swift-testing runs and are **silent in plain executables**, so validate mocks in a real test context.
 
 ## Properties & subscripts
 
