@@ -495,6 +495,36 @@ final class SpyTests: XCTestCase {
         group.wait()
     }
 
+    func test_action_performer_reassign_invoke_race_condition() {
+        // Regression guard: an action is registered before `do { }` installs its
+        // performer, so a concurrent invoke reads the slot while a test writes it.
+        let spy = Spy<Int, None, String>()
+        spy.when(calledWith: .any).thenReturn("seed")
+
+        let action = Action<Int, None>(invocationMatcher: .init(matchers: .any))
+        spy.registerAction(action)
+
+        let queue = DispatchQueue(label: "com.swiftmocking.action_performer_race_test", attributes: .concurrent)
+        let group = DispatchGroup()
+        let iterationCount = 500
+
+        for i in 0..<iterationCount {
+            group.enter()
+            queue.async {
+                // Reinstall the performer while invocations are reading it.
+                action.do { _ in _ = i }
+                group.leave()
+            }
+            group.enter()
+            queue.async {
+                _ = spy(i)
+                group.leave()
+            }
+        }
+
+        group.wait()
+    }
+
     func test_spy_config_concurrent_set_invoke_race_condition() {
         // Regression guard for P1: isLoggingEnabled and defaultProviderRegistry are public
         // settable and read on the invoke path; both must be synchronized.
