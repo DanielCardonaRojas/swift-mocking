@@ -62,6 +62,9 @@ public struct Recorded {
 /// - All mutable state is protected by `lock`
 /// - All public methods properly acquire and release the lock
 /// - The lock is always released using `defer` to ensure cleanup on early returns
+///
+/// Cannot use ``LockIsolated``, which requires `Recorded: Sendable` — see the note on
+/// ``Recorded``.
 public final class InvocationRecorder: @unchecked Sendable {
     /// Shared instance used as the default for the task-local current recorder
     public static let shared = InvocationRecorder()

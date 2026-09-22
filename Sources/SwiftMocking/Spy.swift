@@ -16,6 +16,9 @@ import Foundation
 /// - ``Stub`` - Defines behavior for method calls
 /// - ``Interaction`` - Represents a method call for verification
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
+///
+/// `@unchecked` because a non-final class cannot conform to `Sendable`. Thread safety
+/// comes from the locks below.
 public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     private var _invocations: [Invocation<repeat each Input>] = []
