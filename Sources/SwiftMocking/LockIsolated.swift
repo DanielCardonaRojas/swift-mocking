@@ -45,3 +45,38 @@ public final class LockIsolated<Value: Sendable>: Sendable {
         return try body(&_value)
     }
 }
+
+/// A ``LockIsolated`` that does not require its value to be `Sendable`.
+///
+/// ``LockIsolated`` enforces `Value: Sendable` at the point a property is declared,
+/// which a generic type cannot satisfy when its own conformance is conditional. This
+/// variant lifts that requirement so the enclosing type can state the condition itself:
+///
+/// ```swift
+/// final class Stub<each I, O> {
+///     private let output = UncheckedLockIsolated<(@Sendable () -> O)?>(nil)
+/// }
+/// extension Stub: Sendable where repeat each I: Sendable, O: Sendable {}
+/// ```
+///
+/// The box asserts `Sendable` rather than proving it, so the enclosing type is
+/// responsible for the condition under which sharing is actually safe. Prefer
+/// ``LockIsolated`` wherever the value is known to be `Sendable`.
+final class UncheckedLockIsolated<Value>: @unchecked Sendable {
+    private var _value: Value
+    private let lock = NSLock()
+
+    init(_ value: Value) {
+        self._value = value
+    }
+
+    /// Runs `body` with exclusive access to the boxed value.
+    ///
+    /// - Parameter body: A closure receiving the value `inout`.
+    /// - Returns: Whatever `body` returns.
+    func withLock<R>(_ body: (inout Value) throws -> R) rethrows -> R {
+        lock.lock()
+        defer { lock.unlock() }
+        return try body(&_value)
+    }
+}
