@@ -1,5 +1,5 @@
 import Foundation
-import SwiftMocking
+@_spi(Internals) import SwiftMocking
 
 /// A thread-safe collector for values observed inside a stub's handler closure.
 ///

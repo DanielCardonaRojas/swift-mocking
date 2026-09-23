@@ -5,7 +5,7 @@ import XCTest
 import _Concurrency
 import _StringProcessing
 import _SwiftConcurrencyShims
-final public class CaptureBox<Value> : @unchecked Sendable {
+final public class CaptureBox<Value> : Sendable where Value : Sendable {
   public init()
   final public func append(_ value: Value)
   final public var values: [Value] {
