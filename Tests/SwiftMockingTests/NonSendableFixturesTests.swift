@@ -105,22 +105,22 @@ final class NonSendableFixturesTests: XCTestCase {
         _ = (sendable, closure)
     }
 
-    func test_closureInjectionRequiresASendableProjection() {
-        // The one pattern the conditional conformances do narrow: `adapt`/`asFunction`
-        // return an escaping @Sendable closure that captures the spy, so they require
-        // the spy to be Sendable — which a non-Sendable Output denies.
-        //
-        //     let spy = Spy<String, None, NonSendableMessage>()
-        //     let fn = adapt(spy)   // does not compile
-        //
-        // Injecting mocks as objects is unaffected; only closure injection needs the
-        // spy's output projected to something Sendable, as below.
-        let spy = Spy<String, None, String>()
-        when(spy(.any)).thenReturn { _ in "id-1" }
+    func test_closureInjectionOfNonSendableOutput() {
+        // `adapt` and `asFunction` come in @Sendable and plain forms. The plain form
+        // carries no constraints, so a spy over a non-Sendable type is still injectable
+        // as a function; overload resolution picks it from the contextual type. Asking
+        // for a @Sendable closure over the same spy still fails, which is the point.
+        class UserProfile {
+            let name: String
+            init(name: String) {
+                self.name = name
+            }
+        }
+        let spy = Spy<String, None, UserProfile>()
+        when(spy(.any)).thenReturn { _ in UserProfile(name: "Daniel") }
 
-        let inject: @Sendable (String) -> String = adapt(spy)
-
-        XCTAssertEqual(inject("a"), "id-1")
+        let inject: (String) -> UserProfile = adapt(spy)
+        XCTAssertEqual(inject("").name, "Daniel")
         verify(spy(.any)).called()
     }
 

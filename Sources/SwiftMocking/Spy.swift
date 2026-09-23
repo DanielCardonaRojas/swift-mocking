@@ -317,6 +317,13 @@ extension Spy where Effects == Throws {
         }
     }
 
+    /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
+    public func asFunction() -> (repeat each Input) throws -> Output {
+        return { (args:  repeat each Input) in
+            try self(repeat each args)
+        }
+    }
+
     /// Verifies that the spy's method threw an error matching the given `errorMatcher`.
     /// - Parameter errorMatcher: An ``ArgMatcher`` for `Error` to specify the expected error.
     /// - Returns: `true` if a matching error was thrown, `false` otherwise.
@@ -544,6 +551,13 @@ extension Spy where Effects == None {
             self(repeat each args)
         }
     }
+
+    /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
+    public func asFunction() -> (repeat each Input) -> Output {
+        return { (args:  repeat each Input) in
+            self(repeat each args)
+        }
+    }
 }
 
 // MARK: Async
@@ -582,6 +596,13 @@ extension Spy where Effects == Async {
             await self(repeat each args)
         }
     }
+
+    /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
+    public func asFunction() -> (repeat each Input) async -> Output {
+        return { (args:  repeat each Input) in
+            await self(repeat each args)
+        }
+    }
 }
 
 // MARK: AsyncThrows
@@ -603,6 +624,13 @@ extension Spy where Effects == AsyncThrows {
 
     public func asFunction() -> @Sendable (repeat each Input) async throws -> Output
     where repeat each Input: Sendable, Output: Sendable {
+        return { (args:  repeat each Input) in
+            try await self(repeat each args)
+        }
+    }
+
+    /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
+    public func asFunction() -> (repeat each Input) async throws -> Output {
         return { (args:  repeat each Input) in
             try await self(repeat each args)
         }
