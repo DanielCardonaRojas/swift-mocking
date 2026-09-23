@@ -31,6 +31,8 @@ protocol LegacyService {
     func send(_ message: NonSendableMessage) -> NonSendableReceipt
     func makeMessage(seed: Int) -> NonSendableMessage
     func validate(_ token: String) throws -> String
+    func load(id: String) async -> NonSendableMessage
+    func fetch(id: String) async throws -> NonSendableMessage
 }
 
 final class NonSendableFixturesTests: XCTestCase {
@@ -72,5 +74,71 @@ final class NonSendableFixturesTests: XCTestCase {
         when(mock.validate(.any)).thenReturn { _ in throw NonSendableValidationError(reason: "invalid") }
 
         XCTAssertThrowsError(try mock.validate("token"))
+    }
+
+    // MARK: - Conditional Sendable conformances
+
+    func test_asyncRequirementsReturningNonSendableValues() async throws {
+        let mock = MockLegacyService()
+        when(mock.load(id: .any)).thenReturn { _ in NonSendableMessage() }
+        when(mock.fetch(id: .any)).thenReturn { _ in NonSendableMessage() }
+
+        let loaded = await mock.load(id: "a")
+        let fetched = try await mock.fetch(id: "b")
+
+        XCTAssertEqual(loaded.body, "payload")
+        XCTAssertEqual(fetched.body, "payload")
+        verify(mock.load(id: .any)).called()
+        verify(mock.fetch(id: .any)).called()
+    }
+
+    func test_generatedMockOfNonSendableProtocolIsStillSendable() {
+        // The headline guarantee for consumers: making Spy, Stub and Interaction
+        // conditionally Sendable did not stop a *mock* from crossing isolation
+        // domains, because a generated mock stores a `Mock`, which never names the
+        // protocol's input or output types. Compile-time proof.
+        let mock = MockLegacyService()
+
+        let sendable: any Sendable = mock
+        let closure: @Sendable () -> Void = { _ = mock }
+
+        _ = (sendable, closure)
+    }
+
+    func test_closureInjectionRequiresASendableProjection() {
+        // The one pattern the conditional conformances do narrow: `adapt`/`asFunction`
+        // return an escaping @Sendable closure that captures the spy, so they require
+        // the spy to be Sendable — which a non-Sendable Output denies.
+        //
+        //     let spy = Spy<String, None, NonSendableMessage>()
+        //     let fn = adapt(spy)   // does not compile
+        //
+        // Injecting mocks as objects is unaffected; only closure injection needs the
+        // spy's output projected to something Sendable, as below.
+        let spy = Spy<String, None, String>()
+        when(spy(.any)).thenReturn { _ in "id-1" }
+
+        let inject: @Sendable (String) -> String = adapt(spy)
+
+        XCTAssertEqual(inject("a"), "id-1")
+        verify(spy(.any)).called()
+    }
+
+    func test_untilAcceptsRequirementReturningNonSendableValue() async throws {
+        // `until` waits for a call without touching its return value, so a
+        // non-Sendable Output must not block it. Asserts the timeout path because a
+        // spy over a non-Sendable Output is itself not Sendable, and so cannot be
+        // driven from a second task.
+        let mock = MockLegacyService()
+        when(mock.load(id: .any)).thenReturn { _ in NonSendableMessage() }
+
+        do {
+            try await until(mock.load(id: .equal("never")), timeout: .milliseconds(50))
+            XCTFail("Expected a timeout")
+        } catch let error as UntilError {
+            guard case .timeout = error else {
+                return XCTFail("Expected .timeout, got \(error)")
+            }
+        }
     }
 }
