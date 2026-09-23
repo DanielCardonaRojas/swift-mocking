@@ -17,64 +17,57 @@ import Foundation
 /// - ``Interaction`` - Represents a method call for verification
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
 ///
-/// `@unchecked` because the mutable stored properties below are guarded by locks rather
-/// than by the type system. Type erasure goes through ``AnySpy``, so nothing needs to
-/// subclass this.
-public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
-    /// A publicly accessible array of all ``Invocation``s captured by this spy.
-    private var _invocations: [Invocation<repeat each Input>] = []
+/// All mutable state lives in lock-guarded boxes, so the `Sendable` conformance below is
+/// checked rather than asserted. It is conditional: a spy is only safe to share when the
+/// values it stores — recorded invocations and stubbed outputs — are themselves `Sendable`.
+public final class Spy<each Input, Effects: Effect, Output>: AnySpy {
+    /// Post-init configuration, read together on the invoke path.
+    ///
+    /// Grouping these in one box keeps a single acquisition serving all three, so logging
+    /// cannot observe a torn configuration.
+    private struct Configuration {
+        var isLoggingEnabled = false
+        var defaultProviderRegistry: DefaultProvidableRegistry?
+        var logger: (@Sendable (Invocation<repeat each Input>) -> Void)?
+    }
+
+    private let configuration: UncheckedLockIsolated<Configuration>
+    private let _invocations = UncheckedLockIsolated<[Invocation<repeat each Input>]>([])
+    private let _stubs = UncheckedLockIsolated<[Stub<repeat each Input, Effects, Output>]>([])
+    private let _actions = UncheckedLockIsolated<[Action<repeat each Input, Effects>]>([])
+
     /// A point-in-time snapshot of all ``Invocation``s captured by this spy.
     public var invocations: [Invocation<repeat each Input>] { snapshotInvocations() }
-    /// Guards post-init configuration (`isLoggingEnabled`, `defaultProviderRegistry`,
-    /// `logger`) so the `@unchecked Sendable` conformance is honest: every read on the
-    /// invoke path and every external write is serialized.
-    private let configLock = NSLock()
 
-    private func locked<T>(_ body: () throws -> T) rethrows -> T {
-        configLock.lock()
-        defer { configLock.unlock() }
-        return try body()
-    }
-
-    private var _isLoggingEnabled = false
     public var isLoggingEnabled: Bool {
-        get { locked { _isLoggingEnabled } }
-        set { locked { _isLoggingEnabled = newValue } }
+        get { configuration.withLock { $0.isLoggingEnabled } }
+        set { configuration.withLock { $0.isLoggingEnabled = newValue } }
     }
-    private let invocationsLock = NSLock()
-    private let stubsLock = NSLock()
-    private let actionsLock = NSLock()
 
     /// Unique identifier for this spy instance used for cross-spy verification
     public let spyID: UUID = UUID()
 
     /// Human-readable label for this spy, typically "ClassName.methodName"
-    public private(set) var methodLabel: String?
+    public let methodLabel: String?
 
-    private var _stubs: [Stub<repeat each Input, Effects, Output>] = []
     var stubs: [Stub<repeat each Input, Effects, Output>] { snapshotStubs() }
 
-    private var _actions: [Action<repeat each Input, Effects>] = []
     var actions: [Action<repeat each Input, Effects>] {
-        actionsLock.lock()
-        defer { actionsLock.unlock() }
-        return Array(_actions)
-    }
-    private var _defaultProviderRegistry: DefaultProvidableRegistry? = MockScope.fallbackValueRegistry
-    public var defaultProviderRegistry: DefaultProvidableRegistry? {
-        get { locked { _defaultProviderRegistry } }
-        set { locked { _defaultProviderRegistry = newValue } }
+        _actions.withLock { Array($0) }
     }
 
-    private var _logger: (@Sendable (Invocation<repeat each Input>) -> Void)?
-    var logger: (@Sendable (Invocation<repeat each Input>) -> Void)? {
-        get { locked { _logger } }
-        set { locked { _logger = newValue } }
+    public var defaultProviderRegistry: DefaultProvidableRegistry? {
+        get { configuration.withLock { $0.defaultProviderRegistry } }
+        set { configuration.withLock { $0.defaultProviderRegistry = newValue } }
     }
+
+    var logger: (@Sendable (Invocation<repeat each Input>) -> Void)? {
+        get { configuration.withLock { $0.logger } }
+        set { configuration.withLock { $0.logger = newValue } }
+    }
+
     public var invocationCount: Int {
-        invocationsLock.lock()
-        defer { invocationsLock.unlock() }
-        return _invocations.count
+        _invocations.withLock { $0.count }
     }
 
     func configureLogger(label: String) {
@@ -87,7 +80,14 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked 
     /// - Parameter label: An optional method name
     public init(label: String? = nil) {
         self.methodLabel = label
-        self.configureLogger(label: label ?? "")
+        self.configuration = UncheckedLockIsolated(
+            Configuration(
+                defaultProviderRegistry: MockScope.fallbackValueRegistry,
+                logger: { invocation in
+                    print("\(label ?? "")\(invocation.debugDescription)")
+                }
+            )
+        )
     }
 
     /// Records an invocation and attempts to find a matching stub to return a value or throw an error.
@@ -98,6 +98,12 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked 
     func invoke(_ input: repeat each Input) throws -> Return<Effects, Output> {
         let invocation = intake(repeat each input)
 
+        // One acquisition for the whole prologue, so logging cannot observe a
+        // half-applied reconfiguration.
+        let (isLoggingEnabled, logger, registry) = configuration.withLock {
+            ($0.isLoggingEnabled, $0.logger, $0.defaultProviderRegistry)
+        }
+
         // Log invocations
         if isLoggingEnabled {
             logger?(invocation)
@@ -107,7 +113,7 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked 
 
         let matchingStub = matchingStub(invocation: invocation)
         guard let returnValue = matchingStub?.returnValue(for: invocation) else {
-            if let fallback = defaultProviderRegistry?.getDefaultForType(Output.self) {
+            if let fallback = registry?.getDefaultForType(Output.self) {
                 return .value(fallback)
             }
 
@@ -119,10 +125,8 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked 
 
 
     private func intake(_ input: repeat each Input) -> Invocation<repeat each Input> {
-        invocationsLock.lock()
-        defer { invocationsLock.unlock() }
         let invocation = Invocation(arguments: repeat each input)
-        _invocations.append(invocation)
+        _invocations.withLock { $0.append(invocation) }
 
         // Record in global timeline for cross-spy verification
         var argumentsArray: [Any] = []
@@ -142,26 +146,22 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked 
 
     /// Returns a deep, point-in-time copy of the recorded invocations.
     ///
-    /// The copy is taken under `invocationsLock` and uses `Array(...)` to disconnect its
+    /// The copy is taken under the box's lock and uses `Array(...)` to disconnect its
     /// storage from `invocations`. Callers iterate it outside the lock without racing the
     /// appends in `intake` — a shallow `return invocations` would share CoW storage and
     /// race the array resize that `intake` triggers (the same hazard proven for `Mock`'s
     /// dictionary snapshot under Thread Sanitizer).
     private func snapshotInvocations() -> [Invocation<repeat each Input>] {
-        invocationsLock.lock()
-        defer { invocationsLock.unlock() }
-        return Array(_invocations)
+        _invocations.withLock { Array($0) }
     }
 
     /// Returns a deep, point-in-time copy of the registered stubs.
     ///
-    /// The copy is taken under `stubsLock` and uses `Array(...)` to disconnect its storage
-    /// from `stubs`. Callers match against it outside the lock without racing the appends
+    /// The copy is taken under the box's lock and uses `Array(...)` to disconnect its
+    /// storage from `stubs`. Callers match against it outside the lock without racing the appends
     /// in `createStub` (a shallow copy would share CoW storage with the same resize hazard).
     private func snapshotStubs() -> [Stub<repeat each Input, Effects, Output>] {
-        stubsLock.lock()
-        defer { stubsLock.unlock() }
-        return Array(_stubs)
+        _stubs.withLock { Array($0) }
     }
 
     private func matchingStub(invocation: Invocation<repeat each Input>) -> Stub<repeat each Input, Effects, Output>? {
@@ -177,9 +177,7 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked 
 
     @usableFromInline
     func matchingAction(invocation: Invocation<repeat each Input>) -> Action<repeat each Input, Effects>? {
-        actionsLock.lock()
-        defer { actionsLock.unlock() }
-        for action in _actions.reversed().sorted(by: { $0.precedence > $1.precedence }) {
+        for action in actions.reversed().sorted(by: { $0.precedence > $1.precedence }) {
             if action.invocationMatcher.isMatchedBy(invocation) {
                 return action
             }
@@ -204,25 +202,19 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked 
     }
 
     func createStub(for invocationMatcher: InvocationMatcher<repeat each Input>) -> Stub<repeat each Input, Effects, Output> {
-        stubsLock.lock()
-        defer { stubsLock.unlock() }
         let stub = Stub<repeat each Input, Effects, Output>(invocationMatcher: invocationMatcher)
-        _stubs.append(stub)
+        _stubs.withLock { $0.append(stub) }
         return stub
     }
 
     func registerAction(
         _ action: Action<repeat each Input, Effects>
     ) {
-        actionsLock.lock()
-        _actions.append(action)
-        actionsLock.unlock()
+        _actions.withLock { $0.append(action) }
     }
 
     func removeAction(_ action: Action<repeat each Input, Effects>) {
-        actionsLock.lock()
-        _actions.removeAll { $0 === action }
-        actionsLock.unlock()
+        _actions.withLock { $0.removeAll { $0 === action } }
     }
 
     /// Available so that spies can be used with `when` and `verify`.
@@ -276,19 +268,13 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked 
     /// Each collection is reset under its own lock so the reassignment cannot race the
     /// locked appends in `intake`/`createStub`/`registerAction`. No locks are nested.
     public func clear() {
-        stubsLock.lock()
-        _stubs = []
-        stubsLock.unlock()
-
-        actionsLock.lock()
-        _actions = []
-        actionsLock.unlock()
-
-        invocationsLock.lock()
-        _invocations = []
-        invocationsLock.unlock()
+        _stubs.withLock { $0 = [] }
+        _actions.withLock { $0 = [] }
+        _invocations.withLock { $0 = [] }
     }
 }
+
+extension Spy: Sendable where repeat each Input: Sendable, Output: Sendable { }
 
 // MARK: Throwing
 extension Spy where Effects == Throws {
@@ -307,7 +293,8 @@ extension Spy where Effects == Throws {
         return try result.get()
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) throws -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) throws -> Output
+    where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
             try self(repeat each args)
         }
@@ -401,7 +388,8 @@ extension Spy where Effects: SyncTypedThrowingEffect {
         }
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output
+    where repeat each Input: Sendable, Output: Sendable {
         return { (args: repeat each Input) throws(Effects.Failure) in
             try self(repeat each args)
         }
@@ -467,7 +455,8 @@ extension Spy where Effects: AsyncTypedThrowingEffect {
         }
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output
+    where repeat each Input: Sendable, Output: Sendable {
         return { (args: repeat each Input) async throws(Effects.Failure) in
             try await self(repeat each args)
         }
@@ -532,7 +521,8 @@ extension Spy where Effects == None {
     }
 
 
-    public func asFunction() -> @Sendable (repeat each Input) -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) -> Output
+    where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
             self(repeat each args)
         }
@@ -569,7 +559,8 @@ extension Spy where Effects == Async {
         return await returnValue.get()
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) async -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) async -> Output
+    where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
             await self(repeat each args)
         }
@@ -593,7 +584,8 @@ extension Spy where Effects == AsyncThrows {
         return try await returnValue.get()
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) async throws -> Output {
+    public func asFunction() -> @Sendable (repeat each Input) async throws -> Output
+    where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
             try await self(repeat each args)
         }

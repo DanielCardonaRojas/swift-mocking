@@ -495,6 +495,19 @@ final class SpyTests: XCTestCase {
         group.wait()
     }
 
+    func test_spy_over_sendable_inputs_and_output_is_sendable() {
+        // The proof is compile-time: these fail to compile if the conditional
+        // conformance does not hold. A spy over non-Sendable types correctly does
+        // not conform, which is why the conformance is conditional rather than
+        // the unconditional @unchecked it replaced.
+        let spy = Spy<String, None, Int>()
+
+        let sendable: any Sendable = spy
+        let closure: @Sendable () -> Void = { _ = spy }
+
+        _ = (sendable, closure)
+    }
+
     func test_action_performer_reassign_invoke_race_condition() {
         // Regression guard: an action is registered before `do { }` installs its
         // performer, so a concurrent invoke reads the slot while a test writes it.

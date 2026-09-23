@@ -16,6 +16,13 @@
 /// - Managing logging configuration
 /// - Providing default value registries
 /// - Clearing recorded state
+///
+/// The `Sendable` requirement is unconditional even though ``Spy``'s own conformance is
+/// conditional, so erasing a spy over non-`Sendable` types to `any AnySpy` yields a
+/// `Sendable` value. That is sound rather than a loophole: every member below traffics
+/// only in `Sendable` types, and each is backed by the same lock-guarded storage, so no
+/// non-`Sendable` value is reachable through this interface. Keep it that way — adding a
+/// member that exposes a spy's `Input` or `Output` would break the guarantee.
 public protocol AnySpy: AnyObject, Sendable {
     /// The registry used to provide default values for unstubbed method calls.
     var defaultProviderRegistry: DefaultProvidableRegistry? { get set }
