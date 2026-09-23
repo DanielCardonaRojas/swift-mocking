@@ -276,6 +276,23 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy {
 
 extension Spy: Sendable where repeat each Input: Sendable, Output: Sendable { }
 
+/// Conforms unconditionally, deliberately: none of these members expose an `Input` or
+/// `Output` value, so a spy can hand out a `Sendable` action-registering handle even when
+/// the spy itself is not `Sendable`. See ``SpyActionRegistering``.
+extension Spy: SpyActionRegistering {
+    public var actionMethodLabel: String? { methodLabel }
+
+    public func registerErasedAction(_ action: AnyObject) {
+        guard let action = action as? Action<repeat each Input, Effects> else { return }
+        registerAction(action)
+    }
+
+    public func removeErasedAction(_ action: AnyObject) {
+        guard let action = action as? Action<repeat each Input, Effects> else { return }
+        removeAction(action)
+    }
+}
+
 // MARK: Throwing
 extension Spy where Effects == Throws {
     /// Calls the spy's method, expecting it to throw an error.
