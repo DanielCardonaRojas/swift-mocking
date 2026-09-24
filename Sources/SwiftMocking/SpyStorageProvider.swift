@@ -12,11 +12,18 @@ import Foundation
 /// The provider owns the raw dictionary that mirrors the storage layout used by `Mock`.
 /// It can be shared across different execution contexts to coordinate spy access.
 ///
-/// Thread safety comes from holding the dictionary in a ``LockIsolated`` box.
+/// Thread safety comes from holding the dictionary in a lock-guarded box, so this
+/// conformance is checked rather than asserted.
+///
+/// The box is an ``UncheckedLockIsolated`` rather than a ``LockIsolated`` because `AnySpy`
+/// cannot inherit `Sendable` at this package's Swift 6.0 floor — see the note on
+/// ``AnySpy`` — which leaves `Storage` non-`Sendable` and so outside what `LockIsolated`
+/// accepts. The assertion covers only the erased spies, whose own storage is lock-guarded
+/// and whose interface exposes no `Input` or `Output` value.
 public final class SpyStorageProvider: Sendable {
     public typealias Storage = [String: [String: [AnySpy]]]
 
-    private let _storage: LockIsolated<Storage>
+    private let _storage: UncheckedLockIsolated<Storage>
 
     /// Thread-safe access to the underlying storage.
     ///
@@ -38,7 +45,7 @@ public final class SpyStorageProvider: Sendable {
     /// Creates a storage provider with an optional pre-populated dictionary.
     /// - Parameter storage: Existing spy storage. Defaults to an empty dictionary.
     public init(storage: Storage = [:]) {
-        self._storage = LockIsolated(storage)
+        self._storage = UncheckedLockIsolated(storage)
     }
 }
 

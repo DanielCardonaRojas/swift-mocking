@@ -6,11 +6,13 @@ import Testing
 import _Concurrency
 import _StringProcessing
 import _SwiftConcurrencyShims
-final public class Action<each I, Eff> : @unchecked Sendable where Eff : Effect {
+final public class Action<each I, Eff> where Eff : Effect {
   final public let invocationMatcher: InvocationMatcher<repeat each I>
   final public var precedence: MatcherPrecedence {
     get
   }
+}
+extension Action : Sendable where repeat each I : Sendable {
 }
 extension Action where Eff == None {
   final public func `do`(_ handler: @escaping @Sendable (repeat each I) -> Void)
@@ -30,7 +32,12 @@ extension Action where Eff == Async {
 extension Action where Eff == AsyncThrows {
   final public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws -> Void)
 }
-public protocol AnySpy : AnyObject, Sendable {
+public protocol SpyActionRegistering : AnyObject, Sendable {
+  var actionMethodLabel: String? { get }
+  func registerErasedAction(_ action: AnyObject)
+  func removeErasedAction(_ action: AnyObject)
+}
+public protocol AnySpy : AnyObject {
   var defaultProviderRegistry: DefaultProvidableRegistry? { get set }
   var invocationCount: Int { get }
   var isLoggingEnabled: Bool { get set }
@@ -314,7 +321,7 @@ public struct Interaction<each Input, Eff, Output> where Eff : Effect {
   public init(_ matchers: repeat ArgMatcher<each Input>, spy: Spy<repeat each Input, Eff, Output>)
   public func invocations() -> [(repeat each Input)]
 }
-extension Interaction : Sendable where repeat each Input : Sendable {
+extension Interaction : Sendable where repeat each Input : Sendable, Output : Sendable {
 }
 public struct Invocation<each Input> : CustomDebugStringConvertible {
   public let invocationID: Foundation.UUID
@@ -511,58 +518,61 @@ public struct SourceLocation : Sendable {
         SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column)
     }
 }
-public class Spy<each Input, Effects, Output> : AnySpy, @unchecked Sendable where Effects : Effect {
-  public var invocations: [Invocation<repeat each Input>] {
+final public class Spy<each Input, Effects, Output> : AnySpy where Effects : Effect {
+  final public var invocations: [Invocation<repeat each Input>] {
     get
   }
-  public var isLoggingEnabled: Bool {
+  final public var isLoggingEnabled: Bool {
     get
     set
   }
   final public let spyID: Foundation.UUID
-  public var methodLabel: String? {
-    get
-  }
-  public var defaultProviderRegistry: DefaultProvidableRegistry? {
+  final public let methodLabel: String?
+  final public var defaultProviderRegistry: DefaultProvidableRegistry? {
     get
     set
   }
-  public var invocationCount: Int {
+  final public var invocationCount: Int {
     get
   }
   public init(label: String? = nil)
-  public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Arrange<repeat each Input, Effects, Output>
-  public func when(calledWith invocationMatcher: InvocationMatcher<repeat each Input>) -> Arrange<repeat each Input, Effects, Output>
-  public func callAsFunction(_ matchingInput: repeat ArgMatcher<each Input>) -> Interaction<repeat each Input, Effects, Output>
-  public func verifyCalled(_ countMatcher: ArgMatcher<Int>? = nil) -> Bool
-  public func verify(calledWith arguments: repeat ArgMatcher<each Input>, count countMatcher: ArgMatcher<Int>) -> Bool
-  public func verify(calledWith invocationMatcher: InvocationMatcher<repeat each Input>, count countMatcher: ArgMatcher<Int>) -> Bool
-  public func clear()
+  final public func when(calledWith matchingInput: repeat ArgMatcher<each Input>) -> Arrange<repeat each Input, Effects, Output>
+  final public func when(calledWith invocationMatcher: InvocationMatcher<repeat each Input>) -> Arrange<repeat each Input, Effects, Output>
+  final public func callAsFunction(_ matchingInput: repeat ArgMatcher<each Input>) -> Interaction<repeat each Input, Effects, Output>
+  final public func verifyCalled(_ countMatcher: ArgMatcher<Int>? = nil) -> Bool
+  final public func verify(calledWith arguments: repeat ArgMatcher<each Input>, count countMatcher: ArgMatcher<Int>) -> Bool
+  final public func verify(calledWith invocationMatcher: InvocationMatcher<repeat each Input>, count countMatcher: ArgMatcher<Int>) -> Bool
+  final public func clear()
+}
+extension Spy : Sendable where repeat each Input : Sendable, Output : Sendable {
 }
 extension Spy where Effects == Throws {
   @discardableResult
-  public func callAsFunction(_ input: repeat each Input) throws -> Output
-  public func asFunction() -> @Sendable (repeat each Input) throws -> Output
-  public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
-  public func verifyThrows() -> Bool
+  final public func callAsFunction(_ input: repeat each Input) throws -> Output
+  final public func asFunction() -> @Sendable (repeat each Input) throws -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction() -> (repeat each Input) throws -> Output
+  final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
+  final public func verifyThrows() -> Bool
 }
 extension Spy where Effects : SyncTypedThrowingEffect {
   @discardableResult
-  public func callAsFunction(_ input: repeat each Input) throws(Effects.Failure) -> Output
-  public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output
-  public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
-  public func verifyThrows() -> Bool
+  final public func callAsFunction(_ input: repeat each Input) throws(Effects.Failure) -> Output
+  final public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction() -> (repeat each Input) throws(Effects.Failure) -> Output
+  final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
+  final public func verifyThrows() -> Bool
 }
 extension Spy where Effects : AsyncTypedThrowingEffect {
   @discardableResult
-  public func callAsFunction(_ input: repeat each Input) async throws(Effects.Failure) -> Output
-  public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output
-  public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
-  public func verifyThrows() async -> Bool
+  final public func callAsFunction(_ input: repeat each Input) async throws(Effects.Failure) -> Output
+  final public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction() -> (repeat each Input) async throws(Effects.Failure) -> Output
+  final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
+  final public func verifyThrows() async -> Bool
 }
 extension Spy where Effects == None {
   @discardableResult
-  @inline(__always) public func callAsFunction(_ input: repeat each Input) -> Output {
+  @inline(__always) final public func callAsFunction(_ input: repeat each Input) -> Output {
         do {
             return try process(repeat each input)
         } catch let error as MockingError {
@@ -571,11 +581,12 @@ extension Spy where Effects == None {
             fatalError("\(error.localizedDescription)")
         }
     }
-  public func asFunction() -> @Sendable (repeat each Input) -> Output
+  final public func asFunction() -> @Sendable (repeat each Input) -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction() -> (repeat each Input) -> Output
 }
 extension Spy where Effects == Async {
   @discardableResult
-  @inline(__always) public func callAsFunction(_ input: repeat each Input) async -> Output {
+  @inline(__always) final public func callAsFunction(_ input: repeat each Input) async -> Output {
         do {
             return try await process(repeat each input)
         } catch let error as MockingError {
@@ -584,71 +595,84 @@ extension Spy where Effects == Async {
             fatalError("\(error.localizedDescription)")
         }
     }
-  public func asFunction() -> @Sendable (repeat each Input) async -> Output
+  final public func asFunction() -> @Sendable (repeat each Input) async -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction() -> (repeat each Input) async -> Output
 }
 extension Spy where Effects == AsyncThrows {
   @discardableResult
-  public func callAsFunction(_ input: repeat each Input) async throws -> Output
-  public func asFunction() -> @Sendable (repeat each Input) async throws -> Output
-  public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
-  public func verifyThrows() async -> Bool
+  final public func callAsFunction(_ input: repeat each Input) async throws -> Output
+  final public func asFunction() -> @Sendable (repeat each Input) async throws -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction() -> (repeat each Input) async throws -> Output
+  final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
+  final public func verifyThrows() async -> Bool
 }
-public func adapt<Output>(_ spy: Spy<Void, Async, Output>) -> @Sendable () async -> Output
-public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> @Sendable () async throws -> Output
-public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> @Sendable () throws -> Output
-public func adapt<Output>(_ spy: Spy<Void, None, Output>) -> @Sendable () -> Output
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Async, Output>) -> @Sendable (repeat each Input) async -> Output
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> @Sendable (repeat each Input) throws -> Output
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> @Sendable (repeat each Input) async throws -> Output
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, None, Output>) -> @Sendable (repeat each Input) -> Output
-final public class SpyStorageProvider : @unchecked Sendable {
+public func adapt<Output>(_ spy: Spy<Void, Async, Output>) -> @Sendable () async -> Output where Output : Sendable
+public func adapt<Output>(_ spy: Spy<Void, Async, Output>) -> () async -> Output
+public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> @Sendable () async throws -> Output where Output : Sendable
+public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> () async throws -> Output
+public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> @Sendable () throws -> Output where Output : Sendable
+public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> () throws -> Output
+public func adapt<Output>(_ spy: Spy<Void, None, Output>) -> @Sendable () -> Output where Output : Sendable
+public func adapt<Output>(_ spy: Spy<Void, None, Output>) -> () -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Async, Output>) -> @Sendable (repeat each Input) async -> Output where repeat each Input : Sendable, Output : Sendable
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Async, Output>) -> (repeat each Input) async -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> @Sendable (repeat each Input) throws -> Output where repeat each Input : Sendable, Output : Sendable
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> (repeat each Input) throws -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> @Sendable (repeat each Input) async throws -> Output where repeat each Input : Sendable, Output : Sendable
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> (repeat each Input) async throws -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, None, Output>) -> @Sendable (repeat each Input) -> Output where repeat each Input : Sendable, Output : Sendable
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, None, Output>) -> (repeat each Input) -> Output
+final public class SpyStorageProvider : Sendable {
   public typealias Storage = [String : [String : [any AnySpy]]]
   final public var storage: SpyStorageProvider.Storage {
     get
     set
   }
+  final public func withStorage<R>(_ body: (inout SpyStorageProvider.Storage) throws -> R) rethrows -> R
   public init(storage: SpyStorageProvider.Storage = [:])
 }
-public class Stub<each I, Effects, O> where Effects : Effect {
+final public class Stub<each I, Effects, O> where Effects : Effect {
   final public let invocationMatcher: InvocationMatcher<repeat each I>
-  public var precedence: MatcherPrecedence {
+  final public var precedence: MatcherPrecedence {
     get
   }
 }
+extension Stub : Sendable where repeat each I : Sendable, O : Sendable {
+}
 extension Stub where Effects == None {
-  public func thenReturn(_ output: O) where O : Sendable
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  final public func thenReturn(_ output: O) where O : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
 }
 extension Stub where Effects == Throws {
-  public func thenReturn(_ output: O) where O : Sendable
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
-  public func thenThrow<E>(_ error: E) where E : Error
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws -> O) where repeat each I : Sendable
+  final public func thenReturn(_ output: O) where O : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  final public func thenThrow<E>(_ error: E) where E : Error
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws -> O) where repeat each I : Sendable
 }
 extension Stub where Effects : SyncTypedThrowingEffect {
-  public func thenReturn(_ output: O) where O : Sendable
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
-  public func thenThrow(_ error: Effects.Failure)
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws(Effects.Failure) -> O) where repeat each I : Sendable
+  final public func thenReturn(_ output: O) where O : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  final public func thenThrow(_ error: Effects.Failure)
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) throws(Effects.Failure) -> O) where repeat each I : Sendable
 }
 extension Stub where Effects : AsyncTypedThrowingEffect {
-  public func thenReturn(_ output: O) where O : Sendable
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
-  public func thenThrow(_ error: Effects.Failure)
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws(Effects.Failure) -> O) where repeat each I : Sendable
+  final public func thenReturn(_ output: O) where O : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  final public func thenThrow(_ error: Effects.Failure)
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws(Effects.Failure) -> O) where repeat each I : Sendable
 }
 extension Stub where Effects == Async {
-  public func thenReturn(_ output: O) where O : Sendable
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
+  final public func thenReturn(_ output: O) where O : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
 }
 extension Stub where Effects == AsyncThrows {
-  public func thenReturn(_ output: O) where O : Sendable
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
-  public func thenThrow<E>(_ error: E) where E : Error
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
-  public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws -> O) where repeat each I : Sendable
+  final public func thenReturn(_ output: O) where O : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) -> O)
+  final public func thenThrow<E>(_ error: E) where E : Error
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async -> O) where repeat each I : Sendable
+  final public func thenReturn(_ handler: @escaping @Sendable (repeat each I) async throws -> O) where repeat each I : Sendable
 }
 public func when<each Input, Eff, Output>(_ interaction: Interaction<repeat each Input, Eff, Output>) -> Arrange<repeat each Input, Eff, Output> where Eff : Effect
 public func when<each Input, Eff, Output>(_ interaction: (()) -> Interaction<repeat each Input, Eff, Output>) -> Arrange<repeat each Input, Eff, Output> where Eff : Effect

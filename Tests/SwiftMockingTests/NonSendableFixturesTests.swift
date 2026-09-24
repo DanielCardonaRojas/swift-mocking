@@ -31,6 +31,8 @@ protocol LegacyService {
     func send(_ message: NonSendableMessage) -> NonSendableReceipt
     func makeMessage(seed: Int) -> NonSendableMessage
     func validate(_ token: String) throws -> String
+    func load(id: String) async -> NonSendableMessage
+    func fetch(id: String) async throws -> NonSendableMessage
 }
 
 final class NonSendableFixturesTests: XCTestCase {
@@ -72,5 +74,92 @@ final class NonSendableFixturesTests: XCTestCase {
         when(mock.validate(.any)).thenReturn { _ in throw NonSendableValidationError(reason: "invalid") }
 
         XCTAssertThrowsError(try mock.validate("token"))
+    }
+
+    // MARK: - Conditional Sendable conformances
+
+    func test_asyncRequirementsReturningNonSendableValues() async throws {
+        let mock = MockLegacyService()
+        when(mock.load(id: .any)).thenReturn { _ in NonSendableMessage() }
+        when(mock.fetch(id: .any)).thenReturn { _ in NonSendableMessage() }
+
+        let loaded = await mock.load(id: "a")
+        let fetched = try await mock.fetch(id: "b")
+
+        XCTAssertEqual(loaded.body, "payload")
+        XCTAssertEqual(fetched.body, "payload")
+        verify(mock.load(id: .any)).called()
+        verify(mock.fetch(id: .any)).called()
+    }
+
+    func test_generatedMockOfNonSendableProtocolIsStillSendable() {
+        // The headline guarantee for consumers: making Spy, Stub and Interaction
+        // conditionally Sendable did not stop a *mock* from crossing isolation
+        // domains, because a generated mock stores a `Mock`, which never names the
+        // protocol's input or output types. Compile-time proof.
+        let mock = MockLegacyService()
+
+        let sendable: any Sendable = mock
+        let closure: @Sendable () -> Void = { _ = mock }
+
+        _ = (sendable, closure)
+    }
+
+    func test_closureInjectionOfNonSendableOutput() {
+        // `adapt` and `asFunction` come in @Sendable and plain forms. The plain form
+        // carries no constraints, so a spy over a non-Sendable type is still injectable
+        // as a function; overload resolution picks it from the contextual type. Asking
+        // for a @Sendable closure over the same spy still fails, which is the point.
+        class UserProfile {
+            let name: String
+            init(name: String) {
+                self.name = name
+            }
+        }
+        let spy = Spy<String, None, UserProfile>()
+        when(spy(.any)).thenReturn { _ in UserProfile(name: "Daniel") }
+
+        let inject: (String) -> UserProfile = adapt(spy)
+        XCTAssertEqual(inject("").name, "Daniel")
+        verify(spy(.any)).called()
+    }
+
+    func test_closureInjectionOfNonSendableOutputUnderTypedThrows() throws {
+        // The typed-throws effects need the same plain overload as the others: without
+        // it a spy over a non-Sendable Output has no asFunction() at all, rather than
+        // merely lacking the @Sendable one.
+        let spy = Spy<String, TypedThrows<NonSendableValidationError>, NonSendableMessage>()
+        when(spy(.any)).thenReturn { _ in NonSendableMessage() }
+
+        let inject: (String) throws(NonSendableValidationError) -> NonSendableMessage = spy.asFunction()
+        _ = try inject("")
+        verify(spy(.any)).called()
+    }
+
+    func test_closureInjectionOfNonSendableOutputUnderAsyncTypedThrows() async throws {
+        let spy = Spy<String, AsyncTypedThrows<NonSendableValidationError>, NonSendableMessage>()
+        when(spy(.any)).thenReturn { _ in NonSendableMessage() }
+
+        let inject: (String) async throws(NonSendableValidationError) -> NonSendableMessage = spy.asFunction()
+        _ = try await inject("")
+        verify(spy(.any)).called()
+    }
+
+    func test_untilAcceptsRequirementReturningNonSendableValue() async throws {
+        // `until` waits for a call without touching its return value, so a
+        // non-Sendable Output must not block it. Asserts the timeout path because a
+        // spy over a non-Sendable Output is itself not Sendable, and so cannot be
+        // driven from a second task.
+        let mock = MockLegacyService()
+        when(mock.load(id: .any)).thenReturn { _ in NonSendableMessage() }
+
+        do {
+            try await until(mock.load(id: .equal("never")), timeout: .milliseconds(50))
+            XCTFail("Expected a timeout")
+        } catch let error as UntilError {
+            guard case .timeout = error else {
+                return XCTFail("Expected .timeout, got \(error)")
+            }
+        }
     }
 }

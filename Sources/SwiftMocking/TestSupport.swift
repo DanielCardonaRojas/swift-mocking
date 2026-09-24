@@ -329,7 +329,16 @@ public func until<each Input, Output>(
     timeout: Duration = .seconds(1)
 ) async throws where repeat each Input: Sendable
 {
-    try await withUntilTimeout(interaction: interaction, timeout: timeout) { action, tracker, cleanup in
+    // Captured as SpyActionRegistering, not as the Spy itself: that handle is Sendable
+    // on the inputs alone, so awaiting a call does not require a Sendable Output.
+    let registrar: any SpyActionRegistering = interaction.spy.actionRegistrar
+    try await withUntilTimeout(
+        invocationMatcher: interaction.invocationMatcher,
+        methodLabel: registrar.actionMethodLabel,
+        registerAction: { registrar.registerErasedAction($0) },
+        removeAction: { registrar.removeErasedAction($0) },
+        timeout: timeout
+    ) { (action: Action<repeat each Input, None>, tracker, cleanup) in
         action.do { (_: repeat each Input) in
             if tracker.tryFulfill() {
                 cleanup()
@@ -344,7 +353,16 @@ public func until<each Input, Output>(
     timeout: Duration = .seconds(1)
 ) async throws where repeat each Input: Sendable
 {
-    try await withUntilTimeout(interaction: interaction, timeout: timeout) { action, tracker, cleanup in
+    // Captured as SpyActionRegistering, not as the Spy itself: that handle is Sendable
+    // on the inputs alone, so awaiting a call does not require a Sendable Output.
+    let registrar: any SpyActionRegistering = interaction.spy.actionRegistrar
+    try await withUntilTimeout(
+        invocationMatcher: interaction.invocationMatcher,
+        methodLabel: registrar.actionMethodLabel,
+        registerAction: { registrar.registerErasedAction($0) },
+        removeAction: { registrar.removeErasedAction($0) },
+        timeout: timeout
+    ) { (action: Action<repeat each Input, Async>, tracker, cleanup) in
         action.do { (_: repeat each Input) async in
             if tracker.tryFulfill() {
                 cleanup()
@@ -359,7 +377,16 @@ public func until<each Input, Output>(
     timeout: Duration = .seconds(1)
 ) async throws where repeat each Input: Sendable
 {
-    try await withUntilTimeout(interaction: interaction, timeout: timeout) { action, tracker, cleanup in
+    // Captured as SpyActionRegistering, not as the Spy itself: that handle is Sendable
+    // on the inputs alone, so awaiting a call does not require a Sendable Output.
+    let registrar: any SpyActionRegistering = interaction.spy.actionRegistrar
+    try await withUntilTimeout(
+        invocationMatcher: interaction.invocationMatcher,
+        methodLabel: registrar.actionMethodLabel,
+        registerAction: { registrar.registerErasedAction($0) },
+        removeAction: { registrar.removeErasedAction($0) },
+        timeout: timeout
+    ) { action, tracker, cleanup in
         action.do { (_: repeat each Input) async throws in
             if tracker.tryFulfill() {
                 cleanup()
@@ -544,8 +571,16 @@ public extension Assert where Eff: AsyncTypedThrowingEffect {
     }
 }
 
+/// Registers a temporary action and waits for it to fire, or times out.
+///
+/// Takes the pieces it needs rather than the whole ``Interaction`` so that `Output` stays
+/// unconstrained: `until` never touches the return value, and requiring `Output: Sendable`
+/// here would rule out awaiting calls that return a non-`Sendable` type.
 private func withUntilTimeout<each Input, Eff: Effect>(
-    interaction: Interaction<repeat each Input, Eff, some Any>,
+    invocationMatcher: InvocationMatcher<repeat each Input>,
+    methodLabel: String?,
+    registerAction: @escaping @Sendable (Action<repeat each Input, Eff>) -> Void,
+    removeAction: @escaping @Sendable (Action<repeat each Input, Eff>) -> Void,
     timeout: Duration,
     actionHandler: @escaping @Sendable (Action<repeat each Input, Eff>, FulfillmentTracker, @escaping @Sendable () -> Void) -> Void
 ) async throws
@@ -553,12 +588,11 @@ where repeat each Input: Sendable
 {
     let tracker = FulfillmentTracker()
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-        let actionReference = Action<repeat each Input, Eff>(invocationMatcher: interaction.invocationMatcher)
-        let methodLabel = interaction.spy.methodLabel
+        let actionReference = Action<repeat each Input, Eff>(invocationMatcher: invocationMatcher)
         let timer = Task {
             try await Task.sleep(for: timeout)
             if tracker.tryFulfill() {
-                interaction.spy.removeAction(actionReference)
+                removeAction(actionReference)
                 continuation.resume(
                     throwing: UntilError.timeout(method: methodLabel, duration: timeout)
                 )
@@ -567,12 +601,12 @@ where repeat each Input: Sendable
 
         let cleanup: @Sendable () -> Void = {
             timer.cancel()
-            interaction.spy.removeAction(actionReference)
+            removeAction(actionReference)
             continuation.resume()
         }
 
         actionHandler(actionReference, tracker, cleanup)
-        interaction.spy.registerAction(actionReference)
+        registerAction(actionReference)
     }
 }
 

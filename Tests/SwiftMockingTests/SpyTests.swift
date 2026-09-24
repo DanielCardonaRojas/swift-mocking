@@ -308,6 +308,28 @@ final class SpyTests: XCTestCase {
         verify(spy(.any)).called()
     }
 
+    func test_until_acceptsNonSendableOutput() async throws {
+        // `until` only waits for a call to happen; it never touches the return value,
+        // so a non-Sendable Output must not block it. Constraining Spy made this stop
+        // compiling until the wait was routed through SpyActionRegistering, which is
+        // Sendable without naming Output.
+        //
+        // The guarantee is compile-time: a spy with a non-Sendable Output is itself not
+        // Sendable, so it cannot be driven from another task — which is why this asserts
+        // that the call type-checks and times out, rather than racing two domains.
+        let spy = Spy<String, None, NonSendableMessage>()
+        when(spy(.any)).thenReturn { _ in NonSendableMessage() }
+
+        do {
+            try await until(spy(.equal("never")), timeout: .milliseconds(50))
+            XCTFail("Expected a timeout")
+        } catch let error as UntilError {
+            guard case .timeout = error else {
+                return XCTFail("Expected .timeout, got \(error)")
+            }
+        }
+    }
+
     func test_untilWaitsForAsyncInteraction() async throws {
         let spy = Spy<String, Async, Void>()
 
@@ -493,6 +515,19 @@ final class SpyTests: XCTestCase {
         }
 
         group.wait()
+    }
+
+    func test_spy_over_sendable_inputs_and_output_is_sendable() {
+        // The proof is compile-time: these fail to compile if the conditional
+        // conformance does not hold. A spy over non-Sendable types correctly does
+        // not conform, which is why the conformance is conditional rather than
+        // the unconditional @unchecked it replaced.
+        let spy = Spy<String, None, Int>()
+
+        let sendable: any Sendable = spy
+        let closure: @Sendable () -> Void = { _ = spy }
+
+        _ = (sendable, closure)
     }
 
     func test_action_performer_reassign_invoke_race_condition() {
