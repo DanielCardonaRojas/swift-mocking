@@ -37,7 +37,7 @@ public protocol SpyActionRegistering : AnyObject, Sendable {
   func registerErasedAction(_ action: AnyObject)
   func removeErasedAction(_ action: AnyObject)
 }
-public protocol AnySpy : AnyObject, Sendable {
+public protocol AnySpy : AnyObject {
   var defaultProviderRegistry: DefaultProvidableRegistry? { get set }
   var invocationCount: Int { get }
   var isLoggingEnabled: Bool { get set }
@@ -545,13 +545,6 @@ final public class Spy<each Input, Effects, Output> : AnySpy where Effects : Eff
   final public func clear()
 }
 extension Spy : Sendable where repeat each Input : Sendable, Output : Sendable {
-}
-extension Spy : SpyActionRegistering {
-  final public var actionMethodLabel: String? {
-    get
-  }
-  final public func registerErasedAction(_ action: AnyObject)
-  final public func removeErasedAction(_ action: AnyObject)
 }
 extension Spy where Effects == Throws {
   @discardableResult

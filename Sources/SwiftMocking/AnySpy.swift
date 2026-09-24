@@ -13,12 +13,14 @@
 /// `Sendable` return type.
 ///
 /// This protocol exposes exactly that bookkeeping. Its members traffic only in an opaque
-/// action token and a label — never in an `Input` or `Output` *value* — so ``Spy``
-/// conforms unconditionally, and `until(_:timeout:)` can capture a `Sendable` handle to a
-/// spy that is not itself `Sendable`.
+/// action token and a label — never in an `Input` or `Output` *value* — so
+/// `until(_:timeout:)` can capture a `Sendable` handle to a spy that is not itself
+/// `Sendable`.
 ///
-/// The conformance has to be unconditional: `Sendable` is a marker protocol, and a
-/// conditional conformance to a non-marker protocol cannot depend on one.
+/// ``Spy`` does not conform directly; ``Spy/actionRegistrar`` vends a small non-generic
+/// class that does. Conforming `Spy` itself would require it to be *unconditionally*
+/// `Sendable` at this package's Swift 6.0 floor, which is exactly the conditional
+/// conformance this indirection exists to preserve.
 ///
 /// - Important: Every member must stay free of `Input` and `Output` values. Adding one
 ///   that exposes either would make the conformance unsound.
@@ -50,13 +52,19 @@ public protocol SpyActionRegistering: AnyObject, Sendable {
 /// - Providing default value registries
 /// - Clearing recorded state
 ///
-/// The `Sendable` requirement is unconditional even though ``Spy``'s own conformance is
-/// conditional, so erasing a spy over non-`Sendable` types to `any AnySpy` yields a
-/// `Sendable` value. That is sound rather than a loophole: every member below traffics
-/// only in `Sendable` types, and each is backed by the same lock-guarded storage, so no
-/// non-`Sendable` value is reachable through this interface. Keep it that way — adding a
-/// member that exposes a spy's `Input` or `Output` would break the guarantee.
-public protocol AnySpy: AnyObject, Sendable {
+/// Deliberately does *not* inherit `Sendable`, even though every member traffics only in
+/// `Sendable` types over lock-guarded storage. On Swift 6.0 — this package's toolchain
+/// floor — a type cannot conform to a `Sendable`-inheriting protocol unless it is
+/// unconditionally `Sendable`, so inheriting it here would force ``Spy`` to choose between
+/// its conditional conformance and conforming at all. Swift 6.1 relaxed that rule, but the
+/// floor is what has to compile.
+///
+/// The cost is that `any AnySpy` is not `Sendable`, so containers of erased spies need a
+/// box that does not require it; see ``SpyStorageProvider``. Sharing an erased spy remains
+/// safe for the reason above — this is a compiler-expressiveness limit, not a soundness
+/// one. Keep it that way: a member exposing a spy's `Input` or `Output` would make erased
+/// sharing genuinely unsafe.
+public protocol AnySpy: AnyObject {
     /// The registry used to provide default values for unstubbed method calls.
     var defaultProviderRegistry: DefaultProvidableRegistry? { get set }
 

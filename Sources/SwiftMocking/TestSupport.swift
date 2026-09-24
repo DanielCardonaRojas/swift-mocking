@@ -331,7 +331,7 @@ public func until<each Input, Output>(
 {
     // Captured as SpyActionRegistering, not as the Spy itself: that handle is Sendable
     // on the inputs alone, so awaiting a call does not require a Sendable Output.
-    let registrar: any SpyActionRegistering = interaction.spy
+    let registrar: any SpyActionRegistering = interaction.spy.actionRegistrar
     try await withUntilTimeout(
         invocationMatcher: interaction.invocationMatcher,
         methodLabel: registrar.actionMethodLabel,
@@ -355,7 +355,7 @@ public func until<each Input, Output>(
 {
     // Captured as SpyActionRegistering, not as the Spy itself: that handle is Sendable
     // on the inputs alone, so awaiting a call does not require a Sendable Output.
-    let registrar: any SpyActionRegistering = interaction.spy
+    let registrar: any SpyActionRegistering = interaction.spy.actionRegistrar
     try await withUntilTimeout(
         invocationMatcher: interaction.invocationMatcher,
         methodLabel: registrar.actionMethodLabel,
@@ -379,7 +379,7 @@ public func until<each Input, Output>(
 {
     // Captured as SpyActionRegistering, not as the Spy itself: that handle is Sendable
     // on the inputs alone, so awaiting a call does not require a Sendable Output.
-    let registrar: any SpyActionRegistering = interaction.spy
+    let registrar: any SpyActionRegistering = interaction.spy.actionRegistrar
     try await withUntilTimeout(
         invocationMatcher: interaction.invocationMatcher,
         methodLabel: registrar.actionMethodLabel,

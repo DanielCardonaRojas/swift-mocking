@@ -276,21 +276,49 @@ public final class Spy<each Input, Effects: Effect, Output>: AnySpy {
 
 extension Spy: Sendable where repeat each Input: Sendable, Output: Sendable { }
 
-/// Conforms unconditionally, deliberately: none of these members expose an `Input` or
-/// `Output` value, so a spy can hand out a `Sendable` action-registering handle even when
-/// the spy itself is not `Sendable`. See ``SpyActionRegistering``.
-extension Spy: SpyActionRegistering {
-    public var actionMethodLabel: String? { methodLabel }
+extension Spy {
+    /// A `Sendable` handle over just this spy's action bookkeeping.
+    ///
+    /// Lets `until(_:timeout:)` await a call without requiring `Output: Sendable`; see
+    /// ``SpyActionRegistering``.
+    var actionRegistrar: any SpyActionRegistering {
+        SpyActionRegistrar(spy: self)
+    }
+}
 
-    public func registerErasedAction(_ action: AnyObject) {
-        guard let action = action as? Action<repeat each Input, Effects> else { return }
-        registerAction(action)
+/// The concrete ``SpyActionRegistering`` handle, vended by ``Spy/actionRegistrar``.
+///
+/// ``Spy`` cannot conform to `SpyActionRegistering` itself: that protocol inherits
+/// `Sendable`, and at this package's Swift 6.0 floor a type conforming to a
+/// `Sendable`-inheriting protocol must be *unconditionally* `Sendable` — which `Spy`
+/// deliberately is not. This non-generic class conforms instead, closing over the spy's
+/// bookkeeping methods, so the conditional conformance survives.
+///
+/// The `@unchecked` annotation covers the captured spy. It is sound for the reason
+/// ``SpyActionRegistering`` documents: the closures below reach only the spy's
+/// lock-guarded action storage and never an `Input` or `Output` value.
+final class SpyActionRegistrar: SpyActionRegistering, @unchecked Sendable {
+    private let label: String?
+    private let register: (AnyObject) -> Void
+    private let remove: (AnyObject) -> Void
+
+    init<each Input, Effects: Effect, Output>(spy: Spy<repeat each Input, Effects, Output>) {
+        self.label = spy.methodLabel
+        self.register = { action in
+            guard let action = action as? Action<repeat each Input, Effects> else { return }
+            spy.registerAction(action)
+        }
+        self.remove = { action in
+            guard let action = action as? Action<repeat each Input, Effects> else { return }
+            spy.removeAction(action)
+        }
     }
 
-    public func removeErasedAction(_ action: AnyObject) {
-        guard let action = action as? Action<repeat each Input, Effects> else { return }
-        removeAction(action)
-    }
+    var actionMethodLabel: String? { label }
+
+    func registerErasedAction(_ action: AnyObject) { register(action) }
+
+    func removeErasedAction(_ action: AnyObject) { remove(action) }
 }
 
 // MARK: Throwing
