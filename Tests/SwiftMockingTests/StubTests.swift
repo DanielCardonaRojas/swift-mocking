@@ -36,4 +36,15 @@ final class StubTests: XCTestCase {
         let stub2 = Stub<String, None, Int>(invocationMatcher: .init(matchers: .equal("test")))
         XCTAssertTrue(stub2.precedence > stub1.precedence)
     }
+
+    func test_stub_over_sendable_inputs_and_output_is_sendable() {
+        // The proof is compile-time: both statements below fail to compile if the
+        // conditional conformance does not hold.
+        let stub = Stub<String, None, Int>(invocationMatcher: .init(matchers: .any))
+
+        let sendable: any Sendable = stub
+        let closure: @Sendable () -> Void = { _ = stub }
+
+        _ = (sendable, closure)
+    }
 }

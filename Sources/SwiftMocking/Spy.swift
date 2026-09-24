@@ -16,7 +16,11 @@ import Foundation
 /// - ``Stub`` - Defines behavior for method calls
 /// - ``Interaction`` - Represents a method call for verification
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
-public class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
+///
+/// `@unchecked` because the mutable stored properties below are guarded by locks rather
+/// than by the type system. Type erasure goes through ``AnySpy``, so nothing needs to
+/// subclass this.
+public final class Spy<each Input, Effects: Effect, Output>: AnySpy, @unchecked Sendable {
     /// A publicly accessible array of all ``Invocation``s captured by this spy.
     private var _invocations: [Invocation<repeat each Input>] = []
     /// A point-in-time snapshot of all ``Invocation``s captured by this spy.

@@ -12,29 +12,20 @@ import Foundation
 /// You use stubs to control the behavior of a dependency during a test. For example, you can stub a method to return a specific value, or to throw an error.
 /// Stubs are created by calling the `when(calledWith:)` method on a ``Spy`` and are recorded to intercept invocations on a method and
 /// return the programmed return value.
-public class Stub<each I, Effects: Effect, O> {
+public final class Stub<each I, Effects: Effect, O> {
     /// The ``InvocationMatcher`` that defines when this stub should be applied.
     public let invocationMatcher: InvocationMatcher<repeat each I>
-    private let outputLock = NSLock()
-    private var _output: (@Sendable (Invocation<repeat each I>) -> Return<Effects, O>)?
+    private let _output = UncheckedLockIsolated<(@Sendable (Invocation<repeat each I>) -> Return<Effects, O>)?>(nil)
 
     /// The closure that produces this stub's return value.
     ///
-    /// Access is synchronized through `outputLock`. A stub is appended to `Spy.stubs`
-    /// *before* `output` is set (in `thenReturn`), so a concurrent `invoke` can read it;
-    /// the lock makes that read and the `thenReturn` write mutually exclusive. The closure
-    /// is read under the lock and invoked outside it so user code never runs under the lock.
+    /// A stub is appended to `Spy.stubs` *before* `output` is set (in `thenReturn`), so a
+    /// concurrent `invoke` can read it; the box makes that read and the `thenReturn` write
+    /// mutually exclusive. The closure is read out of the box and invoked outside it so
+    /// user code never runs under the lock.
     var output: (@Sendable (Invocation<repeat each I>) -> Return<Effects, O>)? {
-        get {
-            outputLock.lock()
-            defer { outputLock.unlock() }
-            return _output
-        }
-        set {
-            outputLock.lock()
-            defer { outputLock.unlock() }
-            _output = newValue
-        }
+        get { _output.withLock { $0 } }
+        set { _output.withLock { $0 = newValue } }
     }
 
     /// Initializes a `Stub` instance.
@@ -60,6 +51,8 @@ public class Stub<each I, Effects: Effect, O> {
         .init(value: invocationMatcher.precedence)
     }
 }
+
+extension Stub: Sendable where repeat each I: Sendable, O: Sendable { }
 
 extension Stub where Effects == None {
     /// Defines the return value for this stub.

@@ -23,6 +23,8 @@ import Foundation
 /// - ``Interaction`` - Represents a method call for stubbing and verification
 /// - ``ArgMatcher`` - Matches method arguments with various criteria
 ///
+/// `@unchecked` because `Mock` is `open`, and a non-final class cannot conform to
+/// `Sendable`. Thread safety comes from the `NSLock`s below.
 @dynamicMemberLookup
 open class Mock: DefaultProvider, @unchecked Sendable {
     /// This provides a way to access super as if it where in a static context.

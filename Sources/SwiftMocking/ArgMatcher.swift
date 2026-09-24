@@ -405,6 +405,9 @@ public extension ArgMatcher {
 /// `KeyPath` values are deeply immutable and safe to share across threads, but the
 /// standard library does not (yet) declare them `Sendable`. This narrowly-targeted box
 /// adds that guarantee for read-only matcher use.
+///
+/// Still required as of Swift 6.3. Delete once the standard library declares the
+/// conformance.
 private struct SendableKeyPath<Root, Value>: @unchecked Sendable {
     let keyPath: KeyPath<Root, Value>
 }

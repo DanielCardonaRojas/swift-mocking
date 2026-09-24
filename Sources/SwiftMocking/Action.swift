@@ -9,13 +9,18 @@
 ///
 /// Actions are executed whenever an invocation matches their matcher, allowing
 /// callers to run custom closures without influencing the stubbed return value.
-public final class Action<each I, Eff: Effect>: @unchecked Sendable {
+///
+/// An action is registered on a ``Spy`` before its performer is installed, so a
+/// concurrent invocation can read the performer while it is being written. Each is
+/// held in a ``LockIsolated`` box, and `perform` reads the closure out before calling
+/// it so user code never runs under the lock.
+public final class Action<each I, Eff: Effect> {
     public let invocationMatcher: InvocationMatcher<repeat each I>
 
-    fileprivate var syncPerformer: (@Sendable (Invocation<repeat each I>) -> Void)?
-    fileprivate var throwingPerformer: (@Sendable (Invocation<repeat each I>) throws -> Void)?
-    fileprivate var asyncPerformer: (@Sendable (Invocation<repeat each I>) async -> Void)?
-    fileprivate var asyncThrowingPerformer: (@Sendable (Invocation<repeat each I>) async throws -> Void)?
+    fileprivate let syncPerformer = LockIsolated<(@Sendable (Invocation<repeat each I>) -> Void)?>(nil)
+    fileprivate let throwingPerformer = LockIsolated<(@Sendable (Invocation<repeat each I>) throws -> Void)?>(nil)
+    fileprivate let asyncPerformer = LockIsolated<(@Sendable (Invocation<repeat each I>) async -> Void)?>(nil)
+    fileprivate let asyncThrowingPerformer = LockIsolated<(@Sendable (Invocation<repeat each I>) async throws -> Void)?>(nil)
 
     init(invocationMatcher: InvocationMatcher<repeat each I>) {
         self.invocationMatcher = invocationMatcher
@@ -26,30 +31,38 @@ public final class Action<each I, Eff: Effect>: @unchecked Sendable {
     }
 }
 
+extension Action: Sendable where repeat each I: Sendable { }
+
 extension Action where Eff == None {
     /// Registers a synchronous action.
     public func `do`(_ handler: @escaping @Sendable (repeat each I) -> Void) {
-        syncPerformer = { invocation in
-            handler(repeat each invocation.arguments)
+        syncPerformer.withLock { performer in
+            performer = { invocation in
+                handler(repeat each invocation.arguments)
+            }
         }
     }
 
     @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) {
-        syncPerformer?(invocation)
+        let performer = syncPerformer.withLock { $0 }
+        performer?(invocation)
     }
 }
 
 extension Action where Eff == Throws {
     /// Registers a throwing synchronous action.
     public func `do`(_ handler: @escaping @Sendable (repeat each I) throws -> Void) {
-        throwingPerformer = { invocation in
-            try handler(repeat each invocation.arguments)
+        throwingPerformer.withLock { performer in
+            performer = { invocation in
+                try handler(repeat each invocation.arguments)
+            }
         }
     }
 
     func perform(_ invocation: Invocation<repeat each I>) throws {
-        try throwingPerformer?(invocation)
+        let performer = throwingPerformer.withLock { $0 }
+        try performer?(invocation)
     }
 }
 
@@ -59,13 +72,16 @@ extension Action where Eff: SyncTypedThrowingEffect {
     /// The handler is constrained to the effect's declared error type, so an action
     /// cannot introduce an error the requirement is not allowed to throw.
     public func `do`(_ handler: @escaping @Sendable (repeat each I) throws(Eff.Failure) -> Void) {
-        throwingPerformer = { invocation in
-            try handler(repeat each invocation.arguments)
+        throwingPerformer.withLock { performer in
+            performer = { invocation in
+                try handler(repeat each invocation.arguments)
+            }
         }
     }
 
     func perform(_ invocation: Invocation<repeat each I>) throws {
-        try throwingPerformer?(invocation)
+        let performer = throwingPerformer.withLock { $0 }
+        try performer?(invocation)
     }
 }
 
@@ -74,39 +90,48 @@ extension Action where Eff: AsyncTypedThrowingEffect {
     ///
     /// See the synchronous overload for why the handler's error type is constrained.
     public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws(Eff.Failure) -> Void) {
-        asyncThrowingPerformer = { invocation in
-            try await handler(repeat each invocation.arguments)
+        asyncThrowingPerformer.withLock { performer in
+            performer = { invocation in
+                try await handler(repeat each invocation.arguments)
+            }
         }
     }
 
     func perform(_ invocation: Invocation<repeat each I>) async throws {
-        try await asyncThrowingPerformer?(invocation)
+        let performer = asyncThrowingPerformer.withLock { $0 }
+        try await performer?(invocation)
     }
 }
 
 extension Action where Eff == Async {
     /// Registers an asynchronous action.
     public func `do`(_ handler: @escaping @Sendable (repeat each I) async -> Void) {
-        asyncPerformer = { invocation in
-            await handler(repeat each invocation.arguments)
+        asyncPerformer.withLock { performer in
+            performer = { invocation in
+                await handler(repeat each invocation.arguments)
+            }
         }
     }
 
     @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) async {
-        await asyncPerformer?(invocation)
+        let performer = asyncPerformer.withLock { $0 }
+        await performer?(invocation)
     }
 }
 
 extension Action where Eff == AsyncThrows {
     /// Registers an asynchronous throwing action.
     public func `do`(_ handler: @escaping @Sendable (repeat each I) async throws -> Void) {
-        asyncThrowingPerformer = { invocation in
-            try await handler(repeat each invocation.arguments)
+        asyncThrowingPerformer.withLock { performer in
+            performer = { invocation in
+                try await handler(repeat each invocation.arguments)
+            }
         }
     }
 
     func perform(_ invocation: Invocation<repeat each I>) async throws {
-        try await asyncThrowingPerformer?(invocation)
+        let performer = asyncThrowingPerformer.withLock { $0 }
+        try await performer?(invocation)
     }
 }
