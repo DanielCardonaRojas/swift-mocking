@@ -419,6 +419,13 @@ extension Spy where Effects: SyncTypedThrowingEffect {
         }
     }
 
+    /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
+    public func asFunction() -> (repeat each Input) throws(Effects.Failure) -> Output {
+        return { (args: repeat each Input) throws(Effects.Failure) in
+            try self(repeat each args)
+        }
+    }
+
     /// Verifies that the spy's method threw an error matching the given `errorMatcher`.
     /// - Parameter errorMatcher: An ``ArgMatcher`` for `Error` to specify the expected error.
     /// - Returns: `true` if a matching error was thrown, `false` otherwise.
@@ -481,6 +488,13 @@ extension Spy where Effects: AsyncTypedThrowingEffect {
 
     public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output
     where repeat each Input: Sendable, Output: Sendable {
+        return { (args: repeat each Input) async throws(Effects.Failure) in
+            try await self(repeat each args)
+        }
+    }
+
+    /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
+    public func asFunction() -> (repeat each Input) async throws(Effects.Failure) -> Output {
         return { (args: repeat each Input) async throws(Effects.Failure) in
             try await self(repeat each args)
         }

@@ -565,6 +565,7 @@ extension Spy where Effects : SyncTypedThrowingEffect {
   @discardableResult
   final public func callAsFunction(_ input: repeat each Input) throws(Effects.Failure) -> Output
   final public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction() -> (repeat each Input) throws(Effects.Failure) -> Output
   final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
   final public func verifyThrows() -> Bool
 }
@@ -572,6 +573,7 @@ extension Spy where Effects : AsyncTypedThrowingEffect {
   @discardableResult
   final public func callAsFunction(_ input: repeat each Input) async throws(Effects.Failure) -> Output
   final public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction() -> (repeat each Input) async throws(Effects.Failure) -> Output
   final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
   final public func verifyThrows() async -> Bool
 }

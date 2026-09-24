@@ -124,6 +124,27 @@ final class NonSendableFixturesTests: XCTestCase {
         verify(spy(.any)).called()
     }
 
+    func test_closureInjectionOfNonSendableOutputUnderTypedThrows() throws {
+        // The typed-throws effects need the same plain overload as the others: without
+        // it a spy over a non-Sendable Output has no asFunction() at all, rather than
+        // merely lacking the @Sendable one.
+        let spy = Spy<String, TypedThrows<NonSendableValidationError>, NonSendableMessage>()
+        when(spy(.any)).thenReturn { _ in NonSendableMessage() }
+
+        let inject: (String) throws(NonSendableValidationError) -> NonSendableMessage = spy.asFunction()
+        _ = try inject("")
+        verify(spy(.any)).called()
+    }
+
+    func test_closureInjectionOfNonSendableOutputUnderAsyncTypedThrows() async throws {
+        let spy = Spy<String, AsyncTypedThrows<NonSendableValidationError>, NonSendableMessage>()
+        when(spy(.any)).thenReturn { _ in NonSendableMessage() }
+
+        let inject: (String) async throws(NonSendableValidationError) -> NonSendableMessage = spy.asFunction()
+        _ = try await inject("")
+        verify(spy(.any)).called()
+    }
+
     func test_untilAcceptsRequirementReturningNonSendableValue() async throws {
         // `until` waits for a call without touching its return value, so a
         // non-Sendable Output must not block it. Asserts the timeout path because a
