@@ -372,40 +372,56 @@ public struct MetatypeParser {
   public static func parse(_ type: any Any.Type) -> ParsedType
 }
 extension Mock {
-  @inline(__always) public static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
+  @_transparent public static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> O {
         do {
             return try spy.process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
-  @inline(__always) public func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
+  @_transparent public func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> O {
         do {
             return try spy.process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
-  @inline(__always) public static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
+  @_transparent public static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async -> O {
         do {
             return try await spy.process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
-  @inline(__always) public func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
+  @_transparent public func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async -> O {
         do {
             return try await spy.process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
   public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O
@@ -572,13 +588,17 @@ extension Spy where Effects : AsyncTypedThrowingEffect {
 }
 extension Spy where Effects == None {
   @discardableResult
-  @inline(__always) final public func callAsFunction(_ input: repeat each Input) -> Output {
+  @_transparent final public func callAsFunction(_ input: repeat each Input, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> Output {
         do {
             return try process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
   final public func asFunction() -> @Sendable (repeat each Input) -> Output where repeat each Input : Sendable, Output : Sendable
@@ -586,13 +606,17 @@ extension Spy where Effects == None {
 }
 extension Spy where Effects == Async {
   @discardableResult
-  @inline(__always) final public func callAsFunction(_ input: repeat each Input) async -> Output {
+  @_transparent final public func callAsFunction(_ input: repeat each Input, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async -> Output {
         do {
             return try await process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
   final public func asFunction() -> @Sendable (repeat each Input) async -> Output where repeat each Input : Sendable, Output : Sendable
