@@ -35,6 +35,10 @@ import Foundation
 /// Pointing at the protocol declaration is therefore the closest attribution available for
 /// requirements invoked from production code, and it is strictly better than the previous
 /// behavior of pointing inside SwiftMocking itself.
+///
+/// The non-throwing adapters are `@_transparent` rather than `@inlinable`, because the
+/// unstubbed path ends in a trap and the frame the trap is attributed to depends on being
+/// inlined before the optimizer runs. See ``reportUnrecoverable``.
 public extension Mock {
     /// Adapts a synchronous spy call for static method mocking.
     ///
@@ -46,8 +50,7 @@ public extension Mock {
     ///   - line: Where the mocked requirement is declared.
     ///   - column: Where the mocked requirement is declared.
     /// - Returns: The result of the spy invocation.
-    @inlinable
-    @inline(__always)
+    @_transparent
     static func adapt<each I, O>(
         _ spy: Spy<repeat each I, None, O>,
         _ input: repeat each I,
@@ -79,8 +82,7 @@ public extension Mock {
     ///   - line: Where the mocked requirement is declared.
     ///   - column: Where the mocked requirement is declared.
     /// - Returns: The result of the spy invocation.
-    @inlinable
-    @inline(__always)
+    @_transparent
     func adapt<each I, O>(
         _ spy: Spy<repeat each I, None, O>,
         _ input: repeat each I,
@@ -112,8 +114,7 @@ public extension Mock {
     ///   - line: Where the mocked requirement is declared.
     ///   - column: Where the mocked requirement is declared.
     /// - Returns: The result of the async spy invocation.
-    @inlinable
-    @inline(__always)
+    @_transparent
     static func adapt<each I, O>(
         _ spy: Spy<repeat each I, Async, O>,
         _ input: repeat each I,
@@ -145,8 +146,7 @@ public extension Mock {
     ///   - line: Where the mocked requirement is declared.
     ///   - column: Where the mocked requirement is declared.
     /// - Returns: The result of the async spy invocation.
-    @inlinable
-    @inline(__always)
+    @_transparent
     func adapt<each I, O>(
         _ spy: Spy<repeat each I, Async, O>,
         _ input: repeat each I,

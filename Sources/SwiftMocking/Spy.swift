@@ -566,8 +566,10 @@ extension Spy where Effects == None {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error.
-    @inlinable
-    @inline(__always)
+    ///
+    /// `@_transparent` rather than `@inlinable`: see ``reportUnrecoverable`` for why the
+    /// trap must be inlined into the caller before the optimizer runs.
+    @_transparent
     @discardableResult
     public func callAsFunction(
         _ input: repeat each Input,
@@ -622,8 +624,10 @@ extension Spy where Effects == Async {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error, as `Async` effects are not expected to throw.
-    @inlinable
-    @inline(__always)
+    ///
+    /// `@_transparent` rather than `@inlinable`: see ``reportUnrecoverable`` for why the
+    /// trap must be inlined into the caller before the optimizer runs.
+    @_transparent
     @discardableResult
     public func callAsFunction(
         _ input: repeat each Input,

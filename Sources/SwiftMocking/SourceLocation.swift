@@ -150,6 +150,11 @@ public struct SourceLocation: Sendable {
 /// attributed to the calling frame rather than to `reportUnrecoverable` itself. Without it,
 /// the runtime's crash message ends in `at SourceLocation.reportUnrecoverable` and Xcode's
 /// stack navigator selects SwiftMocking's frame instead of the mocked requirement's.
+///
+/// Every caller that reaches this function must be `@_transparent` too, for the same
+/// reason: a merely `@inlinable` caller leaves its own frame in place, and Xcode selects
+/// *that* — a file inside SwiftMocking — even though this function was inlined. The
+/// attribution is only as good as the least transparent frame in the chain.
 @_transparent
 @usableFromInline
 func reportUnrecoverable(
@@ -171,5 +176,5 @@ func reportUnrecoverable(
     // would print "SwiftMocking/SourceLocation.swift:<line>" — pointing the user at this
     // function rather than at their own code. Passing the requirement's location through
     // makes the trap message name the `@Mockable` protocol instead.
-    fatalError(message, file: filePath, line: line)
+    fatalError(message, file: fileID, line: line)
 }
