@@ -390,6 +390,11 @@ private enum ExampleError: Error, Equatable {
 /// developer directory.
 private let trapProbeIsAvailable: Bool = {
     #if os(macOS)
+    // Skipped on CI: attaching a debugger needs authorization that hosted runners do not
+    // reliably grant, and a refused attach makes lldb block rather than fail. This is a
+    // local-only check by design — the source-level guard in SwiftMockingTests'
+    // `TrapAttributionTests` is what protects the same invariant on CI.
+    guard ProcessInfo.processInfo.environment["CI"] == nil else { return false }
     return trapProbeURL != nil && testFrameworksPath != nil
     #else
     return false
@@ -426,8 +431,19 @@ private func runTrapProbeUnderDebugger(route: String) throws -> String {
     let pipe = Pipe()
     process.standardOutput = pipe
     process.standardError = pipe
+    // lldb prompts for input if it cannot run the target; without a closed stdin it would
+    // sit on that prompt forever rather than failing.
+    process.standardInput = FileHandle.nullDevice
 
     try process.run()
+
+    // Kill the debugger if it stalls. `lldb` needs authorization to attach on some machines,
+    // and when it is refused it can block indefinitely — which, without this, hangs the whole
+    // test run instead of failing one test.
+    let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
+    DispatchQueue.global().asyncAfter(deadline: .now() + 90, execute: watchdog)
+    defer { watchdog.cancel() }
+
     // Read before waiting, so a large backtrace cannot fill the pipe and deadlock.
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     process.waitUntilExit()
