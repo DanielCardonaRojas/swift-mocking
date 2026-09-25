@@ -271,6 +271,95 @@ struct ErrorReportingTests {
         #expect(issues.isEmpty, "The thrown error is the report; it should not be duplicated")
     }
 
+    /// A non-throwing requirement backed by a registered default reports nothing.
+    ///
+    /// The unstubbed *trapping* case cannot be asserted in-process at all — `fatalError` takes
+    /// the process down — so it is covered out-of-process by
+    /// ``trapIsAttributedToUserCodeNotSwiftMocking(route:expectedFrame:)``. What this pins is
+    /// the boundary next to it: a non-throwing call that the registry *can* satisfy must
+    /// return quietly, rather than reporting a spurious issue on the way.
+    @Test
+    func nonThrowingRequirementWithADefaultReportsNothing() {
+        let issues = captureIssues {
+            let mock = MockReportOnlyService()
+            // `Void` is registered, so this resolves without a stub and returns normally.
+            mock.record(id: "alice")
+        }
+
+        #expect(issues.isEmpty)
+    }
+
+    /// The trap from an unstubbed non-throwing requirement is attributed to user code.
+    ///
+    /// This is the property that makes an unstubbed call debuggable in Xcode: the stack frame
+    /// the debugger selects must be the user's call, not a file inside SwiftMocking. It holds
+    /// only if every frame between the call and `fatalError` is `@_transparent`, so the trap
+    /// is inlined into the caller before the optimizer runs.
+    ///
+    /// Asserting on the crash *message* would not catch a regression here. The message is
+    /// built from the location arguments SwiftMocking forwards explicitly, so it keeps naming
+    /// the right file even when the attribution breaks. Only the backtrace distinguishes the
+    /// two, so this runs the probe under `lldb` and inspects the frames.
+    ///
+    /// Both routes into the unrecoverable path are covered: a generated conformance
+    /// (`Mock.adapt`) and a directly constructed spy (`Spy.callAsFunction`). They reach the
+    /// trap through different frames, so a regression can appear in one and not the other.
+    ///
+    /// The two land in different — but equally correct — places, so each asserts its own
+    /// expected frame:
+    ///
+    /// - `spy`: the user's own function, in `MockedProtocols.swift`.
+    /// - `conformance`: the generated mock's method, which lives in the macro expansion
+    ///   buffer (`@__swiftmacro_…`). That buffer *is* the closest thing to user code on this
+    ///   path — the witness cannot carry the call site's location — and Xcode resolves it
+    ///   back to the `@Mockable` protocol.
+    ///
+    /// Requires `lldb` and the `TrapProbe` executable, so it is macOS-only and disabled when
+    /// the probe has not been built. `swift test` builds it as part of the package, but a
+    /// filtered run that skips the build would otherwise fail for the wrong reason.
+    @Test(
+        .enabled(if: trapProbeIsAvailable, "TrapProbe executable or lldb is unavailable"),
+        arguments: [
+            ("spy", "MockedProtocols.swift"),
+            ("conformance", "@__swiftmacro_"),
+        ]
+    )
+    func trapIsAttributedToUserCodeNotSwiftMocking(route: String, expectedFrame: String) throws {
+        let backtrace = try runTrapProbeUnderDebugger(route: route)
+
+        // The frame the debugger selects must belong to the caller, not to the library. With a
+        // merely `@inlinable` frame in the chain this reads
+        // `reportUnrecoverable() at <compiler-generated>:0` instead.
+        #expect(
+            backtrace.contains(expectedFrame),
+            """
+            Trap was not attributed to the calling code.
+            Route: \(route), expected frame to mention: \(expectedFrame)
+            Backtrace:
+            \(backtrace)
+            """
+        )
+        #expect(
+            !backtrace.contains("reportUnrecoverable"),
+            """
+            Trap was attributed to SwiftMocking's own reporting helper, which means a frame \
+            in the chain lost `@_transparent`.
+            Route: \(route)
+            Backtrace:
+            \(backtrace)
+            """
+        )
+        #expect(
+            !backtrace.contains("<compiler-generated>"),
+            """
+            Trap was attributed to a compiler-generated frame with no source location.
+            Route: \(route)
+            Backtrace:
+            \(backtrace)
+            """
+        )
+    }
+
     /// A stubbed error propagates untouched.
     ///
     /// `thenThrow` describes behavior the test asked for, not a mocking failure, so it must
@@ -292,3 +381,139 @@ struct ErrorReportingTests {
 private enum ExampleError: Error, Equatable {
     case boom
 }
+
+/// Whether the backtrace check can run at all: macOS, with the probe built and a usable
+/// developer directory.
+private let trapProbeIsAvailable: Bool = {
+    #if os(macOS)
+    return trapProbeURL != nil && testFrameworksPath != nil
+    #else
+    return false
+    #endif
+}()
+
+/// Runs the `TrapProbe` executable under `lldb` and returns the backtrace of its crash.
+///
+/// A debugger is required because the property under test is which stack frame the trap is
+/// attributed to — the same thing Xcode's stack navigator selects. The crash message alone
+/// cannot distinguish a correct attribution from a regressed one.
+///
+/// - Parameter route: Which path into the unrecoverable path to exercise, matching the
+///   arguments `TrapProbe` accepts.
+private func runTrapProbeUnderDebugger(route: String) throws -> String {
+    let probe = try locateTrapProbe()
+    let frameworks = try #require(
+        testFrameworksPath,
+        "Could not locate the platform test frameworks directory via xcode-select."
+    )
+
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+    process.arguments = [
+        "lldb", "--batch",
+        // SwiftMocking links swift-testing (via IssueReporting), which lives only on the
+        // test frameworks path, so a plain executable cannot resolve it unaided.
+        "-o", "settings set target.env-vars DYLD_FRAMEWORK_PATH=\(frameworks)",
+        "-o", "run",
+        "-o", "bt",
+        "--", probe.path, route,
+    ]
+
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = pipe
+
+    try process.run()
+    // Read before waiting, so a large backtrace cannot fill the pipe and deadlock.
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+
+    let output = String(decoding: data, as: UTF8.self)
+
+    // Keep only the frame lines; the surrounding lldb chatter is noise in failure messages.
+    let frames = output
+        .split(separator: "\n", omittingEmptySubsequences: true)
+        .filter { $0.contains("frame #") }
+        .joined(separator: "\n")
+
+    // An empty backtrace means the probe never trapped, or lldb could not run it. Either way
+    // the test cannot conclude anything, so fail loudly rather than vacuously passing.
+    try #require(
+        !frames.isEmpty,
+        """
+        Expected a backtrace from the trap probe but captured none. \
+        Full lldb output:
+        \(output)
+        """
+    )
+
+    return frames
+}
+
+/// Locates the `TrapProbe` executable in the same build directory as this test bundle.
+///
+/// Anchored on the bundle *containing this test code* rather than `Bundle.main`: under
+/// `swift test` the main bundle is the toolchain's test runner, which lives nowhere near the
+/// package's build products. The probe is a product of this same package, so it sits in the
+/// build directory alongside the test bundle — walking up from there works across
+/// debug/release and architecture-specific directories without hardcoding a path.
+private func locateTrapProbe() throws -> URL {
+    return try #require(
+        trapProbeURL,
+        """
+        Could not find the TrapProbe executable. Looked in:
+        \(trapProbeCandidates.map(\.path).joined(separator: "\n"))
+        Build it with `swift build --product TrapProbe`.
+        """
+    )
+}
+
+/// Directories to search for the probe, nearest first.
+///
+/// `.xctest` bundles nest the binary under `Contents/MacOS`, so several levels are tried.
+private let trapProbeCandidates: [URL] = {
+    let bundle = Bundle(for: BundleAnchor.self).bundleURL
+    return (1...4).map { depth in
+        var directory = bundle
+        for _ in 0..<depth { directory = directory.deletingLastPathComponent() }
+        return directory.appendingPathComponent("TrapProbe")
+    }
+}()
+
+private let trapProbeURL: URL? = trapProbeCandidates.first {
+    FileManager.default.isExecutableFile(atPath: $0.path)
+}
+
+/// Anchors ``locateTrapProbe()`` to the bundle holding this test code.
+private final class BundleAnchor {}
+
+/// Path to the platform's test frameworks, where swift-testing's `Testing.framework` lives.
+///
+/// Derived from the active developer directory rather than hardcoded, so it follows
+/// `xcode-select` and a non-standard Xcode location.
+private let testFrameworksPath: String? = {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+    process.arguments = ["xcode-select", "--print-path"]
+
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = FileHandle.nullDevice
+
+    do {
+        try process.run()
+    } catch {
+        return nil
+    }
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+
+    let developerDirectory = String(decoding: data, as: UTF8.self)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !developerDirectory.isEmpty else { return nil }
+
+    let frameworks = developerDirectory
+        + "/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+    guard FileManager.default.fileExists(atPath: frameworks) else { return nil }
+    return frameworks
+}()
