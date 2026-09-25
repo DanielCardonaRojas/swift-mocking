@@ -16,15 +16,9 @@ import Foundation
 ///
 /// ## Source location
 ///
-/// Each adapter takes a trailing `fileID`/`filePath`/`line`/`column` group describing
-/// where the mocked requirement is declared. The generated conformance passes `#fileID`,
-/// `#filePath`, `#line`, and `#column` explicitly, and because those literals are expanded
-/// inside the macro's output — which is attached to the user's `@Mockable` protocol — they
-/// resolve to that protocol's own source file and line.
-///
-/// This is deliberately *not* the call site of the mocked method. A conformance witness
-/// must match the protocol requirement's signature exactly, so extra defaulted parameters
-/// on the generated method would break conformance:
+/// The adapters take no source location. A conformance witness must match the protocol
+/// requirement's signature exactly, so the generated method cannot carry defaulted
+/// location parameters:
 ///
 /// ```swift
 /// protocol P { func f(_ x: Int) -> Int }
@@ -32,43 +26,27 @@ import Foundation
 /// struct Impl: P { func f(_ x: Int, fileID: StaticString = #fileID) -> Int { x } }
 /// ```
 ///
-/// Pointing at the protocol declaration is therefore the closest attribution available for
-/// requirements invoked from production code, and it is strictly better than the previous
-/// behavior of pointing inside SwiftMocking itself.
-///
-/// The non-throwing adapters are `@_transparent` rather than `@inlinable`, because the
-/// unstubbed path ends in a trap and the frame the trap is attributed to depends on being
-/// inlined before the optimizer runs. See ``reportUnrecoverable``.
+/// An unstubbed non-throwing requirement therefore traps without a caller-supplied
+/// location. What keeps that trap useful is `@_transparent`: it inlines these adapters
+/// into the generated conformance before the optimizer runs, so the debugger attributes
+/// the trap to the mock's own method rather than to a frame inside SwiftMocking. See
+/// ``reportUnrecoverable``.
 public extension Mock {
     /// Adapts a synchronous spy call for static method mocking.
     ///
     /// - Parameters:
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
-    ///   - fileID: Where the mocked requirement is declared.
-    ///   - filePath: Where the mocked requirement is declared.
-    ///   - line: Where the mocked requirement is declared.
-    ///   - column: Where the mocked requirement is declared.
     /// - Returns: The result of the spy invocation.
     @_transparent
     static func adapt<each I, O>(
         _ spy: Spy<repeat each I, None, O>,
-        _ input: repeat each I,
-        fileID: StaticString = #fileID,
-        filePath: StaticString = #filePath,
-        line: UInt = #line,
-        column: UInt = #column
+        _ input: repeat each I
     ) -> O {
         do {
             return try spy.process(repeat each input)
         } catch {
-            reportUnrecoverable(
-                error,
-                fileID: fileID,
-                filePath: filePath,
-                line: line,
-                column: column
-            )
+            reportUnrecoverable(error)
         }
     }
 
@@ -77,30 +55,16 @@ public extension Mock {
     /// - Parameters:
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
-    ///   - fileID: Where the mocked requirement is declared.
-    ///   - filePath: Where the mocked requirement is declared.
-    ///   - line: Where the mocked requirement is declared.
-    ///   - column: Where the mocked requirement is declared.
     /// - Returns: The result of the spy invocation.
     @_transparent
     func adapt<each I, O>(
         _ spy: Spy<repeat each I, None, O>,
-        _ input: repeat each I,
-        fileID: StaticString = #fileID,
-        filePath: StaticString = #filePath,
-        line: UInt = #line,
-        column: UInt = #column
+        _ input: repeat each I
     ) -> O {
         do {
             return try spy.process(repeat each input)
         } catch {
-            reportUnrecoverable(
-                error,
-                fileID: fileID,
-                filePath: filePath,
-                line: line,
-                column: column
-            )
+            reportUnrecoverable(error)
         }
     }
 
@@ -109,30 +73,16 @@ public extension Mock {
     /// - Parameters:
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
-    ///   - fileID: Where the mocked requirement is declared.
-    ///   - filePath: Where the mocked requirement is declared.
-    ///   - line: Where the mocked requirement is declared.
-    ///   - column: Where the mocked requirement is declared.
     /// - Returns: The result of the async spy invocation.
     @_transparent
     static func adapt<each I, O>(
         _ spy: Spy<repeat each I, Async, O>,
-        _ input: repeat each I,
-        fileID: StaticString = #fileID,
-        filePath: StaticString = #filePath,
-        line: UInt = #line,
-        column: UInt = #column
+        _ input: repeat each I
     ) async -> O {
         do {
             return try await spy.process(repeat each input)
         } catch {
-            reportUnrecoverable(
-                error,
-                fileID: fileID,
-                filePath: filePath,
-                line: line,
-                column: column
-            )
+            reportUnrecoverable(error)
         }
     }
 
@@ -141,30 +91,16 @@ public extension Mock {
     /// - Parameters:
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
-    ///   - fileID: Where the mocked requirement is declared.
-    ///   - filePath: Where the mocked requirement is declared.
-    ///   - line: Where the mocked requirement is declared.
-    ///   - column: Where the mocked requirement is declared.
     /// - Returns: The result of the async spy invocation.
     @_transparent
     func adapt<each I, O>(
         _ spy: Spy<repeat each I, Async, O>,
-        _ input: repeat each I,
-        fileID: StaticString = #fileID,
-        filePath: StaticString = #filePath,
-        line: UInt = #line,
-        column: UInt = #column
+        _ input: repeat each I
     ) async -> O {
         do {
             return try await spy.process(repeat each input)
         } catch {
-            reportUnrecoverable(
-                error,
-                fileID: fileID,
-                filePath: filePath,
-                line: line,
-                column: column
-            )
+            reportUnrecoverable(error)
         }
     }
 

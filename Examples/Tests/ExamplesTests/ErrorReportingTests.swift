@@ -308,11 +308,15 @@ struct ErrorReportingTests {
     /// The two land in different — but equally correct — places, so each asserts its own
     /// expected frame:
     ///
-    /// - `spy`: the user's own function, in `MockedProtocols.swift`.
+    /// - `spy`: the user's own function, in `MockedProtocols.swift`. A directly invoked spy
+    ///   captures its caller's location in defaulted parameters, so this route gets a correct
+    ///   crash *message* as well.
     /// - `conformance`: the generated mock's method, which lives in the macro expansion
-    ///   buffer (`@__swiftmacro_…`). That buffer *is* the closest thing to user code on this
-    ///   path — the witness cannot carry the call site's location — and Xcode resolves it
-    ///   back to the `@Mockable` protocol.
+    ///   buffer (`@__swiftmacro_…`) and which Xcode resolves back to the `@Mockable`
+    ///   protocol. A conformance witness must match the requirement's signature exactly, so
+    ///   it has nowhere to carry a location; its crash *message* therefore names
+    ///   SwiftMocking's own file. The frame is what makes this route debuggable, and the
+    ///   frame is what this test pins.
     ///
     /// Requires `lldb` and the `TrapProbe` executable, so it is macOS-only and disabled when
     /// the probe has not been built. `swift test` builds it as part of the package, but a

@@ -155,14 +155,20 @@ public struct SourceLocation: Sendable {
 /// reason: a merely `@inlinable` caller leaves its own frame in place, and Xcode selects
 /// *that* — a file inside SwiftMocking — even though this function was inlined. The
 /// attribution is only as good as the least transparent frame in the chain.
+///
+/// The location defaults to the caller's own. ``Spy/callAsFunction(_:fileID:filePath:line:column:)``
+/// overrides it with the location it captured from *its* caller, since a spy invoked
+/// directly can see the real call site. A generated conformance cannot — its signature must
+/// match the protocol requirement exactly — so it relies on the default and on the inlining
+/// above to land the trap on the mock's own method.
 @_transparent
 @usableFromInline
 func reportUnrecoverable(
     _ error: any Error,
-    fileID: StaticString,
-    filePath: StaticString,
-    line: UInt,
-    column: UInt
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
 ) -> Never {
     let message = SourceLocation.describe(error)
     SourceLocation.forward(
@@ -174,7 +180,11 @@ func reportUnrecoverable(
     )
     // `fatalError` defaults `file`/`line` to where it is *written*, so omitting them
     // would print "SwiftMocking/SourceLocation.swift:<line>" — pointing the user at this
-    // function rather than at their own code. Passing the requirement's location through
-    // makes the trap message name the `@Mockable` protocol instead.
+    // function rather than at the call that failed. Forwarding the location through keeps
+    // the message naming the caller.
+    //
+    // `fileID`, not `filePath`: only `#fileID` carries the `Module/File.swift` form that
+    // resolves back to a source location. `#filePath` is an absolute path, which renders
+    // plausibly but does not resolve.
     fatalError(message, file: fileID, line: line)
 }

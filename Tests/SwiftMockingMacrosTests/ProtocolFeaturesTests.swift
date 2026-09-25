@@ -27,7 +27,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 }
 
                 func doSomething() {
-                    return adapt(super.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.doSomething, ())
                 }
             }
             #endif
@@ -57,7 +57,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                 var value: Int {
                     get {
-                        adapt(super.value, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        adapt(super.value, ())
                     }
                 }
             }
@@ -95,10 +95,10 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                 var value: Int {
                     set {
-                        return adapt(super.setValue, (), newValue, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        return adapt(super.setValue, (), newValue)
                     }
                     get {
-                        adapt(super.value, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        adapt(super.value, ())
                     }
                 }
             }
@@ -139,10 +139,10 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                 var cachePolicy: String {
                     set {
-                        return adapt(super.setCachePolicy, (), newValue, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        return adapt(super.setCachePolicy, (), newValue)
                     }
                     get {
-                        adapt(super.cachePolicy, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        adapt(super.cachePolicy, ())
                     }
                 }
             }
@@ -210,7 +210,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                 subscript(index: Int) -> String {
                     get {
-                        return adapt(super.subscriptIndex, index, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        return adapt(super.subscriptIndex, index)
                     }
                 }
             }
@@ -250,10 +250,10 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                 subscript(index: Int) -> String {
                     set {
-                        return adapt(super.setSubscriptIndex, index, newValue, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        return adapt(super.setSubscriptIndex, index, newValue)
                     }
                     get {
-                        return adapt(super.subscriptIndex, index, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        return adapt(super.subscriptIndex, index)
                     }
                 }
             }
@@ -289,7 +289,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                 subscript <T: Hashable>(item: T) -> String {
                     get {
-                        return adapt(super.subscriptItem, item, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        return adapt(super.subscriptItem, item)
                     }
                 }
             }
@@ -322,7 +322,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                 subscript(row: Int, column: Int) -> String {
                     get {
-                        return adapt(super.subscriptRowColumn, row, column, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        return adapt(super.subscriptRowColumn, row, column)
                     }
                 }
             }
@@ -355,7 +355,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
 
                 subscript(_ position: Int) -> String {
                     get {
-                        return adapt(super.subscriptPosition, position, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                        return adapt(super.subscriptPosition, position)
                     }
                 }
             }
@@ -389,7 +389,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 }
 
                 func item() -> Item {
-                    return adapt(super.item, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.item, ())
                 }
             }
             #endif
@@ -421,7 +421,7 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 }
 
                 func save(_ value: String) {
-                    return adapt(super.save, value, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.save, value)
                 }
             }
             #endif
@@ -457,11 +457,11 @@ final class ProtocolFeaturesTests: MacroTestCase {
                 }
 
                 func save(_ value: String) {
-                    return adapt(super.save, value, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.save, value)
                 }
 
                 static func reset() {
-                    return adapt(super.reset, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.reset, ())
                 }
             }
             #endif

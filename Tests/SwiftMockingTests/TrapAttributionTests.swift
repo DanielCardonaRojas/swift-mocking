@@ -53,10 +53,12 @@ final class TrapAttributionTests: XCTestCase {
             )
 
             for range in declarationRanges {
-                // Only the declarations that forward a source location reach the trap; the
-                // throwing overloads surface an unstubbed call as a thrown error instead.
-                let signature = source[range.lowerBound...]
-                guard signature.prefix(600).contains("fileID: StaticString") else { continue }
+                // Only the overloads that actually trap need the attribute; the throwing ones
+                // surface an unstubbed call as a thrown error instead. Detected by looking for
+                // the call in the body rather than by signature, since the adapters no longer
+                // take a source location — a generated conformance has nowhere to get one.
+                let body = source[range.lowerBound...]
+                guard body.prefix(600).contains("reportUnrecoverable(") else { continue }
 
                 let attributes = source[..<range.lowerBound]
                 XCTAssertTrue(

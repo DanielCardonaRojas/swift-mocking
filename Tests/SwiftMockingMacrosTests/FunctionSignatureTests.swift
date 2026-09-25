@@ -26,7 +26,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func price(_ item: String) -> Int {
-                    return adapt(super.price, item, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.price, item)
                 }
             }
             #endif
@@ -55,7 +55,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func print(_ values: String...) {
-                    return adapt(super.print, values, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.print, values)
                 }
             }
             #endif
@@ -206,7 +206,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func price(_ item: String) throws(Never) -> Int {
-                    return adapt(super.price, item, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.price, item)
                 }
             }
             #endif
@@ -235,7 +235,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func price(_ item: String) async -> Int {
-                    return await adapt(super.price, item, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return await adapt(super.price, item)
                 }
             }
             #endif
@@ -332,7 +332,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func doSomething() -> String {
-                    return adapt(super.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.doSomething, ())
                 }
             }
             #endif
@@ -361,7 +361,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func doSomething(with value: Int) {
-                    return adapt(super.doSomething, value, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.doSomething, value)
                 }
             }
             #endif
@@ -390,7 +390,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func doSomething() {
-                    return adapt(super.doSomething, (), fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.doSomething, ())
                 }
             }
             #endif
@@ -420,7 +420,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 static func log(_ message: String) {
-                    return adapt(super.log, message, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.log, message)
                 }
             }
             #endif
@@ -450,7 +450,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func logEvent<E: Identifiable>(_ event: E) -> Bool {
-                    return adapt(super.logEvent, event, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.logEvent, event)
                 }
             }
             #endif
@@ -479,7 +479,7 @@ final class FunctionSignatureTests: MacroTestCase {
                 }
 
                 func execute(completion: @escaping (String) -> Void) {
-                    return adapt(super.execute, completion, fileID: #fileID, filePath: #filePath, line: #line, column: #column)
+                    return adapt(super.execute, completion)
                 }
             }
             #endif
