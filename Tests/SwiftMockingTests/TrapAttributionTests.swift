@@ -90,6 +90,90 @@ final class TrapAttributionTests: XCTestCase {
         )
     }
 
+    /// The closure-producing helpers must capture the location where the closure is built.
+    ///
+    /// `asFunction` returns a closure that calls back into `callAsFunction`. If it does not
+    /// capture and forward a location, that call supplies its own defaults — expanded inside
+    /// `Spy.swift` — and an unstubbed call made through a closure-based dependency is
+    /// reported against SwiftMocking's own source.
+    ///
+    /// `@_transparent` cannot help here the way it does for the direct and conformance
+    /// routes: the closure runs long after `asFunction` returns, so there is no caller frame
+    /// to inline into. The captured location is the only attribution available, which is why
+    /// it is guarded separately.
+    func testClosureProducingHelpersCaptureTheirLocation() throws {
+        let source = try Self.source(of: "Spy.swift")
+
+        // Only the non-throwing effects reach the trap; the throwing ones surface an
+        // unstubbed call as a thrown error and need no location.
+        for effect in ["None", "Async"] {
+            let block = try XCTUnwrap(
+                Self.extensionBody(of: "extension Spy where Effects == \(effect) {", in: source),
+                "Could not find the `Effects == \(effect)` extension in Spy.swift."
+            )
+
+            let declarations = block.ranges(of: "public func asFunction(")
+            XCTAssertFalse(
+                declarations.isEmpty,
+                "Expected asFunction overloads in the `Effects == \(effect)` extension."
+            )
+
+            for range in declarations {
+                let signature = block[range.lowerBound...].prefix(400)
+                XCTAssertTrue(
+                    signature.contains("fileID: StaticString = #fileID"),
+                    """
+                    An `asFunction` overload for `Effects == \(effect)` does not capture a \
+                    source location, so a closure-based dependency built from it reports \
+                    unstubbed calls against SwiftMocking instead of the injection site.
+                    """
+                )
+            }
+        }
+    }
+
+    /// The free `adapt` functions must forward the location they capture.
+    ///
+    /// They are the documented way to build a closure dependency (`Client(load: adapt(spy))`),
+    /// so a location captured here but dropped before `asFunction` is as bad as not capturing
+    /// one at all.
+    func testClosureAdaptersForwardTheirLocation() throws {
+        let source = try Self.source(of: "SpyAdapters.swift")
+
+        var checked = 0
+        for range in source.ranges(of: "spy.asFunction(") {
+            // Only the non-throwing effects trap, and only those capture a location to
+            // forward. The throwing overloads surface an unstubbed call as a thrown error,
+            // so they legitimately call `asFunction()` bare.
+            let declaration = source[..<range.lowerBound]
+            guard let signatureStart = declaration.range(
+                of: "public func adapt", options: .backwards
+            ) else { continue }
+            let signature = declaration[signatureStart.lowerBound...]
+            guard signature.contains(", None, Output>") || signature.contains(", Async, Output>")
+            else { continue }
+
+            checked += 1
+            let call = source[range.lowerBound...].prefix(120)
+            XCTAssertTrue(
+                call.contains("fileID: fileID"),
+                """
+                A non-throwing `adapt` overload calls `spy.asFunction()` without forwarding \
+                its captured location, so the closure falls back to defaults expanded inside \
+                Spy.swift.
+                """
+            )
+        }
+
+        XCTAssertGreaterThan(
+            checked, 0,
+            """
+            Found no non-throwing `adapt` overloads delegating to `asFunction`. If the \
+            adapters were restructured, update this guard so it keeps covering them.
+            """
+        )
+    }
+
     /// The trap must pass `fileID`, not `filePath`.
     ///
     /// `fatalError`'s output is the `file:` string verbatim, and only `#fileID` carries the
@@ -131,6 +215,33 @@ final class TrapAttributionTests: XCTestCase {
             return false
         }
         return false
+    }
+
+    /// Returns the body of the extension introduced by `header`, up to its closing brace.
+    ///
+    /// Scoping the search matters: `Spy.swift` declares `asFunction` for every effect, and a
+    /// file-wide search could satisfy a check for one effect with a declaration belonging to
+    /// another. Brace counting is enough here because these extensions contain balanced code
+    /// and no braces inside string literals.
+    private static func extensionBody(of header: String, in source: String) -> Substring? {
+        guard let start = source.range(of: header) else { return nil }
+
+        var depth = 0
+        var index = start.upperBound
+        // `header` includes the opening brace.
+        depth = 1
+
+        while index < source.endIndex {
+            switch source[index] {
+            case "{": depth += 1
+            case "}":
+                depth -= 1
+                if depth == 0 { return source[start.upperBound..<index] }
+            default: break
+            }
+            index = source.index(after: index)
+        }
+        return nil
     }
 
     /// Reads a SwiftMocking source file, located relative to this test file.

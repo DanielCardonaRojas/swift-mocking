@@ -199,6 +199,27 @@ public func tripUnstubbedRequirementViaSpy() -> Never {
     fatalError("unreachable: the unstubbed call above must trap")
 }
 
+/// Calls an unstubbed spy through a *closure-based dependency*.
+///
+/// The third route, and the one with the weakest attribution available: the closure is built
+/// in one place and invoked in another, so the trap can only name where the dependency was
+/// wired up. `adapt` captures that at the `adapt(spy)` call below and threads it through, so
+/// the message points here rather than into `Spy.swift`.
+///
+/// Worth covering separately because the location has to survive two hops — `adapt` into
+/// `asFunction`, and `asFunction` into the escaping closure — and dropping it at either hop
+/// silently falls back to SwiftMocking's own source.
+public func tripUnstubbedRequirementViaClosure() -> Never {
+    struct NoDefault {}
+    struct Client {
+        var load: (Int) -> NoDefault
+    }
+    let spy = Spy<Int, None, NoDefault>()
+    let client = Client(load: adapt(spy))
+    _ = client.load(7)
+    fatalError("unreachable: the unstubbed call above must trap")
+}
+
 /// A return type with no registered default, so an unstubbed call cannot be satisfied.
 public struct UserProfile: Equatable {
     public let name: String

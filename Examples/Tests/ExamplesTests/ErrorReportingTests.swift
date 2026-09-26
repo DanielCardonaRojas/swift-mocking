@@ -364,6 +364,49 @@ struct ErrorReportingTests {
         )
     }
 
+    /// A spy injected as a closure names the line that wired up the dependency.
+    ///
+    /// This is the shape used for closure-based dependencies:
+    ///
+    /// ```swift
+    /// struct FetchClient { var load: (Int) -> Item }
+    /// let client = FetchClient(load: adapt(spy))
+    /// ```
+    ///
+    /// The closure escapes and is invoked somewhere else entirely, so there is no useful
+    /// stack frame to fall back on — unlike the other two routes, the crash *message* is the
+    /// only attribution available. `adapt` captures the location at its own call site and
+    /// threads it through `asFunction` into the closure to provide it.
+    ///
+    /// Without that, the `self(...)` call inside `asFunction` supplies its own defaults,
+    /// which expand inside `Spy.swift`, and the failure is reported against SwiftMocking's
+    /// own source — the exact problem this whole area exists to prevent.
+    /// Unlike the backtrace tests this needs no debugger, so it also runs on CI.
+    @Test(.enabled(if: trapProbeCanRun, "TrapProbe executable is unavailable"))
+    func closureDependencyTrapNamesTheInjectionSite() throws {
+        let output = try runTrapProbe(route: "closure")
+
+        #expect(
+            output.contains("Examples/MockedProtocols.swift"),
+            """
+            The trap did not name the file where the closure dependency was built. A location \
+            dropped between `adapt`, `asFunction`, and the escaping closure falls back to \
+            SwiftMocking's own source.
+            Output:
+            \(output)
+            """
+        )
+        #expect(
+            !output.contains("SwiftMocking/Spy.swift"),
+            """
+            The trap was attributed to Spy.swift, which means the injection site's location \
+            was not threaded through to the closure.
+            Output:
+            \(output)
+            """
+        )
+    }
+
     /// A stubbed error propagates untouched.
     ///
     /// `thenThrow` describes behavior the test asked for, not a mocking failure, so it must
@@ -388,6 +431,16 @@ private enum ExampleError: Error, Equatable {
 
 /// Whether the backtrace check can run at all: macOS, with the probe built and a usable
 /// developer directory.
+/// Whether the probe can simply be *run* — no debugger, so this holds on CI too.
+private let trapProbeCanRun: Bool = {
+    #if os(macOS)
+    return trapProbeURL != nil && testFrameworksPath != nil
+    #else
+    return false
+    #endif
+}()
+
+/// Whether the probe can be run *under lldb*, which is stricter: see below.
 private let trapProbeIsAvailable: Bool = {
     #if os(macOS)
     // Skipped on CI: attaching a debugger needs authorization that hosted runners do not
@@ -400,6 +453,53 @@ private let trapProbeIsAvailable: Bool = {
     return false
     #endif
 }()
+
+/// Runs the `TrapProbe` executable directly and returns its crash output.
+///
+/// No debugger involved, unlike ``runTrapProbeUnderDebugger(route:)``: this reads the message
+/// `fatalError` prints, which is what carries the attribution on routes that have no useful
+/// stack frame. That also makes it safe to run anywhere, since nothing needs to attach.
+private func runTrapProbe(route: String) throws -> String {
+    let probe = try locateTrapProbe()
+    let frameworks = try #require(
+        testFrameworksPath,
+        "Could not locate the platform test frameworks directory via xcode-select."
+    )
+
+    let process = Process()
+    process.executableURL = probe
+    process.arguments = [route]
+    // SwiftMocking links swift-testing (via IssueReporting), which lives only on the test
+    // frameworks path, so a plain executable cannot resolve it unaided.
+    var environment = ProcessInfo.processInfo.environment
+    environment["DYLD_FRAMEWORK_PATH"] = frameworks
+    process.environment = environment
+
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = pipe
+    process.standardInput = FileHandle.nullDevice
+
+    try process.run()
+
+    let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
+    DispatchQueue.global().asyncAfter(deadline: .now() + 60, execute: watchdog)
+    defer { watchdog.cancel() }
+
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+
+    let output = String(decoding: data, as: UTF8.self)
+
+    try #require(
+        output.contains("Fatal error"),
+        """
+        Expected the probe to trap but it did not. Output:
+        \(output)
+        """
+    )
+    return output
+}
 
 /// Runs the `TrapProbe` executable under `lldb` and returns the backtrace of its crash.
 ///
