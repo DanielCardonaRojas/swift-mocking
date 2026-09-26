@@ -603,17 +603,39 @@ extension Spy where Effects == None {
     }
 
 
-    public func asFunction() -> @Sendable (repeat each Input) -> Output
+    /// Wraps the spy in a closure, for injecting into a closure-based dependency.
+    ///
+    /// The location defaults capture where the *closure is built* — typically the line
+    /// wiring up the dependency, as in `FetchClient(load: spy.asFunction())`. Without them
+    /// the `self(...)` call below would supply its own defaults, expanded here in
+    /// `Spy.swift`, and an unstubbed call would be reported against SwiftMocking's source.
+    ///
+    /// This is not the closure's *invocation* site, which may be anywhere and is not
+    /// knowable here. It is the line that installed the unstubbed dependency, which is the
+    /// line that has to change.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> @Sendable (repeat each Input) -> Output
     where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
-            self(repeat each args)
+            self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
     /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
-    public func asFunction() -> (repeat each Input) -> Output {
+    ///
+    /// See the `@Sendable` overload for why the location is captured here.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> (repeat each Input) -> Output {
         return { (args:  repeat each Input) in
-            self(repeat each args)
+            self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 }
@@ -660,17 +682,33 @@ extension Spy where Effects == Async {
         return await returnValue.get()
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) async -> Output
+    /// Wraps the spy in an async closure, for injecting into a closure-based dependency.
+    ///
+    /// See the synchronous overload on `Spy where Effects == None` for why the location is
+    /// captured here rather than left to expand inside `Spy.swift`.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> @Sendable (repeat each Input) async -> Output
     where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
-            await self(repeat each args)
+            await self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
     /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
-    public func asFunction() -> (repeat each Input) async -> Output {
+    ///
+    /// See the `@Sendable` overload for why the location is captured here.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> (repeat each Input) async -> Output {
         return { (args:  repeat each Input) in
-            await self(repeat each args)
+            await self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 }
