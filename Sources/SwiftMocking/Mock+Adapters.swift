@@ -13,119 +13,128 @@ import Foundation
 /// calls through the spy infrastructure. They handle the different effect types
 /// (async, throws, async throws). The mock's default provider registry is captured by
 /// each spy once, at creation time (in `Mock`'s subscript), not re-applied per call.
+///
+/// ## Source location
+///
+/// The adapters take no source location. A conformance witness must match the protocol
+/// requirement's signature exactly, so the generated method cannot carry defaulted
+/// location parameters:
+///
+/// ```swift
+/// protocol P { func f(_ x: Int) -> Int }
+/// // error: type 'Impl' does not conform to protocol 'P'
+/// struct Impl: P { func f(_ x: Int, fileID: StaticString = #fileID) -> Int { x } }
+/// ```
+///
+/// An unstubbed non-throwing requirement therefore traps without a caller-supplied
+/// location. What keeps that trap useful is `@_transparent`: it inlines these adapters
+/// into the generated conformance before the optimizer runs, so the debugger attributes
+/// the trap to the mock's own method rather than to a frame inside SwiftMocking. See
+/// ``reportUnrecoverable``.
 public extension Mock {
     /// Adapts a synchronous spy call for static method mocking.
-    ///
-    /// This adapter is used by generated static mock methods to invoke the
-    /// underlying spy while ensuring proper configuration inheritance.
     ///
     /// - Parameters:
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
-    @inlinable
-    @inline(__always)
-    static func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
+    @_transparent
+    static func adapt<each I, O>(
+        _ spy: Spy<repeat each I, None, O>,
+        _ input: repeat each I
+    ) -> O {
         do {
             return try spy.process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(error)
         }
     }
 
     /// Adapts a synchronous spy call for instance method mocking.
     ///
-    /// This adapter is used by generated instance mock methods to invoke the
-    /// underlying spy while ensuring proper configuration inheritance.
-    ///
     /// - Parameters:
     ///   - spy: The spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
-    @inlinable
-    @inline(__always)
-    func adapt<each I, O>(_ spy: Spy<repeat each I, None, O>, _ input: repeat each I) -> O {
+    @_transparent
+    func adapt<each I, O>(
+        _ spy: Spy<repeat each I, None, O>,
+        _ input: repeat each I
+    ) -> O {
         do {
             return try spy.process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(error)
         }
     }
 
     /// Adapts an asynchronous spy call for static method mocking.
     ///
-    /// This adapter handles async method calls in generated static mock methods,
-    /// ensuring proper async context and configuration inheritance.
-    ///
     /// - Parameters:
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
-    @inlinable
-    @inline(__always)
-    static func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
+    @_transparent
+    static func adapt<each I, O>(
+        _ spy: Spy<repeat each I, Async, O>,
+        _ input: repeat each I
+    ) async -> O {
         do {
             return try await spy.process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(error)
         }
     }
 
     /// Adapts an asynchronous spy call for instance method mocking.
     ///
-    /// This adapter handles async method calls in generated instance mock methods,
-    /// ensuring proper async context and configuration inheritance.
-    ///
     /// - Parameters:
     ///   - spy: The async spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
-    @inlinable
-    @inline(__always)
-    func adapt<each I, O>(_ spy: Spy<repeat each I, Async, O>, _ input: repeat each I) async -> O {
+    @_transparent
+    func adapt<each I, O>(
+        _ spy: Spy<repeat each I, Async, O>,
+        _ input: repeat each I
+    ) async -> O {
         do {
             return try await spy.process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(error)
         }
     }
 
     /// Adapts a throwing spy call for static method mocking.
     ///
-    /// This adapter handles methods that can throw errors in generated static
-    /// mock methods, ensuring proper error propagation and configuration inheritance.
+    /// Unlike the non-throwing adapters, an unstubbed requirement here surfaces as a thrown
+    /// ``MockingError`` carrying the full message, so no issue is reported separately: the
+    /// test framework already surfaces the error where the caller's `try` is caught. Adding
+    /// a second report would duplicate the failure without adding information.
     ///
     /// - Parameters:
     ///   - spy: The throwing spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
-    static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O {
-        let result = try spy(repeat each input)
-        return result
+    static func adaptThrowing<each I, O>(
+        _ spy: Spy<repeat each I, Throws, O>,
+        _ input: repeat each I
+    ) throws -> O {
+        return try spy(repeat each input)
     }
 
     /// Adapts a throwing spy call for instance method mocking.
     ///
-    /// This adapter handles methods that can throw errors in generated instance
-    /// mock methods, ensuring proper error propagation and configuration inheritance.
-    ///
     /// - Parameters:
     ///   - spy: The throwing spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
-    func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O {
-        let result = try spy(repeat each input)
-        return result
+    func adaptThrowing<each I, O>(
+        _ spy: Spy<repeat each I, Throws, O>,
+        _ input: repeat each I
+    ) throws -> O {
+        return try spy(repeat each input)
     }
 
     /// Adapts a typed-throwing spy call for static method mocking.
@@ -205,34 +214,29 @@ public extension Mock {
 
     /// Adapts an async throwing spy call for static method mocking.
     ///
-    /// This adapter handles methods that are both async and throwing in generated
-    /// static mock methods, ensuring proper async context, error propagation,
-    /// and configuration inheritance.
-    ///
     /// - Parameters:
     ///   - spy: The async throwing spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
-    static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O {
-        let result = try await spy(repeat each input)
-        return result
+    static func adaptThrowing<each I, O>(
+        _ spy: Spy<repeat each I, AsyncThrows, O>,
+        _ input: repeat each I
+    ) async throws -> O {
+        return try await spy(repeat each input)
     }
 
     /// Adapts an async throwing spy call for instance method mocking.
     ///
-    /// This adapter handles methods that are both async and throwing in generated
-    /// instance mock methods, ensuring proper async context, error propagation,
-    /// and configuration inheritance.
-    ///
     /// - Parameters:
     ///   - spy: The async throwing spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
-    func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O {
-        let result = try await spy(repeat each input)
-        return result
+    func adaptThrowing<each I, O>(
+        _ spy: Spy<repeat each I, AsyncThrows, O>,
+        _ input: repeat each I
+    ) async throws -> O {
+        return try await spy(repeat each input)
     }
-
 }

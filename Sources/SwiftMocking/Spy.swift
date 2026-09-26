@@ -559,19 +559,35 @@ extension Spy where Effects: AsyncTypedThrowingEffect {
 // MARK: None throwing
 extension Spy where Effects == None {
     /// Calls the spy's method, expecting it not to throw an error.
+    ///
+    /// When invoked directly (rather than through a generated conformance) the defaulted
+    /// location parameters capture the caller's own file and line, so an unstubbed call
+    /// is attributed to the calling test.
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error.
-    @inlinable
-    @inline(__always)
+    ///
+    /// `@_transparent` rather than `@inlinable`: see ``reportUnrecoverable`` for why the
+    /// trap must be inlined into the caller before the optimizer runs.
+    @_transparent
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) -> Output {
+    public func callAsFunction(
+        _ input: repeat each Input,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> Output {
         do {
             return try process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
 
@@ -587,17 +603,39 @@ extension Spy where Effects == None {
     }
 
 
-    public func asFunction() -> @Sendable (repeat each Input) -> Output
+    /// Wraps the spy in a closure, for injecting into a closure-based dependency.
+    ///
+    /// The location defaults capture where the *closure is built* — typically the line
+    /// wiring up the dependency, as in `FetchClient(load: spy.asFunction())`. Without them
+    /// the `self(...)` call below would supply its own defaults, expanded here in
+    /// `Spy.swift`, and an unstubbed call would be reported against SwiftMocking's source.
+    ///
+    /// This is not the closure's *invocation* site, which may be anywhere and is not
+    /// knowable here. It is the line that installed the unstubbed dependency, which is the
+    /// line that has to change.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> @Sendable (repeat each Input) -> Output
     where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
-            self(repeat each args)
+            self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
     /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
-    public func asFunction() -> (repeat each Input) -> Output {
+    ///
+    /// See the `@Sendable` overload for why the location is captured here.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> (repeat each Input) -> Output {
         return { (args:  repeat each Input) in
-            self(repeat each args)
+            self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 }
@@ -608,16 +646,28 @@ extension Spy where Effects == Async {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method.
     /// - FatalError: If the method throws an error, as `Async` effects are not expected to throw.
-    @inlinable
-    @inline(__always)
+    ///
+    /// `@_transparent` rather than `@inlinable`: see ``reportUnrecoverable`` for why the
+    /// trap must be inlined into the caller before the optimizer runs.
+    @_transparent
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) async -> Output {
+    public func callAsFunction(
+        _ input: repeat each Input,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) async -> Output {
         do {
             return try await process(repeat each input)
-        } catch let error as MockingError {
-            fatalError("MockingError: \(error.message)")
         } catch {
-            fatalError("\(error.localizedDescription)")
+            reportUnrecoverable(
+                error,
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
         }
     }
 
@@ -632,17 +682,33 @@ extension Spy where Effects == Async {
         return await returnValue.get()
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) async -> Output
+    /// Wraps the spy in an async closure, for injecting into a closure-based dependency.
+    ///
+    /// See the synchronous overload on `Spy where Effects == None` for why the location is
+    /// captured here rather than left to expand inside `Spy.swift`.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> @Sendable (repeat each Input) async -> Output
     where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
-            await self(repeat each args)
+            await self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
     /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
-    public func asFunction() -> (repeat each Input) async -> Output {
+    ///
+    /// See the `@Sendable` overload for why the location is captured here.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> (repeat each Input) async -> Output {
         return { (args:  repeat each Input) in
-            await self(repeat each args)
+            await self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 }

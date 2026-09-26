@@ -70,8 +70,10 @@ jobs:
     - name: Run Examples project tests
       run: |
         cd Examples/
+        # "Examples-Package", not "Examples": the latter is the library-only scheme and has
+        # no test action once the package declares more than one non-test target.
         xcrun xcodebuild \
-          -scheme "Examples" \
+          -scheme "Examples-Package" \
           -destination 'platform=macOS' \
           -derivedDataPath .derivedData \
           -enableCodeCoverage NO \

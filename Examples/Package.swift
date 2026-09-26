@@ -31,6 +31,14 @@ let package = Package(
                 .product(name: "SwiftMocking", package: "swift-mocking")
             ]
         ),
+        // Trips SwiftMocking's unrecoverable path in a process that is allowed to die, so a
+        // test can run it under lldb and assert on which stack frame the trap is attributed
+        // to. That cannot be observed in-process, since `fatalError` takes the process down.
+        // See `ErrorReportingTests`.
+        .executableTarget(
+            name: "TrapProbe",
+            dependencies: ["Examples"]
+        ),
         .testTarget(
             name: "ExamplesTests",
             dependencies: [
