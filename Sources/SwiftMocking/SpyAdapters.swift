@@ -43,20 +43,44 @@ public func adapt<Output>(
     { await spy((), fileID: fileID, filePath: filePath, line: line, column: column) }
 }
 
-public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> @Sendable () async throws ->  Output where Output: Sendable {
-    { try await spy(()) }
+public func adapt<Output>(
+    _ spy: Spy<Void, AsyncThrows, Output>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> @Sendable () async throws ->  Output where Output: Sendable {
+    { try await spy((), fileID: fileID, filePath: filePath, line: line, column: column) }
 }
 
-public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> () async throws ->  Output {
-    { try await spy(()) }
+public func adapt<Output>(
+    _ spy: Spy<Void, AsyncThrows, Output>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> () async throws ->  Output {
+    { try await spy((), fileID: fileID, filePath: filePath, line: line, column: column) }
 }
 
-public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> @Sendable () throws ->  Output where Output: Sendable {
-    { try spy(()) }
+public func adapt<Output>(
+    _ spy: Spy<Void, Throws, Output>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> @Sendable () throws ->  Output where Output: Sendable {
+    { try spy((), fileID: fileID, filePath: filePath, line: line, column: column) }
 }
 
-public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> () throws ->  Output {
-    { try spy(()) }
+public func adapt<Output>(
+    _ spy: Spy<Void, Throws, Output>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> () throws ->  Output {
+    { try spy((), fileID: fileID, filePath: filePath, line: line, column: column) }
 }
 
 public func adapt<Output>(
@@ -101,20 +125,44 @@ public func adapt<each Input, Output>(
     spy.asFunction(fileID: fileID, filePath: filePath, line: line, column: column)
 }
 
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> @Sendable (repeat each Input) throws ->  Output where repeat each Input: Sendable, Output: Sendable {
-    spy.asFunction()
+public func adapt<each Input, Output>(
+    _ spy: Spy<repeat each Input, Throws, Output>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> @Sendable (repeat each Input) throws ->  Output where repeat each Input: Sendable, Output: Sendable {
+    spy.asFunction(fileID: fileID, filePath: filePath, line: line, column: column)
 }
 
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> (repeat each Input) throws ->  Output {
-    spy.asFunction()
+public func adapt<each Input, Output>(
+    _ spy: Spy<repeat each Input, Throws, Output>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> (repeat each Input) throws ->  Output {
+    spy.asFunction(fileID: fileID, filePath: filePath, line: line, column: column)
 }
 
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> @Sendable (repeat each Input) async throws ->  Output where repeat each Input: Sendable, Output: Sendable {
-    spy.asFunction()
+public func adapt<each Input, Output>(
+    _ spy: Spy<repeat each Input, AsyncThrows, Output>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> @Sendable (repeat each Input) async throws ->  Output where repeat each Input: Sendable, Output: Sendable {
+    spy.asFunction(fileID: fileID, filePath: filePath, line: line, column: column)
 }
 
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> (repeat each Input) async throws ->  Output {
-    spy.asFunction()
+public func adapt<each Input, Output>(
+    _ spy: Spy<repeat each Input, AsyncThrows, Output>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> (repeat each Input) async throws ->  Output {
+    spy.asFunction(fileID: fileID, filePath: filePath, line: line, column: column)
 }
 
 public func adapt<each Input, Output>(

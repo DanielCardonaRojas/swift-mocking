@@ -170,7 +170,33 @@ func reportUnrecoverable(
     line: UInt = #line,
     column: UInt = #column
 ) -> Never {
-    let message = SourceLocation.describe(error)
+    reportUnrecoverable(
+        SourceLocation.describe(error),
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+    )
+}
+
+/// Reports an unrecoverable mocking failure described by an already-rendered message.
+///
+/// Used where the failure is SwiftMocking's own diagnosis rather than a caught error —
+/// notably ``Spy/narrow(_:location:)``, where a stub's error type does not match the
+/// requirement's declared one. Taking the message directly avoids constructing a
+/// ``MockingError`` whose memberwise initializer is internal and so out of reach of the
+/// `@_transparent` bodies on that path.
+///
+/// `@_transparent` for the same reason as the error-taking overload above.
+@_transparent
+@usableFromInline
+func reportUnrecoverable(
+    _ message: String,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+) -> Never {
     SourceLocation.forward(
         message,
         fileID: fileID,

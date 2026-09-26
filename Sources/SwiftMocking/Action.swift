@@ -60,6 +60,7 @@ extension Action where Eff == Throws {
         }
     }
 
+    @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) throws {
         let performer = throwingPerformer.withLock { $0 }
         try performer?(invocation)
@@ -79,6 +80,7 @@ extension Action where Eff: SyncTypedThrowingEffect {
         }
     }
 
+    @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) throws {
         let performer = throwingPerformer.withLock { $0 }
         try performer?(invocation)
@@ -97,6 +99,7 @@ extension Action where Eff: AsyncTypedThrowingEffect {
         }
     }
 
+    @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) async throws {
         let performer = asyncThrowingPerformer.withLock { $0 }
         try await performer?(invocation)
@@ -130,6 +133,7 @@ extension Action where Eff == AsyncThrows {
         }
     }
 
+    @usableFromInline
     func perform(_ invocation: Invocation<repeat each I>) async throws {
         let performer = asyncThrowingPerformer.withLock { $0 }
         try await performer?(invocation)

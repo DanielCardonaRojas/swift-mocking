@@ -21,11 +21,19 @@ case "conformance":
     tripUnstubbedRequirementViaConformance()
 case "spy":
     tripUnstubbedRequirementViaSpy()
+case "typedThrows":
+    tripUnstubbedTypedThrowingRequirementViaSpy()
 case "closure":
     tripUnstubbedRequirementViaClosure()
 case let other:
     FileHandle.standardError.write(
-        Data("usage: TrapProbe <conformance|spy|closure> (got: \(other ?? "nothing"))\n".utf8)
+        Data(
+            """
+            usage: TrapProbe <conformance|spy|typedThrows|closure> \
+            (got: \(other ?? "nothing"))
+
+            """.utf8
+        )
     )
     exit(2)
 }

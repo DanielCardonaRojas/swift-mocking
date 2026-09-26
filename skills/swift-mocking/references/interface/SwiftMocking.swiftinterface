@@ -496,6 +496,11 @@ public enum UntilError : Error, Sendable, CustomStringConvertible {
 }
 extension Return where Effects == None {
 }
+extension Return where Effects == Throws {
+  @discardableResult
+}
+extension Return where Effects : TypedThrowingEffect {
+}
 extension Return where Effects == Async {
 }
 public struct SettableInteraction<each Input, Eff, Output> where Eff : Effect {
@@ -540,25 +545,57 @@ extension Spy : Sendable where repeat each Input : Sendable, Output : Sendable {
 }
 extension Spy where Effects == Throws {
   @discardableResult
-  final public func callAsFunction(_ input: repeat each Input) throws -> Output
-  final public func asFunction() -> @Sendable (repeat each Input) throws -> Output where repeat each Input : Sendable, Output : Sendable
-  final public func asFunction() -> (repeat each Input) throws -> Output
+  @_transparent final public func callAsFunction(_ input: repeat each Input, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) throws -> Output {
+        try process(
+            repeat each input,
+            location: SourceLocation(
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
+        )
+    }
+  final public func asFunction(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable (repeat each Input) throws -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> (repeat each Input) throws -> Output
   final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
   final public func verifyThrows() -> Bool
 }
+extension Spy where Effects : TypedThrowingEffect {
+}
 extension Spy where Effects : SyncTypedThrowingEffect {
   @discardableResult
-  final public func callAsFunction(_ input: repeat each Input) throws(Effects.Failure) -> Output
-  final public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output where repeat each Input : Sendable, Output : Sendable
-  final public func asFunction() -> (repeat each Input) throws(Effects.Failure) -> Output
+  @_transparent final public func callAsFunction(_ input: repeat each Input, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) throws(Effects.Failure) -> Output {
+        try process(
+            repeat each input,
+            location: SourceLocation(
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
+        )
+    }
+  final public func asFunction(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> (repeat each Input) throws(Effects.Failure) -> Output
   final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) -> Bool
   final public func verifyThrows() -> Bool
 }
 extension Spy where Effects : AsyncTypedThrowingEffect {
   @discardableResult
-  final public func callAsFunction(_ input: repeat each Input) async throws(Effects.Failure) -> Output
-  final public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output where repeat each Input : Sendable, Output : Sendable
-  final public func asFunction() -> (repeat each Input) async throws(Effects.Failure) -> Output
+  @_transparent final public func callAsFunction(_ input: repeat each Input, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async throws(Effects.Failure) -> Output {
+        try await process(
+            repeat each input,
+            location: SourceLocation(
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
+        )
+    }
+  final public func asFunction(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> (repeat each Input) async throws(Effects.Failure) -> Output
   final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
   final public func verifyThrows() async -> Bool
 }
@@ -600,26 +637,36 @@ extension Spy where Effects == Async {
 }
 extension Spy where Effects == AsyncThrows {
   @discardableResult
-  final public func callAsFunction(_ input: repeat each Input) async throws -> Output
-  final public func asFunction() -> @Sendable (repeat each Input) async throws -> Output where repeat each Input : Sendable, Output : Sendable
-  final public func asFunction() -> (repeat each Input) async throws -> Output
+  @_transparent final public func callAsFunction(_ input: repeat each Input, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async throws -> Output {
+        try await process(
+            repeat each input,
+            location: SourceLocation(
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
+        )
+    }
+  final public func asFunction(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable (repeat each Input) async throws -> Output where repeat each Input : Sendable, Output : Sendable
+  final public func asFunction(fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> (repeat each Input) async throws -> Output
   final public func verifyThrows(_ errorMatcher: ArgMatcher<any Error>) async -> Bool
   final public func verifyThrows() async -> Bool
 }
 public func adapt<Output>(_ spy: Spy<Void, Async, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable () async -> Output where Output : Sendable
 public func adapt<Output>(_ spy: Spy<Void, Async, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> () async -> Output
-public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> @Sendable () async throws -> Output where Output : Sendable
-public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>) -> () async throws -> Output
-public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> @Sendable () throws -> Output where Output : Sendable
-public func adapt<Output>(_ spy: Spy<Void, Throws, Output>) -> () throws -> Output
+public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable () async throws -> Output where Output : Sendable
+public func adapt<Output>(_ spy: Spy<Void, AsyncThrows, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> () async throws -> Output
+public func adapt<Output>(_ spy: Spy<Void, Throws, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable () throws -> Output where Output : Sendable
+public func adapt<Output>(_ spy: Spy<Void, Throws, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> () throws -> Output
 public func adapt<Output>(_ spy: Spy<Void, None, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable () -> Output where Output : Sendable
 public func adapt<Output>(_ spy: Spy<Void, None, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> () -> Output
 public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Async, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable (repeat each Input) async -> Output where repeat each Input : Sendable, Output : Sendable
 public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Async, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> (repeat each Input) async -> Output
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> @Sendable (repeat each Input) throws -> Output where repeat each Input : Sendable, Output : Sendable
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>) -> (repeat each Input) throws -> Output
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> @Sendable (repeat each Input) async throws -> Output where repeat each Input : Sendable, Output : Sendable
-public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>) -> (repeat each Input) async throws -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable (repeat each Input) throws -> Output where repeat each Input : Sendable, Output : Sendable
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, Throws, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> (repeat each Input) throws -> Output
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable (repeat each Input) async throws -> Output where repeat each Input : Sendable, Output : Sendable
+public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, AsyncThrows, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> (repeat each Input) async throws -> Output
 public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, None, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> @Sendable (repeat each Input) -> Output where repeat each Input : Sendable, Output : Sendable
 public func adapt<each Input, Output>(_ spy: Spy<repeat each Input, None, Output>, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) -> (repeat each Input) -> Output
 final public class SpyStorageProvider : Sendable {
