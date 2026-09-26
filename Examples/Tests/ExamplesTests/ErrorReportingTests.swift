@@ -77,7 +77,7 @@ struct ErrorReportingTests {
     /// number is right, so the failure looks plausible, while the file it names belongs to
     /// the mocking library. Clicking it lands you in someone else's source.
     @Test
-    func failedVerificationPointsAtTheAssertion() {
+    func failedVerificationPointsAtTheAssertion() throws {
         let mock = MockPricingService()
 
         let expectedLine = UInt(#line + 2)
@@ -85,7 +85,7 @@ struct ErrorReportingTests {
             verify(mock.price(.any)).called(1)
         }
 
-        let issue = try! #require(issues.first)
+        let issue = try #require(issues.first)
         #expect(issue.fileID == "\(#fileID)")
         #expect(issue.line == expectedLine)
     }
@@ -525,6 +525,12 @@ private func runTrapProbeUnderDebugger(route: String) throws -> String {
         "-o", "settings set target.env-vars DYLD_FRAMEWORK_PATH=\(frameworks)",
         "-o", "run",
         "-o", "bt",
+        // `--batch` still drops into the interactive prompt when the target stops on a
+        // signal, and this target always crashes — that is the whole point of it. `-k` runs
+        // a command in exactly that case, so `quit` keeps the process from waiting on input
+        // that is never coming.
+        "-k", "bt",
+        "-k", "quit",
         "--", probe.path, route,
     ]
 
