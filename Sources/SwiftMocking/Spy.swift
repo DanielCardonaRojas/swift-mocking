@@ -324,11 +324,43 @@ final class SpyActionRegistrar: SpyActionRegistering, @unchecked Sendable {
 // MARK: Throwing
 extension Spy where Effects == Throws {
     /// Calls the spy's method, expecting it to throw an error.
+    ///
+    /// When invoked directly (rather than through a generated conformance) the defaulted
+    /// location parameters capture the caller's own file and line, so a failure raised
+    /// here is attributed to the calling test.
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
+    ///
+    /// `@_transparent` rather than `@inlinable`: this variant surfaces an unstubbed call
+    /// as a thrown error rather than a trap, but a stubbed `thenThrow` handler or a
+    /// registered action can still trap, and the frame must not be SwiftMocking's. See
+    /// ``reportUnrecoverable``.
+    @_transparent
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) throws -> Output {
+    public func callAsFunction(
+        _ input: repeat each Input,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) throws -> Output {
+        try process(
+            repeat each input,
+            location: SourceLocation(
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
+        )
+    }
+
+    @usableFromInline
+    func process(
+        _ input: repeat each Input,
+        location: SourceLocation
+    ) throws -> Output {
         let invocation = Invocation(arguments: repeat each input)
         let action = matchingAction(invocation: invocation)
         let result = try invoke(repeat each input)
@@ -338,17 +370,33 @@ extension Spy where Effects == Throws {
         return try result.get()
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) throws -> Output
+    /// Wraps the spy in a throwing closure, for injecting into a closure-based dependency.
+    ///
+    /// See the `Effects == None` overload for why the location is captured where the
+    /// closure is *built* rather than left to expand inside `Spy.swift`.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> @Sendable (repeat each Input) throws -> Output
     where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
-            try self(repeat each args)
+            try self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
     /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
-    public func asFunction() -> (repeat each Input) throws -> Output {
+    ///
+    /// See the `@Sendable` overload for why the location is captured here.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> (repeat each Input) throws -> Output {
         return { (args:  repeat each Input) in
-            try self(repeat each args)
+            try self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
@@ -393,18 +441,37 @@ extension Spy where Effects: TypedThrowingEffect {
     /// (`Effects == None`, `Effects == Async`) already report an unstubbed call: the
     /// method's signature leaves no way to surface it, and an unstubbed call is a
     /// test-authoring mistake rather than a condition under test.
-    private static func narrow(_ error: any Error) -> Effects.Failure {
+    ///
+    /// The trap is routed through ``reportUnrecoverable`` so it is reported and attributed
+    /// like every other unrecoverable path, rather than crashing against `Spy.swift`. That
+    /// requires `@_transparent` here and on every caller — see ``reportUnrecoverable``.
+    @_transparent
+    @usableFromInline
+    static func narrow(
+        _ error: any Error,
+        location: SourceLocation
+    ) -> Effects.Failure {
         if let typed = error as? Effects.Failure {
             return typed
         }
-        if let mockingError = error as? MockingError {
-            fatalError("MockingError: \(mockingError.message)")
+        if error is MockingError {
+            reportUnrecoverable(
+                error,
+                fileID: location.fileID,
+                filePath: location.filePath,
+                line: location.line,
+                column: location.column
+            )
         }
-        fatalError(
+        reportUnrecoverable(
             """
             Spy stubbed with an error of type \(type(of: error)) but the requirement \
             is declared to throw \(Effects.Failure.self).
-            """
+            """,
+            fileID: location.fileID,
+            filePath: location.filePath,
+            line: location.line,
+            column: location.column
         )
     }
 }
@@ -412,45 +479,94 @@ extension Spy where Effects: TypedThrowingEffect {
 // MARK: Typed throwing (synchronous)
 extension Spy where Effects: SyncTypedThrowingEffect {
     /// Calls the spy's method, rethrowing the stubbed error as the declared error type.
+    ///
+    /// When invoked directly (rather than through a generated conformance) the defaulted
+    /// location parameters capture the caller's own file and line, so an unstubbed call —
+    /// which traps here, since a ``MockingError`` cannot cross the `throws(Failure)`
+    /// boundary — is attributed to the calling test.
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The stubbed error, typed as the requirement's declared error type.
+    ///
+    /// `@_transparent` rather than `@inlinable`: see ``reportUnrecoverable`` for why the
+    /// trap must be inlined into the caller before the optimizer runs.
+    @_transparent
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) throws(Effects.Failure) -> Output {
+    public func callAsFunction(
+        _ input: repeat each Input,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) throws(Effects.Failure) -> Output {
+        try process(
+            repeat each input,
+            location: SourceLocation(
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
+        )
+    }
+
+    @_transparent
+    @usableFromInline
+    func process(
+        _ input: repeat each Input,
+        location: SourceLocation
+    ) throws(Effects.Failure) -> Output {
         let invocation = Invocation(arguments: repeat each input)
         let action = matchingAction(invocation: invocation)
         let result: Return<Effects, Output>
         do {
             result = try invoke(repeat each input)
         } catch {
-            throw Self.narrow(error)
+            throw Self.narrow(error, location: location)
         }
         if let action {
             do {
                 try action.perform(invocation)
             } catch {
-                throw Self.narrow(error)
+                throw Self.narrow(error, location: location)
             }
         }
         switch result.resolve() {
         case .success(let value):
             return value
         case .failure(let error):
-            throw Self.narrow(error)
+            throw Self.narrow(error, location: location)
         }
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output
+    /// Wraps the spy in a typed-throwing closure, for injecting into a closure-based
+    /// dependency.
+    ///
+    /// See the `Effects == None` overload for why the location is captured where the
+    /// closure is *built* rather than left to expand inside `Spy.swift`.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> @Sendable (repeat each Input) throws(Effects.Failure) -> Output
     where repeat each Input: Sendable, Output: Sendable {
         return { (args: repeat each Input) throws(Effects.Failure) in
-            try self(repeat each args)
+            try self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
     /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
-    public func asFunction() -> (repeat each Input) throws(Effects.Failure) -> Output {
+    ///
+    /// See the `@Sendable` overload for why the location is captured here.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> (repeat each Input) throws(Effects.Failure) -> Output {
         return { (args: repeat each Input) throws(Effects.Failure) in
-            try self(repeat each args)
+            try self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
@@ -489,42 +605,85 @@ extension Spy where Effects: AsyncTypedThrowingEffect {
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The stubbed error, typed as the requirement's declared error type.
+    /// `@_transparent` rather than `@inlinable`: see ``reportUnrecoverable`` for why the
+    /// trap must be inlined into the caller before the optimizer runs.
+    @_transparent
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) async throws(Effects.Failure) -> Output {
+    public func callAsFunction(
+        _ input: repeat each Input,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) async throws(Effects.Failure) -> Output {
+        try await process(
+            repeat each input,
+            location: SourceLocation(
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
+        )
+    }
+
+    @_transparent
+    @usableFromInline
+    func process(
+        _ input: repeat each Input,
+        location: SourceLocation
+    ) async throws(Effects.Failure) -> Output {
         let invocation = Invocation(arguments: repeat each input)
         let action = matchingAction(invocation: invocation)
         let result: Return<Effects, Output>
         do {
             result = try invoke(repeat each input)
         } catch {
-            throw Self.narrow(error)
+            throw Self.narrow(error, location: location)
         }
         if let action {
             do {
                 try await action.perform(invocation)
             } catch {
-                throw Self.narrow(error)
+                throw Self.narrow(error, location: location)
             }
         }
         switch await result.resolveAsync() {
         case .success(let value):
             return value
         case .failure(let error):
-            throw Self.narrow(error)
+            throw Self.narrow(error, location: location)
         }
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output
+    /// Wraps the spy in an async typed-throwing closure, for injecting into a
+    /// closure-based dependency.
+    ///
+    /// See the `Effects == None` overload for why the location is captured where the
+    /// closure is *built* rather than left to expand inside `Spy.swift`.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> @Sendable (repeat each Input) async throws(Effects.Failure) -> Output
     where repeat each Input: Sendable, Output: Sendable {
         return { (args: repeat each Input) async throws(Effects.Failure) in
-            try await self(repeat each args)
+            try await self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
     /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
-    public func asFunction() -> (repeat each Input) async throws(Effects.Failure) -> Output {
+    ///
+    /// See the `@Sendable` overload for why the location is captured here.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> (repeat each Input) async throws(Effects.Failure) -> Output {
         return { (args: repeat each Input) async throws(Effects.Failure) in
-            try await self(repeat each args)
+            try await self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
@@ -716,11 +875,41 @@ extension Spy where Effects == Async {
 // MARK: AsyncThrows
 extension Spy where Effects == AsyncThrows {
     /// Calls the spy's method asynchronously, allowing it to throw an error.
+    ///
+    /// When invoked directly (rather than through a generated conformance) the defaulted
+    /// location parameters capture the caller's own file and line, so a failure raised
+    /// here is attributed to the calling test.
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
+    ///
+    /// `@_transparent` rather than `@inlinable`: see the `Effects == Throws` overload for
+    /// why the throwing variants carry it too.
+    @_transparent
     @discardableResult
-    public func callAsFunction(_ input: repeat each Input) async throws -> Output {
+    public func callAsFunction(
+        _ input: repeat each Input,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) async throws -> Output {
+        try await process(
+            repeat each input,
+            location: SourceLocation(
+                fileID: fileID,
+                filePath: filePath,
+                line: line,
+                column: column
+            )
+        )
+    }
+
+    @usableFromInline
+    func process(
+        _ input: repeat each Input,
+        location: SourceLocation
+    ) async throws -> Output {
         let invocation = Invocation(arguments: repeat each input)
         let action = matchingAction(invocation: invocation)
         let returnValue = try invoke(repeat each input)
@@ -730,17 +919,34 @@ extension Spy where Effects == AsyncThrows {
         return try await returnValue.get()
     }
 
-    public func asFunction() -> @Sendable (repeat each Input) async throws -> Output
+    /// Wraps the spy in an async throwing closure, for injecting into a closure-based
+    /// dependency.
+    ///
+    /// See the `Effects == None` overload for why the location is captured where the
+    /// closure is *built* rather than left to expand inside `Spy.swift`.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> @Sendable (repeat each Input) async throws -> Output
     where repeat each Input: Sendable, Output: Sendable {
         return { (args:  repeat each Input) in
-            try await self(repeat each args)
+            try await self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 
     /// A plain (non-`@Sendable`) function wrapper, available for any input and output.
-    public func asFunction() -> (repeat each Input) async throws -> Output {
+    ///
+    /// See the `@Sendable` overload for why the location is captured here.
+    public func asFunction(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> (repeat each Input) async throws -> Output {
         return { (args:  repeat each Input) in
-            try await self(repeat each args)
+            try await self(repeat each args, fileID: fileID, filePath: filePath, line: line, column: column)
         }
     }
 

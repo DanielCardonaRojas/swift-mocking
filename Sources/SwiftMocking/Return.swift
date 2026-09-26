@@ -198,6 +198,7 @@ extension Return where Effects == Throws {
     /// Retrieves the encapsulated value or throws the encapsulated error.
     /// - Returns: The success value.
     /// - Throws: The encapsulated error if the `Return` instance represents an error.
+    @usableFromInline
     @discardableResult
     func get() throws -> R {
         try resolve().get()
@@ -212,6 +213,7 @@ extension Return where Effects: TypedThrowingEffect {
     /// an `E`. Narrowing to `E` happens at the call boundary in `Spy`, which is the only
     /// place that can act on the distinction (rethrow vs. trap).
     /// - Returns: The stored result for this return value.
+    @usableFromInline
     func resolve() -> Result<R, any Error> {
         if let storedError {
             return .failure(storedError)
@@ -258,6 +260,7 @@ extension Return where Effects: TypedThrowingEffect {
     /// The failure type stays `any Error` for the same reason as the synchronous
     /// case — see ``resolve()``.
     /// - Returns: The stored result for this return value.
+    @usableFromInline
     func resolveAsync() async -> Result<R, any Error> {
         if let storedError {
             return .failure(storedError)

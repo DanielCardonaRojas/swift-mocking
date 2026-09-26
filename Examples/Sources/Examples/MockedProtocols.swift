@@ -199,6 +199,24 @@ public func tripUnstubbedRequirementViaSpy() -> Never {
     fatalError("unreachable: the unstubbed call above must trap")
 }
 
+/// Calls an unstubbed, *typed-throwing* requirement on a directly constructed `Spy`.
+///
+/// A fourth route, and one the throwing routes do not cover: an unstubbed call raises a
+/// ``MockingError``, which is by construction not the requirement's declared `Failure` and so
+/// cannot cross the `throws(Failure)` boundary. `Spy.narrow` therefore traps instead of
+/// rethrowing, which makes this the one throwing effect that reaches the unrecoverable path.
+///
+/// Covered separately because the trap sits behind an extra hop — `callAsFunction` into
+/// `process` into `narrow` — and every one of those frames must be `@_transparent` for the
+/// debugger to land on the call below rather than inside `Spy.swift`.
+public func tripUnstubbedTypedThrowingRequirementViaSpy() -> Never {
+    struct NoDefault {}
+    struct Failure: Error {}
+    let spy = Spy<Int, TypedThrows<Failure>, NoDefault>()
+    _ = try? spy(3)
+    fatalError("unreachable: the unstubbed call above must trap")
+}
+
 /// Calls an unstubbed spy through a *closure-based dependency*.
 ///
 /// The third route, and the one with the weakest attribution available: the closure is built

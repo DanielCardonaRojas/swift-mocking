@@ -301,16 +301,20 @@ struct ErrorReportingTests {
     /// the right file even when the attribution breaks. Only the backtrace distinguishes the
     /// two, so this runs the probe under `lldb` and inspects the frames.
     ///
-    /// Both routes into the unrecoverable path are covered: a generated conformance
-    /// (`Mock.adapt`) and a directly constructed spy (`Spy.callAsFunction`). They reach the
-    /// trap through different frames, so a regression can appear in one and not the other.
+    /// Every route into the unrecoverable path is covered: a generated conformance
+    /// (`Mock.adapt`), a directly constructed spy (`Spy.callAsFunction`), and a typed-throwing
+    /// spy (`Spy.narrow`). They reach the trap through different frames, so a regression can
+    /// appear in one and not the others.
     ///
-    /// The two land in different — but equally correct — places, so each asserts its own
+    /// They land in different — but equally correct — places, so each asserts its own
     /// expected frame:
     ///
     /// - `spy`: the user's own function, in `MockedProtocols.swift`. A directly invoked spy
     ///   captures its caller's location in defaulted parameters, so this route gets a correct
     ///   crash *message* as well.
+    /// - `typedThrows`: the same file, for the same reason. This route is distinct because an
+    ///   unstubbed call cannot be rethrown — a ``MockingError`` is not the declared
+    ///   `Failure` — so it traps in `narrow`, one hop further from the call site than `spy`.
     /// - `conformance`: the generated mock's method, which lives in the macro expansion
     ///   buffer (`@__swiftmacro_…`) and which Xcode resolves back to the `@Mockable`
     ///   protocol. A conformance witness must match the requirement's signature exactly, so
@@ -325,6 +329,7 @@ struct ErrorReportingTests {
         .enabled(if: trapProbeIsAvailable, "TrapProbe executable or lldb is unavailable"),
         arguments: [
             ("spy", "MockedProtocols.swift"),
+            ("typedThrows", "MockedProtocols.swift"),
             ("conformance", "@__swiftmacro_"),
         ]
     )

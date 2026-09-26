@@ -33,6 +33,13 @@ final class TrapAttributionTests: XCTestCase {
     private static let requiredTransparentDeclarations: [(file: String, declaration: String)] = [
         // `Spy.callAsFunction` — invoked directly, e.g. `spy(3)`.
         ("Spy.swift", "public func callAsFunction("),
+        // `Spy.narrow` — the typed-throwing trap. An unstubbed typed-throwing call cannot
+        // surface as a thrown error (a `MockingError` is not the declared `Failure`), so it
+        // traps here, reached from the `process` helpers below.
+        ("Spy.swift", "static func narrow("),
+        // `Spy.process` — the typed-throwing bodies that call `narrow`. The non-throwing
+        // `process` helpers do not trap themselves; their callers do.
+        ("Spy.swift", "func process("),
         // `Mock.adapt` — invoked from a generated conformance. Static and instance overloads
         // exist for both the synchronous and asynchronous effects, hence four declarations.
         ("Mock+Adapters.swift", "static func adapt<each I, O>("),
@@ -53,12 +60,17 @@ final class TrapAttributionTests: XCTestCase {
             )
 
             for range in declarationRanges {
-                // Only the overloads that actually trap need the attribute; the throwing ones
-                // surface an unstubbed call as a thrown error instead. Detected by looking for
-                // the call in the body rather than by signature, since the adapters no longer
-                // take a source location — a generated conformance has nowhere to get one.
-                let body = source[range.lowerBound...]
-                guard body.prefix(600).contains("reportUnrecoverable(") else { continue }
+                // Only the overloads that actually reach a trap need the attribute. Detected
+                // by looking at the body rather than the signature, since the adapters no
+                // longer take a source location — a generated conformance has nowhere to get
+                // one.
+                //
+                // `Self.narrow(` counts as reaching the trap: the typed-throwing `process`
+                // helpers do not call `reportUnrecoverable` directly, but `narrow` traps on
+                // their behalf, so a non-transparent frame here is just as damaging.
+                let body = source[range.lowerBound...].prefix(900)
+                guard body.contains("reportUnrecoverable(") || body.contains("Self.narrow(")
+                else { continue }
 
                 let attributes = source[..<range.lowerBound]
                 XCTAssertTrue(
@@ -104,18 +116,29 @@ final class TrapAttributionTests: XCTestCase {
     func testClosureProducingHelpersCaptureTheirLocation() throws {
         let source = try Self.source(of: "Spy.swift")
 
-        // Only the non-throwing effects reach the trap; the throwing ones surface an
-        // unstubbed call as a thrown error and need no location.
-        for effect in ["None", "Async"] {
+        // Every effect captures a location. The non-throwing ones need it because they trap;
+        // the typed-throwing ones because an unstubbed call traps in `narrow`; and the plain
+        // throwing ones so that a trap from a stubbed handler or action is still attributed
+        // to the injection site rather than to Spy.swift.
+        let effectExtensions = [
+            "extension Spy where Effects == None {",
+            "extension Spy where Effects == Async {",
+            "extension Spy where Effects == Throws {",
+            "extension Spy where Effects == AsyncThrows {",
+            "extension Spy where Effects: SyncTypedThrowingEffect {",
+            "extension Spy where Effects: AsyncTypedThrowingEffect {",
+        ]
+
+        for effect in effectExtensions {
             let block = try XCTUnwrap(
-                Self.extensionBody(of: "extension Spy where Effects == \(effect) {", in: source),
-                "Could not find the `Effects == \(effect)` extension in Spy.swift."
+                Self.extensionBody(of: effect, in: source),
+                "Could not find `\(effect)` in Spy.swift."
             )
 
             let declarations = block.ranges(of: "public func asFunction(")
             XCTAssertFalse(
                 declarations.isEmpty,
-                "Expected asFunction overloads in the `Effects == \(effect)` extension."
+                "Expected asFunction overloads in `\(effect)`."
             )
 
             for range in declarations {
@@ -123,7 +146,7 @@ final class TrapAttributionTests: XCTestCase {
                 XCTAssertTrue(
                     signature.contains("fileID: StaticString = #fileID"),
                     """
-                    An `asFunction` overload for `Effects == \(effect)` does not capture a \
+                    An `asFunction` overload in `\(effect)` does not capture a \
                     source location, so a closure-based dependency built from it reports \
                     unstubbed calls against SwiftMocking instead of the injection site.
                     """
@@ -140,27 +163,19 @@ final class TrapAttributionTests: XCTestCase {
     func testClosureAdaptersForwardTheirLocation() throws {
         let source = try Self.source(of: "SpyAdapters.swift")
 
+        // Every effect's `asFunction` now takes a location, so every delegating `adapt` must
+        // forward one. An overload that calls `asFunction()` bare would silently capture
+        // SpyAdapters.swift as the injection site.
         var checked = 0
         for range in source.ranges(of: "spy.asFunction(") {
-            // Only the non-throwing effects trap, and only those capture a location to
-            // forward. The throwing overloads surface an unstubbed call as a thrown error,
-            // so they legitimately call `asFunction()` bare.
-            let declaration = source[..<range.lowerBound]
-            guard let signatureStart = declaration.range(
-                of: "public func adapt", options: .backwards
-            ) else { continue }
-            let signature = declaration[signatureStart.lowerBound...]
-            guard signature.contains(", None, Output>") || signature.contains(", Async, Output>")
-            else { continue }
-
             checked += 1
             let call = source[range.lowerBound...].prefix(120)
             XCTAssertTrue(
                 call.contains("fileID: fileID"),
                 """
-                A non-throwing `adapt` overload calls `spy.asFunction()` without forwarding \
-                its captured location, so the closure falls back to defaults expanded inside \
-                Spy.swift.
+                An `adapt` overload calls `spy.asFunction()` without forwarding its captured \
+                location, so the closure falls back to defaults expanded inside \
+                SpyAdapters.swift.
                 """
             )
         }
@@ -168,8 +183,8 @@ final class TrapAttributionTests: XCTestCase {
         XCTAssertGreaterThan(
             checked, 0,
             """
-            Found no non-throwing `adapt` overloads delegating to `asFunction`. If the \
-            adapters were restructured, update this guard so it keeps covering them.
+            Found no `adapt` overloads delegating to `asFunction`. If the adapters were \
+            restructured, update this guard so it keeps covering them.
             """
         )
     }
