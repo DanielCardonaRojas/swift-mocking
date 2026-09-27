@@ -265,9 +265,15 @@ public func tripUnstubbedThrowingRequirementViaConformance() -> Never {
 /// route that covers `Mock.adaptTypedThrowing`. The chain from the witness to the trap is
 /// longer than any other — witness, adapter, `Spy.process`, `narrow` — and every frame in it
 /// must be `@_transparent` for the debugger to select the mock's own method.
+///
+/// Called on the concrete mock rather than through `as TypedThrowingProfileService`, matching
+/// the other conformance routes. An existential call inserts a *protocol witness thunk*,
+/// which the compiler synthesizes with no source location of its own and which therefore
+/// appears as `<compiler-generated>` in the backtrace. That frame is dispatch machinery, not
+/// an attribution failure — but it is indistinguishable from one to a backtrace assertion.
 public func tripUnstubbedTypedThrowingRequirementViaConformance() -> Never {
     let mock = MockTypedThrowingProfileService()
-    _ = try? (mock as TypedThrowingProfileService).profile(for: "alice")
+    _ = try? mock.profile(for: "alice")
     fatalError("unreachable: the unstubbed call above must trap")
 }
 
