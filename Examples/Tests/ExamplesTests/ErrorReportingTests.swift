@@ -370,12 +370,7 @@ struct ErrorReportingTests {
     /// filtered run that skips the build would otherwise fail for the wrong reason.
     @Test(
         .enabled(if: trapProbeIsAvailable, "TrapProbe executable or lldb is unavailable"),
-        arguments: [
-            ("spy", "MockedProtocols.swift"),
-            ("typedThrows", "MockedProtocols.swift"),
-            ("conformance", "@__swiftmacro_"),
-            ("typedThrowsConformance", "@__swiftmacro_"),
-        ]
+        arguments: trapAttributionRoutes
     )
     func trapIsAttributedToUserCodeNotSwiftMocking(route: String, expectedFrame: String) throws {
         let backtrace = try runTrapProbeUnderDebugger(route: route)
@@ -481,6 +476,24 @@ private enum ExampleError: Error, Equatable {
 /// Whether the backtrace check can run at all: macOS, with the probe built and a usable
 /// developer directory.
 /// Whether the probe can simply be *run* — no debugger, so this holds on CI too.
+/// The routes ``ErrorReportingTests/trapIsAttributedToUserCodeNotSwiftMocking(route:expectedFrame:)``
+/// exercises, paired with the frame each must be attributed to.
+///
+/// The typed-throwing conformance route is omitted where typed throws cannot be parsed:
+/// swift-syntax 509 and 510 predate the feature, so the protocol it needs is compiled out of
+/// `Examples` entirely. See `Examples/Package.swift`.
+private let trapAttributionRoutes: [(String, String)] = {
+    var routes: [(String, String)] = [
+        ("spy", "MockedProtocols.swift"),
+        ("typedThrows", "MockedProtocols.swift"),
+        ("conformance", "@__swiftmacro_"),
+    ]
+    #if SWIFTMOCKING_TYPED_THROWS
+    routes.append(("typedThrowsConformance", "@__swiftmacro_"))
+    #endif
+    return routes
+}()
+
 private let trapProbeCanRun: Bool = {
     #if os(macOS)
     return trapProbeURL != nil && testFrameworksPath != nil

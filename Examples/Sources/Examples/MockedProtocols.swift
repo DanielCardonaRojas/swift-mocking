@@ -163,6 +163,7 @@ protocol ProfileService {
 }
 
 
+#if SWIFTMOCKING_TYPED_THROWS
 /// The error type for ``TypedThrowingProfileService``.
 public struct ProfileLookupError: Error {}
 
@@ -172,10 +173,14 @@ public struct ProfileLookupError: Error {}
 /// path: an unstubbed call raises a ``MockingError``, which is not the declared `Failure` and
 /// so cannot be rethrown, leaving `Spy.narrow` to trap. Exercising that through a *generated
 /// conformance* is what covers `Mock.adaptTypedThrowing`.
+///
+/// Compiled out on swift-syntax 509 and 510, which cannot parse `throws(E)` and so expand
+/// this protocol into malformed code. See `Examples/Package.swift`.
 @Mockable
 protocol TypedThrowingProfileService {
     func profile(for id: String) throws(ProfileLookupError) -> UserProfile
 }
+#endif
 
 /// A non-throwing requirement returning `Void`, which the registry supplies a default for.
 ///
@@ -271,10 +276,17 @@ public func tripUnstubbedThrowingRequirementViaConformance() -> Never {
 /// which the compiler synthesizes with no source location of its own and which therefore
 /// appears as `<compiler-generated>` in the backtrace. That frame is dispatch machinery, not
 /// an attribution failure — but it is indistinguishable from one to a backtrace assertion.
+///
+/// Unavailable where typed throws cannot be parsed; the probe reports that as a usage error
+/// rather than silently succeeding, and the test is skipped to match.
 public func tripUnstubbedTypedThrowingRequirementViaConformance() -> Never {
+    #if SWIFTMOCKING_TYPED_THROWS
     let mock = MockTypedThrowingProfileService()
     _ = try? mock.profile(for: "alice")
     fatalError("unreachable: the unstubbed call above must trap")
+    #else
+    fatalError("unsupported: typed throws requires swift-syntax 600 or newer")
+    #endif
 }
 
 /// Calls an unstubbed spy through a *closure-based dependency*.

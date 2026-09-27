@@ -98,7 +98,17 @@ print(next(p['state']['version'] for p in pins if p['identity'] == 'swift-syntax
     # A stale .build can hold checkouts from the previous pin.
     rm -rf "$examples_dir/.build"
 
-    if swift test --package-path "$examples_dir" --force-resolved-versions; then
+    # swift-syntax 509 and 510 predate typed throws and cannot parse `throws(E)`, so a
+    # `@Mockable` protocol using it expands to malformed code no matter how new the compiler
+    # is. Examples compiles that one protocol out for these pins; everything else still runs.
+    # `env` with no assignments is a no-op, so this stays a single expansion rather than an
+    # empty array — which bash 3.2 rejects under `set -u`.
+    typed_throws_env=(env)
+    case "$version" in
+        509.*|510.*) typed_throws_env=(env SWIFTMOCKING_NO_TYPED_THROWS=1) ;;
+    esac
+
+    if "${typed_throws_env[@]}" swift test --package-path "$examples_dir" --force-resolved-versions; then
         # Confirm the pin actually held rather than being silently upgraded.
         actual="$(python3 -c "
 import json,sys

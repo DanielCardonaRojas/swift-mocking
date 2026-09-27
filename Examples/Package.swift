@@ -2,6 +2,21 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import Foundation
+
+// Typed throws (`throws(MyError)`) cannot be *parsed* by swift-syntax 509 and 510, which
+// predate the feature: `thrownErrorTypeSyntax` documents that a `throws` clause of that
+// vintage is a bare token with no room for an error type. A `@Mockable` protocol using it
+// therefore expands to malformed code on those pins, regardless of how new the compiler is.
+//
+// The compatibility script sets this for the pins that cannot handle it, so the one example
+// protocol that needs typed throws is compiled out there and everywhere else keeps its
+// coverage. See `Scripts/test-swift-syntax-compat.sh`.
+let typedThrowsUnsupported =
+    ProcessInfo.processInfo.environment["SWIFTMOCKING_NO_TYPED_THROWS"] != nil
+
+let typedThrowsSettings: [SwiftSetting] =
+    typedThrowsUnsupported ? [] : [.define("SWIFTMOCKING_TYPED_THROWS")]
 
 let package = Package(
     name: "Examples",
@@ -29,7 +44,8 @@ let package = Package(
             name: "Examples",
             dependencies: [
                 .product(name: "SwiftMocking", package: "swift-mocking")
-            ]
+            ],
+            swiftSettings: typedThrowsSettings
         ),
         // Trips SwiftMocking's unrecoverable path in a process that is allowed to die, so a
         // test can run it under lldb and assert on which stack frame the trap is attributed
@@ -37,14 +53,16 @@ let package = Package(
         // See `ErrorReportingTests`.
         .executableTarget(
             name: "TrapProbe",
-            dependencies: ["Examples"]
+            dependencies: ["Examples"],
+            swiftSettings: typedThrowsSettings
         ),
         .testTarget(
             name: "ExamplesTests",
             dependencies: [
                 "Examples",
                 .product(name: "IssueReportingTestSupport", package: "xctest-dynamic-overlay"),
-            ]
+            ],
+            swiftSettings: typedThrowsSettings
         ),
     ]
 )
