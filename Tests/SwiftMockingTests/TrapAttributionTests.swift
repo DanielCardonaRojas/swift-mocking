@@ -46,6 +46,51 @@ final class TrapAttributionTests: XCTestCase {
         ("Mock+Adapters.swift", "func adapt<each I, O>("),
     ]
 
+    /// Every adapter must be `@_transparent`, whether or not its own body names a trap.
+    ///
+    /// The adapters are the frame between a generated conformance and `Spy`, so an opaque one
+    /// hides the mock's method from the debugger no matter which effect it serves. The
+    /// throwing adapters are not trap-free: the typed-throwing ones reach `Spy.narrow`, and
+    /// any of them can trap by way of a stubbed handler or a registered action.
+    ///
+    /// Checked separately from ``testEveryUnrecoverableEntryPointIsTransparent()`` because
+    /// that test only requires the attribute where the *body* names a trap, which no adapter
+    /// does — the trap is always a hop or more away.
+    func testEveryMockAdapterIsTransparent() throws {
+        let source = try Self.source(of: "Mock+Adapters.swift")
+
+        var checked = 0
+        for range in source.ranges(of: "func adapt") {
+            // Only `func` itself starts a declaration. Anything else preceding it on the line
+            // is a modifier (`static`), which is fine; a match inside an identifier is not.
+            let lineStart = source[..<range.lowerBound].lastIndex(of: "\n") ?? source.startIndex
+            let beforeOnLine = source[lineStart..<range.lowerBound]
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard beforeOnLine.isEmpty || beforeOnLine == "static" else { continue }
+
+            checked += 1
+            let name = source[range.lowerBound...].prefix(while: { $0 != "(" })
+            XCTAssertTrue(
+                Self.isTransparent(source[..<range.lowerBound]),
+                """
+                '\(name)' in Mock+Adapters.swift is not @_transparent, so its frame sits \
+                between the generated conformance and the trap. The debugger would select \
+                SwiftMocking's adapter instead of the mock's own method.
+                """
+            )
+        }
+
+        XCTAssertEqual(
+            checked, 12,
+            """
+            Expected 12 adapter declarations (static and instance overloads for none, async, \
+            throws, async throws, typed throws, and async typed throws). Found \(checked) — \
+            if an adapter was added or removed, update this count so the guard keeps \
+            covering every one.
+            """
+        )
+    }
+
     func testEveryUnrecoverableEntryPointIsTransparent() throws {
         for (file, declaration) in Self.requiredTransparentDeclarations {
             let source = try Self.source(of: file)

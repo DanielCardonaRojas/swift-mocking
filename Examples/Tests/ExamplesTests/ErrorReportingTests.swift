@@ -240,35 +240,78 @@ struct ErrorReportingTests {
 
     // MARK: - Unstubbed requirements
 
-    /// An unstubbed *throwing* requirement surfaces as a thrown `MockingError` naming the
-    /// method and the arguments it was called with.
+    /// An unstubbed *throwing* requirement traps rather than throwing, and says why.
     ///
-    /// Nothing is reported separately here: the thrown error already carries the full
-    /// message and the test framework surfaces it at the caller's `try`. Reporting as well
-    /// would duplicate one failure into two.
-    @Test
-    func unstubbedThrowingRequirementThrowsADescriptiveError() async {
-        let mock = MockFeedService()
-        let url = URL(string: "https://example.com")!
+    /// A requirement that can throw does give SwiftMocking somewhere to put the error, but
+    /// using it meant an unstubbed call disappeared whenever the caller caught broadly —
+    /// `try?`, or a `catch` mapping every error to a default — turning a missing stub into
+    /// a test that passed against a value the mock never produced. Every unstubbed call now
+    /// halts, whatever the requirement's effects.
+    ///
+    /// Asserted out-of-process for the same reason as the non-throwing trap: `fatalError`
+    /// takes the process down, so the message can only be read from a child's output.
+    @Test(.enabled(if: trapProbeCanRun, "TrapProbe executable is unavailable"))
+    func unstubbedThrowingRequirementTrapsWithADescriptiveMessage() throws {
+        let output = try runTrapProbe(route: "throwingConformance")
 
-        let issues = await captureIssues {
-            do {
-                // `Data` has no registered default, so this reaches the unstubbed path.
-                _ = try await mock.fetch(from: url)
-                Issue.record("Expected the unstubbed requirement to throw")
-            } catch let error as MockingError {
-                // `FeedService` is mocked with `.composition`, so its spies live on a
-                // bare `Mock` instance and are labelled "Mock.fetch" rather than
-                // "MockFeedService.fetch" — the composing type's name is not available
-                // where the label is built. Inheriting mocks do name themselves.
-                #expect(error.message.contains("Mock"))
-                #expect(error.message.contains("fetch"))
-                #expect(error.message.contains("example.com"))
-            } catch {
-                Issue.record("Unexpected error: \(error)")
-            }
+        // Which requirement was unstubbed, and what it was called with.
+        #expect(output.contains("fetchProfile"))
+        #expect(output.contains("alice"))
+        // Named as unstubbed rather than as some generic failure.
+        #expect(output.lowercased().contains("unstubbed"))
+    }
+
+    /// The trap fires even when the caller discards the error.
+    ///
+    /// The case the throw could never cover. Both probe routes call their requirement with
+    /// `try?`, so under the old behavior nothing would surface at all and the process would
+    /// run to completion. `runTrapProbe` requires the child to have trapped, so reaching
+    /// the end of this test is the assertion.
+    @Test(.enabled(if: trapProbeCanRun, "TrapProbe executable is unavailable"))
+    func unstubbedThrowingRequirementTrapsEvenWhenTheErrorIsSwallowed() throws {
+        for route in ["throwingSpy", "throwingConformance"] {
+            let output = try runTrapProbe(route: route)
+            #expect(output.contains("Fatal error"), "Route \(route) did not trap")
         }
-        #expect(issues.isEmpty, "The thrown error is the report; it should not be duplicated")
+    }
+
+    /// The trap names the mocked protocol, never a file inside SwiftMocking.
+    ///
+    /// A conformance witness must match the requirement's signature exactly, so it cannot
+    /// carry defaulted location parameters; the location comes from where
+    /// `adaptThrowing(...)` is written, which is the macro expansion buffer for the user's
+    /// protocol. That is the same ceiling the non-throwing trap settled on.
+    ///
+    /// What this rules out is the regression that matters: dropping the defaults from the
+    /// adapters sends the message back to `Mock+Adapters.swift`, pointing every unstubbed
+    /// call in every project at one line of SwiftMocking's own source.
+    @Test(.enabled(if: trapProbeCanRun, "TrapProbe executable is unavailable"))
+    func unstubbedThrowingTrapNamesTheMockedProtocol() throws {
+        let output = try runTrapProbe(route: "throwingConformance")
+
+        #expect(
+            !output.contains("SwiftMocking/Mock+Adapters.swift"),
+            """
+            The unstubbed call was attributed to SwiftMocking's own source, which means the \
+            adapters stopped forwarding their location.
+            Output:
+            \(output)
+            """
+        )
+        #expect(!output.contains("SwiftMocking/Spy.swift"))
+    }
+
+    /// Called directly on a spy, the trap names the caller's own line.
+    ///
+    /// This route can capture a real location — `callAsFunction`'s defaults expand at the
+    /// call site — so it gets the strongest attribution available, and would regress
+    /// silently if those defaults were dropped.
+    @Test(.enabled(if: trapProbeCanRun, "TrapProbe executable is unavailable"))
+    func unstubbedThrowingTrapPointsAtTheCall() throws {
+        let output = try runTrapProbe(route: "throwingSpy")
+
+        #expect(output.contains("MockedProtocols.swift"))
+        #expect(!output.contains("SwiftMocking/Spy.swift"))
     }
 
     /// A non-throwing requirement backed by a registered default reports nothing.
@@ -331,6 +374,7 @@ struct ErrorReportingTests {
             ("spy", "MockedProtocols.swift"),
             ("typedThrows", "MockedProtocols.swift"),
             ("conformance", "@__swiftmacro_"),
+            ("typedThrowsConformance", "@__swiftmacro_"),
         ]
     )
     func trapIsAttributedToUserCodeNotSwiftMocking(route: String, expectedFrame: String) throws {

@@ -156,9 +156,25 @@ protocol PersistenceService {
 /// default to fall back on, there is nothing to return, so SwiftMocking reports and traps.
 /// Types like `Int` or `String` cannot exercise this — the registry supplies a default and
 /// the call succeeds.
-@Mockable
+@Mockable([.composition])
 protocol ProfileService {
     func profile(for id: String) -> UserProfile
+    func fetchProfile(for id: String) throws -> UserProfile
+}
+
+
+/// The error type for ``TypedThrowingProfileService``.
+public struct ProfileLookupError: Error {}
+
+/// A typed-throwing requirement whose return type has no registered default.
+///
+/// The typed-throwing effect is the one throwing effect that still reaches the unrecoverable
+/// path: an unstubbed call raises a ``MockingError``, which is not the declared `Failure` and
+/// so cannot be rethrown, leaving `Spy.narrow` to trap. Exercising that through a *generated
+/// conformance* is what covers `Mock.adaptTypedThrowing`.
+@Mockable
+protocol TypedThrowingProfileService {
+    func profile(for id: String) throws(ProfileLookupError) -> UserProfile
 }
 
 /// A non-throwing requirement returning `Void`, which the registry supplies a default for.
@@ -214,6 +230,44 @@ public func tripUnstubbedTypedThrowingRequirementViaSpy() -> Never {
     struct Failure: Error {}
     let spy = Spy<Int, TypedThrows<Failure>, NoDefault>()
     _ = try? spy(3)
+    fatalError("unreachable: the unstubbed call above must trap")
+}
+
+/// Calls an unstubbed *throwing* requirement on a directly constructed `Spy`, discarding
+/// the error with `try?`.
+///
+/// The `try?` is the point. A throwing requirement gives SwiftMocking somewhere to put an
+/// unstubbed-call error, but a caller that discards it — or maps every error to a default —
+/// would see nothing at all, and the test would pass against a value the mock never
+/// produced. The call traps instead, so the mistake cannot be swallowed.
+public func tripUnstubbedThrowingRequirementViaSpy() -> Never {
+    struct NoDefault {}
+    let spy = Spy<Int, Throws, NoDefault>(label: "Spy.fetchProfile")
+    _ = try? spy(3)
+    fatalError("unreachable: the unstubbed call above must trap")
+}
+
+/// Calls an unstubbed *throwing* requirement through a *generated conformance*, discarding
+/// the error with `try?`.
+///
+/// The conformance counterpart of ``tripUnstubbedThrowingRequirementViaSpy()``. This route
+/// is what pins the adapters' location forwarding: the witness cannot carry a location, so
+/// the message must come from the macro expansion buffer rather than `Mock+Adapters.swift`.
+public func tripUnstubbedThrowingRequirementViaConformance() -> Never {
+    let mock = MockProfileService()
+    _ = try? (mock as ProfileService).fetchProfile(for: "alice")
+    fatalError("unreachable: the unstubbed call above must trap")
+}
+
+/// Calls an unstubbed, *typed-throwing* requirement through a *generated conformance*.
+///
+/// The conformance counterpart of ``tripUnstubbedTypedThrowingRequirementViaSpy()``, and the
+/// route that covers `Mock.adaptTypedThrowing`. The chain from the witness to the trap is
+/// longer than any other — witness, adapter, `Spy.process`, `narrow` — and every frame in it
+/// must be `@_transparent` for the debugger to select the mock's own method.
+public func tripUnstubbedTypedThrowingRequirementViaConformance() -> Never {
+    let mock = MockTypedThrowingProfileService()
+    _ = try? (mock as TypedThrowingProfileService).profile(for: "alice")
     fatalError("unreachable: the unstubbed call above must trap")
 }
 

@@ -400,14 +400,42 @@ extension Mock {
             reportUnrecoverable(error)
         }
     }
-  public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O
-  public func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I) throws -> O
-  public static func adaptTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, TypedThrows<E>, O>, _ input: repeat each I) throws(E) -> O where E : Error
-  public func adaptTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, TypedThrows<E>, O>, _ input: repeat each I) throws(E) -> O where E : Error
-  public static func adaptAsyncTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, AsyncTypedThrows<E>, O>, _ input: repeat each I) async throws(E) -> O where E : Error
-  public func adaptAsyncTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, AsyncTypedThrows<E>, O>, _ input: repeat each I) async throws(E) -> O where E : Error
-  public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O
-  public func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I) async throws -> O
+  @_transparent public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) throws -> O {
+        return try spy(
+            repeat each input,
+            fileID: fileID, filePath: filePath, line: line, column: column
+        )
+    }
+  @_transparent public func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, Throws, O>, _ input: repeat each I, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) throws -> O {
+        return try spy(
+            repeat each input,
+            fileID: fileID, filePath: filePath, line: line, column: column
+        )
+    }
+  @_transparent public static func adaptTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, TypedThrows<E>, O>, _ input: repeat each I) throws(E) -> O where E : Error {
+        try spy(repeat each input)
+    }
+  @_transparent public func adaptTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, TypedThrows<E>, O>, _ input: repeat each I) throws(E) -> O where E : Error {
+        try spy(repeat each input)
+    }
+  @_transparent public static func adaptAsyncTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, AsyncTypedThrows<E>, O>, _ input: repeat each I) async throws(E) -> O where E : Error {
+        try await spy(repeat each input)
+    }
+  @_transparent public func adaptAsyncTypedThrowing<each I, E, O>(_ spy: Spy<repeat each I, AsyncTypedThrows<E>, O>, _ input: repeat each I) async throws(E) -> O where E : Error {
+        try await spy(repeat each input)
+    }
+  @_transparent public static func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async throws -> O {
+        return try await spy(
+            repeat each input,
+            fileID: fileID, filePath: filePath, line: line, column: column
+        )
+    }
+  @_transparent public func adaptThrowing<each I, O>(_ spy: Spy<repeat each I, AsyncThrows, O>, _ input: repeat each I, fileID: StaticString = #fileID, filePath: StaticString = #filePath, line: UInt = #line, column: UInt = #column) async throws -> O {
+        return try await spy(
+            repeat each input,
+            fileID: fileID, filePath: filePath, line: line, column: column
+        )
+    }
 }
 @dynamicMemberLookup open class Mock : DefaultProvider, @unchecked Sendable {
   public var Super: Mock.Type {
@@ -502,6 +530,9 @@ extension Return where Effects == Throws {
 extension Return where Effects : TypedThrowingEffect {
 }
 extension Return where Effects == Async {
+}
+extension Return where Effects == AsyncThrows {
+  @discardableResult
 }
 public struct SettableInteraction<each Input, Eff, Output> where Eff : Effect {
   public let get: Interaction<repeat each Input, Eff, Output>
