@@ -328,6 +328,19 @@ extension Spy where Effects == Throws {
     /// When invoked directly (rather than through a generated conformance) the defaulted
     /// location parameters capture the caller's own file and line, so a failure raised
     /// here is attributed to the calling test.
+    ///
+    /// An *unstubbed* call reports and then traps, rather than throwing. The requirement
+    /// being able to throw gives SwiftMocking somewhere to put the error, but a missing
+    /// stub is a test-authoring mistake rather than a condition under test, and a bare
+    /// throw hides it whenever the caller catches broadly — `try?`, or a `catch` that maps
+    /// every error to a default. That turns a missing stub into a test passing against a
+    /// value the mock never produced.
+    ///
+    /// Trapping matches how the non-throwing effects already treat the same mistake, so
+    /// every unstubbed call behaves alike regardless of the requirement's effects. See
+    /// ``reportUnrecoverable``.
+    ///
+    /// A *stubbed* error propagates normally, since that is the behavior under test.
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
@@ -356,6 +369,7 @@ extension Spy where Effects == Throws {
         )
     }
 
+    @_transparent
     @usableFromInline
     func process(
         _ input: repeat each Input,
@@ -363,7 +377,18 @@ extension Spy where Effects == Throws {
     ) throws -> Output {
         let invocation = Invocation(arguments: repeat each input)
         let action = matchingAction(invocation: invocation)
-        let result = try invoke(repeat each input)
+        let result: Return<Effects, Output>
+        do {
+            result = try invoke(repeat each input)
+        } catch let error as MockingError {
+            reportUnrecoverable(
+                error,
+                fileID: location.fileID,
+                filePath: location.filePath,
+                line: location.line,
+                column: location.column
+            )
+        }
         if let action {
             try action.perform(invocation)
         }
@@ -879,6 +904,9 @@ extension Spy where Effects == AsyncThrows {
     /// When invoked directly (rather than through a generated conformance) the defaulted
     /// location parameters capture the caller's own file and line, so a failure raised
     /// here is attributed to the calling test.
+    ///
+    /// An unstubbed call reports and traps; a stubbed error propagates normally. See the
+    /// synchronous `Effects == Throws` overload for why.
     /// - Parameter input: The arguments for the method call.
     /// - Returns: The output of the method if it doesn't throw.
     /// - Throws: The error thrown by the method.
@@ -905,6 +933,7 @@ extension Spy where Effects == AsyncThrows {
         )
     }
 
+    @_transparent
     @usableFromInline
     func process(
         _ input: repeat each Input,
@@ -912,7 +941,18 @@ extension Spy where Effects == AsyncThrows {
     ) async throws -> Output {
         let invocation = Invocation(arguments: repeat each input)
         let action = matchingAction(invocation: invocation)
-        let returnValue = try invoke(repeat each input)
+        let returnValue: Return<Effects, Output>
+        do {
+            returnValue = try invoke(repeat each input)
+        } catch let error as MockingError {
+            reportUnrecoverable(
+                error,
+                fileID: location.fileID,
+                filePath: location.filePath,
+                line: location.line,
+                column: location.column
+            )
+        }
         if let action {
             try await action.perform(invocation)
         }

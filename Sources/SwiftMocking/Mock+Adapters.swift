@@ -31,6 +31,19 @@ import Foundation
 /// into the generated conformance before the optimizer runs, so the debugger attributes
 /// the trap to the mock's own method rather than to a frame inside SwiftMocking. See
 /// ``reportUnrecoverable``.
+///
+/// Every adapter carries `@_transparent`, not just the trapping ones. The throwing
+/// adapters surface an unstubbed call as a thrown error rather than a trap, but they are
+/// not trap-free:
+///
+/// - the typed-throwing adapters reach ``Spy/narrow(_:location:)``, which *does* trap,
+///   because a ``MockingError`` cannot cross a `throws(Failure)` boundary;
+/// - any adapter can trap by way of a stubbed handler or a registered action.
+///
+/// In each case the generated conformance is the frame the user needs to see, and an
+/// opaque adapter frame between it and the trap is what would hide it. Leaving the
+/// attribute off the throwing adapters also made the two groups differ for a reason that
+/// did not survive typed throws being added.
 public extension Mock {
     /// Adapts a synchronous spy call for static method mocking.
     ///
@@ -106,21 +119,32 @@ public extension Mock {
 
     /// Adapts a throwing spy call for static method mocking.
     ///
-    /// Unlike the non-throwing adapters, an unstubbed requirement here surfaces as a thrown
-    /// ``MockingError`` carrying the full message, so no issue is reported separately: the
-    /// test framework already surfaces the error where the caller's `try` is caught. Adding
-    /// a second report would duplicate the failure without adding information.
+    /// An unstubbed requirement reports and traps here, exactly as it does for the
+    /// non-throwing adapters — see ``Spy/process(_:location:)``. The requirement's ability
+    /// to throw is not used for it: relying on a thrown ``MockingError`` meant an unstubbed
+    /// call vanished whenever the caller caught broadly (`try?`, or a `catch` mapping every
+    /// error to a default), turning a missing stub into a silently wrong test.
+    ///
+    /// A *stubbed* error still propagates through the `throws` clause as normal.
     ///
     /// - Parameters:
     ///   - spy: The throwing spy instance to invoke.
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
+    @_transparent
     static func adaptThrowing<each I, O>(
         _ spy: Spy<repeat each I, Throws, O>,
-        _ input: repeat each I
+        _ input: repeat each I,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
     ) throws -> O {
-        return try spy(repeat each input)
+        return try spy(
+            repeat each input,
+            fileID: fileID, filePath: filePath, line: line, column: column
+        )
     }
 
     /// Adapts a throwing spy call for instance method mocking.
@@ -130,11 +154,19 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
+    @_transparent
     func adaptThrowing<each I, O>(
         _ spy: Spy<repeat each I, Throws, O>,
-        _ input: repeat each I
+        _ input: repeat each I,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
     ) throws -> O {
-        return try spy(repeat each input)
+        return try spy(
+            repeat each input,
+            fileID: fileID, filePath: filePath, line: line, column: column
+        )
     }
 
     /// Adapts a typed-throwing spy call for static method mocking.
@@ -156,6 +188,7 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
     /// - Throws: The stubbed error, typed as `E`.
+    @_transparent
     static func adaptTypedThrowing<each I, E: Error, O>(
         _ spy: Spy<repeat each I, TypedThrows<E>, O>,
         _ input: repeat each I
@@ -173,6 +206,7 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the spy invocation.
     /// - Throws: The stubbed error, typed as `E`.
+    @_transparent
     func adaptTypedThrowing<each I, E: Error, O>(
         _ spy: Spy<repeat each I, TypedThrows<E>, O>,
         _ input: repeat each I
@@ -189,6 +223,7 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
     /// - Throws: The stubbed error, typed as `E`.
+    @_transparent
     static func adaptAsyncTypedThrowing<each I, E: Error, O>(
         _ spy: Spy<repeat each I, AsyncTypedThrows<E>, O>,
         _ input: repeat each I
@@ -205,6 +240,7 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
     /// - Throws: The stubbed error, typed as `E`.
+    @_transparent
     func adaptAsyncTypedThrowing<each I, E: Error, O>(
         _ spy: Spy<repeat each I, AsyncTypedThrows<E>, O>,
         _ input: repeat each I
@@ -219,11 +255,19 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
+    @_transparent
     static func adaptThrowing<each I, O>(
         _ spy: Spy<repeat each I, AsyncThrows, O>,
-        _ input: repeat each I
+        _ input: repeat each I,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
     ) async throws -> O {
-        return try await spy(repeat each input)
+        return try await spy(
+            repeat each input,
+            fileID: fileID, filePath: filePath, line: line, column: column
+        )
     }
 
     /// Adapts an async throwing spy call for instance method mocking.
@@ -233,10 +277,18 @@ public extension Mock {
     ///   - input: The input arguments to pass to the spy.
     /// - Returns: The result of the async spy invocation.
     /// - Throws: Any error thrown by the spy or stubbed behavior.
+    @_transparent
     func adaptThrowing<each I, O>(
         _ spy: Spy<repeat each I, AsyncThrows, O>,
-        _ input: repeat each I
+        _ input: repeat each I,
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
     ) async throws -> O {
-        return try await spy(repeat each input)
+        return try await spy(
+            repeat each input,
+            fileID: fileID, filePath: filePath, line: line, column: column
+        )
     }
 }
