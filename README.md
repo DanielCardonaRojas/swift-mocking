@@ -212,6 +212,7 @@ example above into a full test suite, one runnable step at a time:
 | [Match Arguments Precisely](https://danielcardonarojas.github.io/swift-mocking/tutorials/swiftmocking/matching-arguments/) | `.any`, exact values, ranges, predicates, capturing arguments |
 | [Stub Dynamically](https://danielcardonarojas.github.io/swift-mocking/tutorials/swiftmocking/dynamic-stubbing/) | Computed returns, stub ordering, side effects, callback APIs |
 | [Verify Every Interaction](https://danielcardonarojas.github.io/swift-mocking/tutorials/swiftmocking/verifying-interactions/) | Call counts, cross-mock ordering, debugging failures |
+| [Mock Without a Protocol](https://danielcardonarojas.github.io/swift-mocking/tutorials/swiftmocking/mocking-without-protocols/) | Structs of closures, concrete classes, spies without `@Mockable` |
 
 Reference material:
 
