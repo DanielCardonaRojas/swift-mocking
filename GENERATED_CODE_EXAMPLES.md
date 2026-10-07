@@ -267,6 +267,46 @@ final class MockMyService: MyService , MockProviding, Sendable {
 ```
 </details>
 
+#### Composition with a settable property
+
+A settable property is where the two strategies diverge most visibly. The setter interaction is built inside an escaping closure, so it reaches the write spy through a captured `self.mock` rather than through `super`, and both accessors call the static `Mock.adapt`.
+
+```swift
+@Mockable([.composition])
+protocol MyService: SampleBase {
+    var value: Int { get set }
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+class MockMyService: SampleBase, MyService, MockProviding, @unchecked Sendable {
+    let mock = Mock()
+
+    func value(_ void: Void = ()) -> SettableInteraction<Void, None, Int > {
+        SettableInteraction(
+            get: Interaction(.any, spy: self.mock.value),
+            setInteraction: { newValue in
+                let writeSpy: Spy<Void, Int, None, Void> = self.mock.setValue
+                let writeInteraction: Interaction<Void, Int, None, Void> = Interaction(.any, newValue, spy: writeSpy)
+                return writeInteraction
+            }
+        )
+    }
+
+    var value: Int {
+        set {
+            return Mock.adapt(self.mock.setValue, (), newValue)
+        }
+        get {
+            Mock.adapt(self.mock.value, ())
+        }
+    }
+}
+```
+</details>
+
 #### Composition with static requirements
 
 Static members cannot reach an instance property, so a composed protocol with static requirements gets a *second* `Mock` for them. It carries the mock's own type name as its scoped storage key, so those spies land in `MockScope` — isolated by `.mocking` exactly like an inheriting mock's static spies, and reachable by `MockProviding`'s static `clear()`.
