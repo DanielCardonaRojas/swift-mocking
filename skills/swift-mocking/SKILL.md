@@ -10,7 +10,7 @@ Mocking for Swift protocols: `@Mockable` generates mock classes; `when(...)` stu
 The macro is not the only entry point. Two escape hatches cover everything it can't reach, and both are fully supported (see **spies-and-composition.md**):
 
 - **`Spy` used directly** — a standalone recorder needing no `Mock` subclass and no macro. This is how you mock **classes**, which `@Mockable` cannot touch at all: subclass the class and back each override with a `Spy`.
-- **Composition over inheritance** — hold a `let mock = Mock()` property instead of inheriting from `Mock`. `Mock`'s `@dynamicMemberLookup` subscript is `public`, so `mock.name` resolves spies from outside the class. Required when the type already has a superclass (`UIViewController`, a legacy base class) or isn't a class at all (**struct**, **actor**). Substitute `super.name` → `self.mock.name` and `adapt(...)` → `Mock.adapt(...)`; everything else in manual-mocking.md is unchanged.
+- **Composition over inheritance** — hold a `let mock = Mock()` property instead of inheriting from `Mock`. `Mock`'s `@dynamicMemberLookup` subscript is `public`, so `mock.name` resolves spies from outside the class. Required when the type already has a superclass (`UIViewController`, a legacy base class) or isn't a class at all (**struct**, **actor**). Substitute `super.name` → `self.mock.name` and `adapt(...)` → `Mock.adapt(...)`; everything else in manual-mocking.md is unchanged. For an actor the macro does this for you when the protocol inherits `Actor` — see spies-and-composition.md.
 
 **The macro generates the composed form itself** with `@Mockable([.composition])` — no hand-writing — when the blocker is a protocol whose conformers must inherit a class:
 
@@ -19,7 +19,7 @@ The macro is not the only entry point. Two escape hatches cover everything it ca
 protocol ViewControllerService: SampleBase { ... }
 ```
 
-Hand-write composition only for what the macro still can't express: **structs**, **actors**, and mocking a **concrete class**.
+Hand-write composition only for what the macro still can't express: **structs** and mocking a **concrete class**. Actors are generated — a protocol inheriting `Actor` is mocked as an `actor` automatically, with no option needed.
 
 ## When to use what
 

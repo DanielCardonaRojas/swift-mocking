@@ -113,10 +113,15 @@ public extension MockableGenerator {
         }
     }
 
-    /// Collects the protocols a declaration inherits, dropping bases that
-    /// carry no requirements (`AnyObject`, `class`, `Sendable`).
+    /// Collects the protocols a declaration inherits, dropping bases that need
+    /// no generated members (`AnyObject`, `class`, `Sendable`, `Actor`).
+    ///
+    /// `Actor` and `AnyActor` do carry a requirement — `unownedExecutor` — but
+    /// the compiler synthesizes it for an `actor` declaration, which is the only
+    /// shape generated for such a protocol. Warning that the mock "does not
+    /// implement" it would be noise.
     private static func inheritedTypeNames(of protocolDecl: ProtocolDeclSyntax) -> [String] {
-        let memberlessBases: Set<String> = ["AnyObject", "class", "Sendable"]
+        let memberlessBases: Set<String> = ["AnyObject", "class", "Sendable", "Actor", "AnyActor"]
         return protocolDecl.inheritanceClause?.inheritedTypes
             .map { $0.type.trimmedDescription }
             .filter { !memberlessBases.contains($0) } ?? []

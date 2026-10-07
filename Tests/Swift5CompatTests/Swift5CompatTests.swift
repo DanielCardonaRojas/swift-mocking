@@ -22,6 +22,19 @@ protocol CompatInitializerService {
     init(value: Int)
 }
 
+/// An `Actor`-inheriting protocol, mocked as an `actor` with `nonisolated`
+/// members.
+///
+/// Swift 5 language mode is the lane where the isolation spellings are most
+/// likely to differ, so this pins that the generated shape — `nonisolated` on
+/// instance members, nothing added to statics, no `final`, no restated
+/// `Sendable` — still builds for a Swift 5 consumer.
+@Mockable
+protocol CompatActorService: Actor {
+    func ping() -> Bool
+    static func reset()
+}
+
 /// A deliberately non-Sendable value.
 final class CompatSession {
     let token = "opaque"
@@ -74,5 +87,29 @@ final class Swift5CompatTests: XCTestCase {
         when(mock.greet(.any)).thenReturn { _ in session.token }
 
         XCTAssertTrue(mock.greet("x").hasPrefix("opaque"))
+    }
+
+    /// Deliberately not `async`: a synchronous body is what proves the actor
+    /// mock's members are `nonisolated` in Swift 5 mode too. An isolated witness
+    /// would compile and fail only here.
+    func testActorMockStubsSynchronously() {
+        let mock = MockCompatActorService()
+        when(mock.ping()).thenReturn(true)
+
+        let result: Bool = mock.ping()
+
+        XCTAssertTrue(result)
+        verify(mock.ping()).called(1)
+    }
+
+    func testActorMockStaticRequirement() {
+        MockCompatActorService.clear()
+
+        // Annotated to select the conformance witness over the same-named
+        // interaction builder, which is also zero-argument.
+        let call: () -> Void = MockCompatActorService.reset
+        call()
+
+        verify(MockCompatActorService.reset()).called(1)
     }
 }

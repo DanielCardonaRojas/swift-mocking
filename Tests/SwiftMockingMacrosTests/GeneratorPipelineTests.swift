@@ -139,6 +139,42 @@ final class GeneratorPipelineTests: XCTestCase {
         XCTAssertEqual(mocks[0].inheritedTypeNames, ["First"])
     }
 
+    /// `Actor` and `AnyActor` are memberless for reporting purposes: their one
+    /// requirement, `unownedExecutor`, is synthesized for the `actor` the
+    /// generator emits. Without this the CLI warned that the mock "does not
+    /// implement requirements inherited from 'Actor'", which is never true.
+    func testGenerateMocksDoesNotReportActorAsInheritedType() throws {
+        let mocks = try MockableGenerator.generateMocks(
+            source: """
+            protocol Session: Actor, First {
+                func ping()
+            }
+            """
+        )
+
+        XCTAssertEqual(mocks[0].inheritedTypeNames, ["First"])
+    }
+
+    /// A protocol inheriting `Actor` is mocked as an `actor` using the composed
+    /// strategy, with no `.composition` option given — no class can conform to
+    /// such a protocol, and an actor cannot inherit `Mock`.
+    func testGenerateMocksEmitsActorForActorInheritingProtocol() throws {
+        let mocks = try MockableGenerator.generateMocks(
+            source: """
+            protocol Session: Actor {
+                func ping()
+            }
+            """
+        )
+
+        let source = mocks[0].source
+        XCTAssertTrue(source.contains("actor MockSession"), source)
+        XCTAssertTrue(source.contains("nonisolated let mock = Mock()"), source)
+        XCTAssertTrue(source.contains("nonisolated func ping()"), source)
+        XCTAssertFalse(source.contains("Sendable"), source)
+        XCTAssertFalse(source.contains("final"), source)
+    }
+
     func testGenerateMocksThrowsWhenNoProtocolDeclarationPresent() {
         XCTAssertThrowsError(
             try MockableGenerator.generateMocks(source: "struct Foo {}")

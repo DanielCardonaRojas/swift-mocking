@@ -249,9 +249,40 @@ That is narrower than `Mock.clear()`, the inheriting strategy's static counterpa
 
 Composed static spies live in that same scoped storage, so `@Test(.mocking)` isolates them exactly as it isolates an inheriting mock's static spies.
 
-### Structs and actors
+### Actors — generated
 
-Composition is the *only* option when there's no class to inherit from. Both compile and record correctly:
+A protocol inheriting `Actor` needs no option. The macro detects it and generates an `actor`:
+
+```swift
+@Mockable()
+protocol Sizing: Actor {
+    func size(_ s: String) -> Int
+}
+```
+
+```swift
+actor MockSizing: Sizing, MockProviding {
+    nonisolated let mock = Mock()
+    nonisolated func size(_ s: ArgMatcher<String>) -> Interaction<String, None, Int> {
+        Interaction(s, spy: self.mock.size)
+    }
+    nonisolated func size(_ s: String) -> Int { Mock.adapt(self.mock.size, s) }
+}
+```
+
+Detection is not a convenience — it's forced. No class can conform to such a protocol (`non-actor type 'MockSizing' cannot conform to the 'Actor' protocol`), and an actor can't inherit `Mock`, so the composed strategy applies whether or not you write `.composition`.
+
+Three consequences worth knowing:
+
+- **Every instance member is `nonisolated`**, including the storage. Without it `when`/`verify` become `await`-only and a synchronous requirement can't be satisfied — the failure shows up at the *call site*, not the declaration. `Mock` is `@unchecked Sendable` and lock-guarded, so opting out of isolation is sound.
+- **Static members are left alone.** Members of an actor's type are already nonisolated.
+- **No `final`, no restated `Sendable`, no `required` on initializers** — all three are either invalid on an actor or implied. `clear()` and `verifyZeroInteractions` work as usual, synchronously, via `MockProviding`.
+
+`@MainActor` and other global-actor-isolated protocols are a **separate, unsupported** case — see [Limits](#limits).
+
+### Structs, and actors you hand-write
+
+Composition is still the only option when there's no protocol to annotate:
 
 ```swift
 struct StructMock: Sizing {
@@ -261,18 +292,10 @@ struct StructMock: Sizing {
         Interaction(s, spy: mock.size)
     }
 }
-
-actor ActorMock {
-    nonisolated let mock = Mock()
-    nonisolated func size(_ s: String) -> Int { Mock.adapt(mock.size, s) }
-    nonisolated func size(_ s: ArgMatcher<String>) -> Interaction<String, None, Int> {
-        Interaction(s, spy: mock.size)
-    }
-}
 ```
 
 - **Struct**: no `mutating` needed — `Mock` is a reference type, so recording mutates through the `let`. Beware that copying the struct shares one spy store.
-- **Actor**: mark the property and both members `nonisolated`, otherwise `when`/`verify` become `await`-only and the runtime member can't satisfy a synchronous protocol requirement. `Mock` is `@unchecked Sendable` and lock-guarded, so this is sound.
+- **Actor, by hand**: only needed for an actor that conforms to no protocol, or one whose protocol doesn't inherit `Actor`. Mirror the generated shape above — `nonisolated` on the storage and on both members.
 
 ### Composition vs. raw spies — which one
 
@@ -291,6 +314,9 @@ Composition also gives one thing raw spies don't: a **single `clear()`** across 
 - **No `super` calls to real behavior after stubbing** — an override forwards to the spy or to `super`, not both. Partial mocks aren't supported; branch inside the override if you need one.
 - **Non-overridable storage**: a stored `var` on the base class can't be turned into a spy-backed property in a subclass. Override a computed property, or compose.
 - **Class initializers** must still satisfy the superclass — call a real `super.init(...)`; `Mock`'s empty-init convention doesn't apply.
+- **`@MainActor` and other global-actor-isolated protocols are not supported.** Isolation written as an attribute (`@MainActor protocol P`) is a different case from `protocol P: Actor` and is not detected: the mock is generated as an ordinary class without the isolation. A `@MainActor` on an *individual requirement* does propagate to the generated member. Mocking a global-actor-isolated protocol means hand-writing the mock for now.
+- **An `Actor`-inheriting protocol can't also carry a class constraint** — actors cannot inherit from classes, so `protocol P: Actor, SomeBaseClass` is unsatisfiable by any type.
+- **Actor detection is syntactic.** `protocol P: Q` where `Q: Actor`, or a `typealias` for `Actor`, is not detected and still generates a class that won't compile. Inherit `Actor` directly.
 - **Composition doesn't inherit `Mock`'s conveniences**: `adapt` and `DefaultProvider` conformance are on `Mock`, so use `Mock.adapt(...)` and forward what you need. `clear()` and `verifyZeroInteractions` are the exceptions — both come from `MockProviding` (a single `var mock: Mock { get }`), so any type with a `let mock = Mock()` satisfies it for free, and `[.composition]` output conforms already. The same conformance supplies a static `clear()` for mocks with static requirements.
 
 ## Sanity check

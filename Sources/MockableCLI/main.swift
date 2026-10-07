@@ -29,6 +29,10 @@ does not need to be annotated — a bare protocol is mocked as-is.
                   (`protocol Service: UIViewController`), which cannot be
                   mocked by the default inheriting strategy.
 
+                  A protocol inheriting `Actor` needs no option: it is mocked
+                  as an `actor` using the composed strategy automatically,
+                  since no class can conform to it.
+
 --no-debug-wrap   Emit the mock class bare, without the `#if DEBUG` wrapper
                   the macro emits — the right choice when pasting into a test
                   target, since DEBUG is defined per build configuration (not

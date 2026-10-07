@@ -50,43 +50,82 @@ public enum MockableGenerator {
                 : protocolName + "Mock"
         }
 
+        // A protocol inheriting `Actor` can only be satisfied by an `actor`, and
+        // an actor cannot inherit `Mock`, so detection forces the composed
+        // strategy regardless of the options given.
+        let isActor = inheritsActor(protocolDecl: protocolDecl)
+        let shape: MockShape = isActor ? .actorDecl : .classDecl
+
         // Generate the spy properties and methods using SpyGenerator
-        let spyAccess: SpyAccess = codeGenOptions.contains(.composition) ? .composed : .inherited
+        let spyAccess: SpyAccess = (isActor || codeGenOptions.contains(.composition))
+            ? .composed
+            : .inherited
         let genericParameters = associatedTypesToGenericArguments(
             protocolDecl: protocolDecl
         )
         let typeAliases = makeTypeAliases(protocolDecl)
-        let spyStorage = makeSpyStorage(protocolDecl: protocolDecl, spyAccess: spyAccess, mockName: mockName)
-        let interactions = makeInteractions(protocolDecl: protocolDecl, spyAccess: spyAccess)
+        let spyStorage = makeSpyStorage(
+            protocolDecl: protocolDecl,
+            spyAccess: spyAccess,
+            shape: shape,
+            mockName: mockName
+        )
+        let interactions = makeInteractions(
+            protocolDecl: protocolDecl,
+            spyAccess: spyAccess,
+            shape: shape
+        )
         let conformanceRequirements = makeConformanceRequirements(
             for: protocolDecl,
             spyAccess: spyAccess,
+            shape: shape,
             mockName: mockName
         )
 
         let members = separatedByBlankLines(typeAliases + spyStorage + interactions + conformanceRequirements)
             .map { MemberBlockItemSyntax(decl: $0) }
 
-        // Create the Mock struct
-        let mockStruct = ClassDeclSyntax(
-            modifiers: DeclModifierListSyntax {
-                if isStrictlySendable(protocolDecl: protocolDecl, spyAccess: spyAccess) {
-                    DeclModifierSyntax(name: .keyword(.final))
-                }
-            },
-            name: TokenSyntax.identifier(mockName),
-            genericParameterClause: genericParameters,
-            inheritanceClause: InheritanceClauseSyntax(
-                inheritedTypes: inheritedTypes(
-                    protocolDecl: protocolDecl,
-                    spyAccess: spyAccess
-                )
-            ),
-            memberBlock: MemberBlockSyntax(members: MemberBlockItemListSyntax(members))
+        // Create the mock declaration
+        let modifiers = DeclModifierListSyntax {
+            if canBeFinalAndSendable(protocolDecl: protocolDecl, spyAccess: spyAccess, shape: shape) {
+                DeclModifierSyntax(name: .keyword(.final))
+            }
+        }
+        let inheritance = InheritanceClauseSyntax(
+            inheritedTypes: inheritedTypes(
+                protocolDecl: protocolDecl,
+                spyAccess: spyAccess,
+                shape: shape
+            )
         )
+        let memberBlock = MemberBlockSyntax(members: MemberBlockItemListSyntax(members))
+
+        let mockDecl: DeclSyntax
+        switch shape {
+        case .classDecl:
+            mockDecl = DeclSyntax(
+                ClassDeclSyntax(
+                    modifiers: modifiers,
+                    name: TokenSyntax.identifier(mockName),
+                    genericParameterClause: genericParameters,
+                    inheritanceClause: inheritance,
+                    memberBlock: memberBlock
+                )
+            )
+        case .actorDecl:
+            mockDecl = DeclSyntax(
+                ActorDeclSyntax(
+                    modifiers: modifiers,
+                    name: TokenSyntax.identifier(mockName),
+                    genericParameterClause: genericParameters,
+                    inheritanceClause: inheritance,
+                    memberBlock: memberBlock
+                )
+            )
+        }
 
         let ifConfigDecl = ifConfig(MemberBlockItemListSyntax {
-            mockStruct
+            mockDecl
         })
 
         return [DeclSyntax(ifConfigDecl)]
@@ -113,13 +152,43 @@ public enum MockableGenerator {
     /// an inheritance clause is undecidable at expansion time — the macro sees
     /// only syntax and cannot tell `BaseService` from `SomeBaseClass`. Those
     /// keep `@unchecked`, which costs the guarantee but never miscompiles.
-    static func isStrictlySendable(
+    ///
+    /// Actor mocks answer `false` because neither half applies: an actor cannot
+    /// be `final` and is implicitly `Sendable`, so there is nothing to opt into.
+    /// See ``inheritedTypes(protocolDecl:spyAccess:shape:)``, which emits no
+    /// `Sendable` conformance for them at all.
+    static func canBeFinalAndSendable(
         protocolDecl: ProtocolDeclSyntax,
-        spyAccess: SpyAccess
+        spyAccess: SpyAccess,
+        shape: MockShape = .classDecl
     ) -> Bool {
+        guard case .classDecl = shape else { return false }
         guard case .composed = spyAccess else { return false }
         let inherited = protocolDecl.inheritanceClause?.inheritedTypes ?? []
         return inherited.isEmpty
+    }
+
+    /// Whether the protocol's inheritance clause names `Actor`.
+    ///
+    /// A protocol inheriting `Actor` can only be satisfied by an `actor`:
+    ///
+    /// ```
+    /// error: non-actor type 'MockX' cannot conform to the 'Actor' protocol
+    /// ```
+    ///
+    /// so detection switches the generated declaration kind rather than
+    /// offering a choice. Unlike the `Sendable`/superclass questions above this
+    /// inference is safe to act on: the alternative is not a working class mock
+    /// but one that never compiles, so there is no correct output to regress.
+    ///
+    /// Matching is syntactic, so indirection is invisible — `protocol P: Q`
+    /// where `Q: Actor`, or a `typealias` for `Actor`, is not detected. Those
+    /// keep today's behavior.
+    static func inheritsActor(protocolDecl: ProtocolDeclSyntax) -> Bool {
+        let actorBases: Set<String> = ["Actor", "AnyActor"]
+        return protocolDecl.inheritanceClause?.inheritedTypes.contains { inherited in
+            actorBases.contains(inherited.type.trimmedDescription)
+        } ?? false
     }
 
     /// Builds the generated mock's inheritance clause.
@@ -134,16 +203,23 @@ public enum MockableGenerator {
     /// to the most-derived protocol already implies them.
     ///
     /// A composing mock with nothing to restate conforms to plain `Sendable`
-    /// instead — see ``isStrictlySendable(protocolDecl:spyAccess:)``. Its only
+    /// instead — see ``canBeFinalAndSendable(protocolDecl:spyAccess:shape:)``. Its only
     /// storage is a `let` of `Mock`, itself `@unchecked Sendable` over
     /// `NSLock`-guarded internals, so the conformance is checkable rather than
     /// asserted: the compiler rejects any mutable stored property added later.
     ///
     /// `MockProviding` is added so `verifyZeroInteractions` accepts the mock;
     /// inheriting mocks get that conformance from `Mock` itself.
+    ///
+    /// An actor mock drops `Actor`/`AnyActor`/`Sendable` from the restated list
+    /// and gets no `Sendable` conformance: actors are implicitly `Sendable`, and
+    /// an actor conforms to `Actor` by being one. Restating them is legal but
+    /// says nothing. Everything *else* in the clause is still restated — an
+    /// actor protocol may inherit other protocols.
     static func inheritedTypes(
         protocolDecl: ProtocolDeclSyntax,
-        spyAccess: SpyAccess
+        spyAccess: SpyAccess,
+        shape: MockShape = .classDecl
     ) -> InheritedTypeListSyntax {
         // `Mock` is `@unchecked Sendable`; conformers must restate the
         // conformance to stay warning-free under Swift 6 concurrency.
@@ -165,16 +241,24 @@ public enum MockableGenerator {
                 TypeSyntax(IdentifierTypeSyntax(name: protocolDecl.name))
             ]
         case .composed:
-            let inherited = protocolDecl.inheritanceClause?.inheritedTypes
-                .map { TypeSyntax(stringLiteral: $0.type.trimmedDescription) } ?? []
-            let sendable = isStrictlySendable(protocolDecl: protocolDecl, spyAccess: spyAccess)
-                ? TypeSyntax(IdentifierTypeSyntax(name: .identifier("Sendable")))
-                : uncheckedSendable
+            let isActor = shape == .actorDecl
+            // Conformances an actor already has by construction; restating them
+            // is legal but redundant.
+            let implicitForActors: Set<String> = ["Actor", "AnyActor", "Sendable"]
+            let inherited = (protocolDecl.inheritanceClause?.inheritedTypes ?? [])
+                .filter { !(isActor && implicitForActors.contains($0.type.trimmedDescription)) }
+                .map { TypeSyntax(stringLiteral: $0.type.trimmedDescription) }
             types = inherited + [
                 TypeSyntax(IdentifierTypeSyntax(name: protocolDecl.name)),
-                TypeSyntax(IdentifierTypeSyntax(name: .identifier("MockProviding"))),
-                sendable
+                TypeSyntax(IdentifierTypeSyntax(name: .identifier("MockProviding")))
             ]
+            if !isActor {
+                types.append(
+                    canBeFinalAndSendable(protocolDecl: protocolDecl, spyAccess: spyAccess, shape: shape)
+                        ? TypeSyntax(IdentifierTypeSyntax(name: .identifier("Sendable")))
+                        : uncheckedSendable
+                )
+            }
         }
 
         return InheritedTypeListSyntax(
@@ -197,12 +281,16 @@ public enum MockableGenerator {
     static func makeSpyStorage(
         protocolDecl: ProtocolDeclSyntax,
         spyAccess: SpyAccess,
+        shape: MockShape = .classDecl,
         mockName: String
     ) -> [DeclSyntax] {
         guard case .composed = spyAccess else { return [] }
 
+        // An actor's storage must be `nonisolated` for the generated members —
+        // themselves `nonisolated` — to reach it without `await`.
+        let isolation = shape == .actorDecl ? "nonisolated " : ""
         var decls: [DeclSyntax] = [
-            "let \(raw: SpyAccess.storedPropertyName) = Mock()"
+            "\(raw: isolation)let \(raw: SpyAccess.storedPropertyName) = Mock()"
         ]
         if hasStaticMembers(protocolDecl: protocolDecl) {
             // Keyed by the mock's own type name so these spies land in

@@ -366,4 +366,239 @@ final class MacroOptionsTests: MacroTestCase {
             """
         }
     }
+
+    // MARK: - Actor-inheriting protocols
+
+    /// A protocol inheriting `Actor` can only be satisfied by an `actor`:
+    ///
+    /// ```
+    /// error: non-actor type 'MockSession' cannot conform to the 'Actor' protocol
+    /// ```
+    ///
+    /// so detection switches the generated declaration kind rather than offering
+    /// an option. Because an actor cannot inherit a class, this also forces the
+    /// composed strategy — `self.mock` and the static `Mock.adapt` — without
+    /// `.composition` being written.
+    ///
+    /// `Actor` is dropped from the restated inheritance clause and no `Sendable`
+    /// conformance is emitted: an actor conforms to `Actor` by being one and is
+    /// implicitly `Sendable`. `final` is absent for the same reason — an actor
+    /// cannot be `final`.
+    ///
+    /// Every instance member is `nonisolated`. Without it the witness is
+    /// actor-isolated, which compiles at the declaration and then fails at every
+    /// synchronous call site with `error: call to actor-isolated instance method
+    /// 'ping' in a synchronous nonisolated context` — making `when`/`verify`
+    /// `await`-only and leaving a synchronous requirement unsatisfiable.
+    func testActorInheritingProtocol() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol Session: Actor {
+                func ping() -> Bool
+            }
+            """
+        } expansion: {
+            """
+            protocol Session: Actor {
+                func ping() -> Bool
+            }
+
+            #if DEBUG
+            actor MockSession: Session, MockProviding {
+                nonisolated let mock = Mock()
+
+                nonisolated func ping() -> Interaction<Void, None, Bool> {
+                    Interaction(.any, spy: self.mock.ping)
+                }
+
+                nonisolated func ping() -> Bool {
+                    return Mock.adapt(self.mock.ping, ())
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// Static members of an actor are already nonisolated, so they carry no
+    /// added modifier — and `staticMock` is likewise left alone.
+    func testActorProtocolWithStaticRequirement() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol Session: Actor {
+                static func reset()
+            }
+            """
+        } expansion: {
+            """
+            protocol Session: Actor {
+                static func reset()
+            }
+
+            #if DEBUG
+            actor MockSession: Session, MockProviding {
+                nonisolated let mock = Mock()
+
+                static let staticMock = Mock(scopedStorageKey: "MockSession")
+
+                static func reset() -> Interaction<Void, None, Void> {
+                    Interaction(.any, spy: staticMock.reset)
+                }
+
+                static func reset() {
+                    return Mock.adapt(staticMock.reset, ())
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// Only `Actor`/`AnyActor`/`Sendable` are dropped from the restated clause.
+    /// Any other inherited protocol must survive, or the mock fails to conform.
+    func testActorProtocolRestatesOtherInheritedProtocols() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol Session: Actor, Identifiable {
+                var id: String { get }
+            }
+            """
+        } expansion: {
+            """
+            protocol Session: Actor, Identifiable {
+                var id: String { get }
+            }
+
+            #if DEBUG
+            actor MockSession: Identifiable, Session, MockProviding {
+                nonisolated let mock = Mock()
+
+                nonisolated func id(_ void: Void = ()) -> Interaction<Void, None, String > {
+                    Interaction(.any, spy: self.mock.id)
+                }
+
+                nonisolated var id: String {
+                    get {
+                        Mock.adapt(self.mock.id, ())
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// Initializers on an actor mock omit `required` (`error: 'required'
+    /// initializer in non-class type 'MockSession'`) and chain to no superclass,
+    /// since an actor is a root type.
+    ///
+    /// The synthesized zero-argument `init()` is still emitted. The
+    /// conservative test that suppresses it for a composed protocol with a
+    /// non-empty inheritance clause does not apply: `: Actor` *is* non-empty,
+    /// but an actor can never have a superclass, so the ambiguity that test
+    /// guards against cannot arise.
+    func testActorProtocolWithInitializerRequirement() {
+        assertMacro {
+            """
+            @Mockable()
+            protocol Session: Actor {
+                init(value: Int)
+            }
+            """
+        } expansion: {
+            """
+            protocol Session: Actor {
+                init(value: Int)
+            }
+
+            #if DEBUG
+            actor MockSession: Session, MockProviding {
+                nonisolated let mock = Mock()
+
+                static let staticMock = Mock(scopedStorageKey: "MockSession")
+
+                static func `init`(value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
+                    Interaction(value, spy: staticMock.`init`)
+                }
+
+                init(value: Int) {
+                    let spy: Spy<Int, None, Void> = MockSession.staticMock.`init`
+                    Mock.adapt(spy, value)
+                }
+
+                init() {
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// `.composition` is redundant for an actor protocol — detection already
+    /// forces the composed strategy — and must not change the output.
+    func testActorProtocolWithRedundantCompositionOption() {
+        assertMacro {
+            """
+            @Mockable([.composition])
+            protocol Session: Actor {
+                func ping() -> Bool
+            }
+            """
+        } expansion: {
+            """
+            protocol Session: Actor {
+                func ping() -> Bool
+            }
+
+            #if DEBUG
+            actor MockSession: Session, MockProviding {
+                nonisolated let mock = Mock()
+
+                nonisolated func ping() -> Interaction<Void, None, Bool> {
+                    Interaction(.any, spy: self.mock.ping)
+                }
+
+                nonisolated func ping() -> Bool {
+                    return Mock.adapt(self.mock.ping, ())
+                }
+            }
+            #endif
+            """
+        }
+    }
+
+    /// Naming options compose with actor detection.
+    func testActorProtocolWithSuffixMockOption() {
+        assertMacro {
+            """
+            @Mockable([.suffixMock])
+            protocol Session: Actor {
+                func ping() -> Bool
+            }
+            """
+        } expansion: {
+            """
+            protocol Session: Actor {
+                func ping() -> Bool
+            }
+
+            #if DEBUG
+            actor SessionMock: Session, MockProviding {
+                nonisolated let mock = Mock()
+
+                nonisolated func ping() -> Interaction<Void, None, Bool> {
+                    Interaction(.any, spy: self.mock.ping)
+                }
+
+                nonisolated func ping() -> Bool {
+                    return Mock.adapt(self.mock.ping, ())
+                }
+            }
+            #endif
+            """
+        }
+    }
 }

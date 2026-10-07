@@ -154,14 +154,65 @@ public enum SpyAccess {
     }
 }
 
+/// Which kind of declaration the generated mock is.
+///
+/// Orthogonal to ``SpyAccess``, which says *where spies live*. This says what
+/// modifiers the generated members carry, and it is a separate axis: an actor
+/// mock reaches its spies exactly the way a composed class mock does, so adding
+/// a `SpyAccess` case for it would duplicate all four of that enum's members
+/// and force `case .composed, .composedActor:` into every switch over it.
+public enum MockShape {
+    /// The mock is a `class` — the default for every protocol that does not
+    /// inherit `Actor`.
+    case classDecl
+    /// The mock is an `actor`, because its protocol inherits `Actor` and no
+    /// class can conform to such a protocol (`non-actor type 'MockX' cannot
+    /// conform to the 'Actor' protocol`).
+    case actorDecl
+
+    /// The modifiers a generated member carries, adding `nonisolated` for an
+    /// actor mock's instance members.
+    ///
+    /// `nonisolated` is not cosmetic. Without it a witness is actor-isolated,
+    /// which still *compiles* at the declaration but fails at every synchronous
+    /// call site:
+    ///
+    /// ```
+    /// error: call to actor-isolated instance method 'size' in a synchronous
+    /// nonisolated context
+    /// ```
+    ///
+    /// That would make `when`/`verify` `await`-only and leave a synchronous
+    /// protocol requirement unsatisfiable. `Mock` is `@unchecked Sendable` over
+    /// `NSLock`-guarded internals, so opting its storage out of actor isolation
+    /// is sound rather than a loophole.
+    ///
+    /// Static members are left alone: members of an actor's type are already
+    /// nonisolated, so the modifier would add nothing.
+    ///
+    /// - Parameter isStatic: Whether the member is `static`.
+    func memberModifiers(
+        _ modifiers: DeclModifierListSyntax,
+        isStatic: Bool
+    ) -> DeclModifierListSyntax {
+        guard case .actorDecl = self, !isStatic else { return modifiers }
+        return DeclModifierListSyntax {
+            DeclModifierSyntax(name: .keyword(.nonisolated))
+            for modifier in modifiers {
+                modifier
+            }
+        }
+    }
+}
+
 extension DeclModifierListSyntax {
     /// The modifiers with `mutating` and `nonmutating` removed.
     ///
     /// Both are legal on a protocol requirement but not on the member generated
-    /// from it, because mocks are classes: `'mutating' is not valid on instance
-    /// methods in classes`. A class satisfies a `mutating` requirement by
-    /// declaring the method without the modifier, so dropping it is what makes
-    /// the conformance compile — callers are unaffected, including through
+    /// from it, because mocks are classes or actors: `'mutating' is not valid on
+    /// instance methods in classes`. A class satisfies a `mutating` requirement
+    /// by declaring the method without the modifier, so dropping it is what
+    /// makes the conformance compile — callers are unaffected, including through
     /// generic and existential references.
     var withoutValueTypeModifiers: DeclModifierListSyntax {
         filter { modifier in

@@ -92,21 +92,24 @@ public extension MockableGenerator {
     /// ```
     static func makeInteractions(
         protocolDecl: ProtocolDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> [DeclSyntax] {
         var members = [DeclSyntax]()
 
         for member in protocolDecl.memberBlock.members {
             if let funcDecl = member.decl.as(FunctionDeclSyntax.self) {
-                let stubFunction = processFunc(funcDecl, spyAccess: spyAccess)
+                let stubFunction = processFunc(funcDecl, spyAccess: spyAccess, shape: shape)
                 members.append(stubFunction)
             } else if let varDecl = member.decl.as(VariableDeclSyntax.self) {
-                let stubFunctions = processVar(varDecl, spyAccess: spyAccess)
+                let stubFunctions = processVar(varDecl, spyAccess: spyAccess, shape: shape)
                 members.append(contentsOf: stubFunctions)
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
-                members.append(contentsOf: processSubscript(subscriptDecl, spyAccess: spyAccess))
+                members.append(
+                    contentsOf: processSubscript(subscriptDecl, spyAccess: spyAccess, shape: shape)
+                )
             } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
-                members.append(processInit(initDecl, spyAccess: spyAccess))
+                members.append(processInit(initDecl, spyAccess: spyAccess, shape: shape))
             }
         }
 
@@ -143,7 +146,8 @@ public extension MockableGenerator {
     /// belongs to construction, which stubbing cannot influence.
     private static func processInit(
         _ initDecl: InitializerDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> DeclSyntax {
         let funcDecl = FunctionDeclSyntax(
             modifiers: DeclModifierListSyntax {
@@ -164,7 +168,8 @@ public extension MockableGenerator {
                 funcDecl: funcDecl,
                 genericParameterClause: initDecl.genericParameterClause,
                 genericWhereClause: initDecl.genericWhereClause,
-                spyAccess: spyAccess
+                spyAccess: spyAccess,
+                shape: shape
             )
         )
     }
@@ -179,7 +184,8 @@ public extension MockableGenerator {
     /// ```
     private static func processFunc(
         _ funcDecl: FunctionDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> DeclSyntax {
         let funcName = funcDecl.name.text
         let spyPropertyName = funcDecl.name.text
@@ -190,7 +196,8 @@ public extension MockableGenerator {
             funcDecl: funcDecl,
             genericParameterClause: funcDecl.genericParameterClause,
             genericWhereClause: funcDecl.genericWhereClause,
-            spyAccess: spyAccess
+            spyAccess: spyAccess,
+            shape: shape
         )
 
         return DeclSyntax(stubFunction)
@@ -205,7 +212,8 @@ public extension MockableGenerator {
     /// ```
     private static func processVar(
         _ varDecl: VariableDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> [DeclSyntax] {
         var decls = [DeclSyntax]()
         for binding in varDecl.bindings {
@@ -222,7 +230,8 @@ public extension MockableGenerator {
                     varName: varName,
                     type: type,
                     modifiers: varDecl.modifiers,
-                    spyAccess: spyAccess
+                    spyAccess: spyAccess,
+                    shape: shape
                 )))
             } else {
                 // Getter
@@ -230,7 +239,8 @@ public extension MockableGenerator {
                     varName: varName,
                     type: type,
                     modifiers: varDecl.modifiers,
-                    spyAccess: spyAccess
+                    spyAccess: spyAccess,
+                    shape: shape
                 )
                 decls.append(DeclSyntax(getter))
             }
@@ -245,12 +255,21 @@ public extension MockableGenerator {
     /// (`when`/`verify`) and writes (`assigned:`) through one surface.
     private static func processSubscript(
         _ subscriptDecl: SubscriptDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> [DeclSyntax] {
         if subscriptDecl.hasSetter {
-            return [DeclSyntax(subscriptSettableInteraction(subscriptDecl, spyAccess: spyAccess))]
+            return [DeclSyntax(subscriptSettableInteraction(
+                subscriptDecl,
+                spyAccess: spyAccess,
+                shape: shape
+            ))]
         }
-        return [DeclSyntax(subscriptGetterInteraction(subscriptDecl, spyAccess: spyAccess))]
+        return [DeclSyntax(subscriptGetterInteraction(
+            subscriptDecl,
+            spyAccess: spyAccess,
+            shape: shape
+        ))]
     }
 
     /// Creates a getter interaction subscript mirroring the requirement's indices.
@@ -263,12 +282,13 @@ public extension MockableGenerator {
     /// ```
     private static func subscriptGetterInteraction(
         _ subscriptDecl: SubscriptDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> SubscriptDeclSyntax {
         let isStatic = subscriptDecl.modifiers.contains(where: \.isStatic)
         let subscriptDecl = SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
-            modifiers: subscriptDecl.modifiers,
+            modifiers: shape.memberModifiers(subscriptDecl.modifiers, isStatic: isStatic),
             genericParameterClause: subscriptDecl.genericParameterClause,
             parameterClause: createArgMatcherParameters(
                 subscriptDecl.parameterClause
@@ -321,11 +341,15 @@ public extension MockableGenerator {
     /// the written value as a trailing argument.
     private static func subscriptSettableInteraction(
         _ subscriptDecl: SubscriptDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> SubscriptDeclSyntax {
         SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
-            modifiers: subscriptDecl.modifiers,
+            modifiers: shape.memberModifiers(
+                subscriptDecl.modifiers,
+                isStatic: subscriptDecl.modifiers.contains(where: \.isStatic)
+            ),
             genericParameterClause: subscriptDecl.genericParameterClause,
             parameterClause: createArgMatcherParameters(
                 subscriptDecl.parameterClause
@@ -594,17 +618,19 @@ public extension MockableGenerator {
         varName: String,
         type: TypeSyntax,
         modifiers: DeclModifierListSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> FunctionDeclSyntax {
         let interactionReturnType = createInteractionReturnType(inputTypes: [], outputType: type, effectType: .none, genericParameterClause: nil)
+        let isStatic = modifiers.contains(where: \.isStatic)
         let body = createFunctionBody(
             spyPropertyName: varName,
             parameterNames: [],
             spyAccess: spyAccess,
-            isStatic: modifiers.contains(where: \.isStatic)
+            isStatic: isStatic
         )
         return FunctionDeclSyntax(
-            modifiers: modifiers.trimmed,
+            modifiers: shape.memberModifiers(modifiers.trimmed, isStatic: isStatic),
             name: .identifier(varName),
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(
@@ -638,10 +664,14 @@ public extension MockableGenerator {
         varName: String,
         type: TypeSyntax,
         modifiers: DeclModifierListSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> FunctionDeclSyntax {
         FunctionDeclSyntax(
-            modifiers: modifiers.trimmed,
+            modifiers: shape.memberModifiers(
+                modifiers.trimmed,
+                isStatic: modifiers.contains(where: \.isStatic)
+            ),
             name: .identifier(varName),
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(
@@ -782,7 +812,8 @@ public extension MockableGenerator {
         funcDecl: FunctionDeclSyntax,
         genericParameterClause: GenericParameterClauseSyntax?,
         genericWhereClause: GenericWhereClauseSyntax?,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> FunctionDeclSyntax {
 
         let (inputTypes, _, _) = getFunctionParameters(funcDecl)
@@ -793,15 +824,19 @@ public extension MockableGenerator {
             funcDecl.signature.parameterClause
         )
         let returnType = createInteractionReturnType(inputTypes: inputTypes, outputType: outputType, effectType: effectType, genericParameterClause: genericParameterClause)
+        let isStatic = funcDecl.modifiers.contains(where: \.isStatic)
         let body = createFunctionBody(
             spyPropertyName: spyPropertyName,
             parameterNames: funcDecl.signature.parameterClause.parameters,
             spyAccess: spyAccess,
-            isStatic: funcDecl.modifiers.contains(where: \.isStatic)
+            isStatic: isStatic
         )
 
         return FunctionDeclSyntax(
-            modifiers: funcDecl.modifiers.withoutValueTypeModifiers.trimmed,
+            modifiers: shape.memberModifiers(
+                funcDecl.modifiers.withoutValueTypeModifiers.trimmed,
+                isStatic: isStatic
+            ),
             name: escapedIdentifier(name),
             genericParameterClause: genericParameterClause,
             signature: FunctionSignatureSyntax(

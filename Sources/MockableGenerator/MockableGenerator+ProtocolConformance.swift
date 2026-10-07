@@ -24,6 +24,7 @@ extension MockableGenerator {
     static func makeConformanceRequirements(
         for protocolDecl: ProtocolDeclSyntax,
         spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl,
         mockName: String
     ) -> [DeclSyntax] {
         var declarations = [DeclSyntax]()
@@ -32,23 +33,30 @@ extension MockableGenerator {
         // alone is not enough to decide that.
         var declaresAnyInitializer = false
         var declaresZeroArgumentInitializer = false
-        // Whether the generated mock has a superclass to chain `super.init` to.
-        // An inheriting mock always does (`Mock`); a composed one does only if
-        // its protocol's inheritance clause could name a class, which is the
-        // same conservative test that governs `Sendable`.
-        let hasSuperclass = !isStrictlySendable(protocolDecl: protocolDecl, spyAccess: spyAccess)
+        let hasSuperclass = Self.hasSuperclass(
+            protocolDecl: protocolDecl,
+            spyAccess: spyAccess,
+            shape: shape
+        )
         for member in protocolDecl.memberBlock.members {
             if let functionDecl = member.decl.as(FunctionDeclSyntax.self) {
-                declarations.append(DeclSyntax(functionRequirement(functionDecl, spyAccess: spyAccess)))
+                declarations.append(
+                    DeclSyntax(functionRequirement(functionDecl, spyAccess: spyAccess, shape: shape))
+                )
             } else if let variableDecl = member.decl.as(VariableDeclSyntax.self) {
-                declarations.append(DeclSyntax(variableRequirement(variableDecl, spyAccess: spyAccess)))
+                declarations.append(
+                    DeclSyntax(variableRequirement(variableDecl, spyAccess: spyAccess, shape: shape))
+                )
             } else if let subscriptDecl = member.decl.as(SubscriptDeclSyntax.self) {
-                declarations.append(DeclSyntax(subscriptRequirement(subscriptDecl, spyAccess: spyAccess)))
+                declarations.append(
+                    DeclSyntax(subscriptRequirement(subscriptDecl, spyAccess: spyAccess, shape: shape))
+                )
             } else if let initDecl = member.decl.as(InitializerDeclSyntax.self) {
                 declarations.append(
                     DeclSyntax(initializerRequirement(
                         initDecl,
                         spyAccess: spyAccess,
+                        shape: shape,
                         mockName: mockName,
                         hasSuperclass: hasSuperclass
                     ))
@@ -65,7 +73,11 @@ extension MockableGenerator {
 
         if declaresAnyInitializer
             && !declaresZeroArgumentInitializer
-            && canSynthesizeDefaultInitializer(for: protocolDecl, spyAccess: spyAccess) {
+            && canSynthesizeDefaultInitializer(
+                for: protocolDecl,
+                spyAccess: spyAccess,
+                shape: shape
+            ) {
             declarations.append(
                 DeclSyntax(defaultInitializer(spyAccess: spyAccess, hasSuperclass: hasSuperclass))
             )
@@ -134,14 +146,51 @@ extension MockableGenerator {
     /// Rather than guess, nothing is emitted when a composed protocol has any
     /// inherited types. The mock is still constructible through the
     /// requirement's own initializer; it simply does not gain the extra
-    /// zero-argument one. This mirrors ``isStrictlySendable(protocolDecl:spyAccess:)``,
+    /// zero-argument one. This mirrors ``canBeFinalAndSendable(protocolDecl:spyAccess:shape:)``,
     /// which is conservative in the same place and for the same reason.
+    ///
+    /// An actor mock is exempt from that caution: an actor can never have a
+    /// superclass, so neither wrong spelling is reachable and the ambiguity the
+    /// conservative test guards against does not exist. Without this exemption a
+    /// protocol inheriting `Actor` — a *non-empty* inheritance clause — would
+    /// silently lose its synthesized `init()`.
     static func canSynthesizeDefaultInitializer(
         for protocolDecl: ProtocolDeclSyntax,
-        spyAccess: SpyAccess
+        spyAccess: SpyAccess,
+        shape: MockShape = .classDecl
     ) -> Bool {
+        if case .actorDecl = shape { return true }
         guard case .composed = spyAccess else { return true }
         return protocolDecl.inheritanceClause?.inheritedTypes.isEmpty ?? true
+    }
+
+    /// Whether the generated mock has a superclass to chain `super.init` to.
+    ///
+    /// An inheriting mock always does (`Mock`). A composed class mock does only
+    /// if its protocol's inheritance clause could name a class, which is the
+    /// same undecidable-at-expansion-time question
+    /// ``canBeFinalAndSendable(protocolDecl:spyAccess:shape:)`` answers
+    /// conservatively.
+    ///
+    /// An actor mock *never* does — actors are root types. This is stated here
+    /// rather than inferred from the `Sendable` predicate because the two
+    /// answers coincide for classes but not for actors: a protocol inheriting
+    /// `Actor` has a non-empty inheritance clause, so deriving this from
+    /// "could there be a superclass" would emit `super.init()` inside an actor
+    /// and fail with `error: 'super' cannot be used in actor 'MockX' because it
+    /// has no superclass` — pointing at generated code and never mentioning
+    /// actors.
+    static func hasSuperclass(
+        protocolDecl: ProtocolDeclSyntax,
+        spyAccess: SpyAccess,
+        shape: MockShape = .classDecl
+    ) -> Bool {
+        if case .actorDecl = shape { return false }
+        return !canBeFinalAndSendable(
+            protocolDecl: protocolDecl,
+            spyAccess: spyAccess,
+            shape: shape
+        )
     }
 
     /// Generates a `required` initializer declaration that records its call.
@@ -184,14 +233,21 @@ extension MockableGenerator {
     /// better failure than the `fatalError` this replaced: that always compiled
     /// but left the initializer unusable and its calls unrecorded, making
     /// `.composition` silently differ from the default strategy.
+    ///
+    /// `required` is omitted for an actor mock: the modifier exists to force
+    /// subclasses to reimplement the initializer, and an actor cannot be
+    /// subclassed — `error: 'required' initializer in non-class type 'MockX'`.
     static func initializerRequirement(
         _ initDecl: InitializerDeclSyntax,
         spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl,
         mockName: String,
         hasSuperclass: Bool
     ) -> InitializerDeclSyntax {
         let modifiers = DeclModifierListSyntax {
-            DeclModifierSyntax(name: .keyword(.required))
+            if shape != .actorDecl {
+                DeclModifierSyntax(name: .keyword(.required))
+            }
             for modifier in initDecl.modifiers {
                 modifier
             }
@@ -390,7 +446,8 @@ extension MockableGenerator {
     /// For a function `func doSomething()`, this will generate a function with a body that calls the mock's `adapt` function.
     static func functionRequirement(
         _ functionDecl: FunctionDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> FunctionDeclSyntax {
         return FunctionDeclSyntax(
             attributes: functionDecl.attributes,
@@ -398,7 +455,10 @@ extension MockableGenerator {
             // source's leading trivia; that stale newline and indentation would
             // otherwise survive into the generated member and misindent it.
             // `mutating`/`nonmutating` are dropped because the mock is a class.
-            modifiers: functionDecl.modifiers.withoutValueTypeModifiers.trimmed,
+            modifiers: shape.memberModifiers(
+                functionDecl.modifiers.withoutValueTypeModifiers.trimmed,
+                isStatic: functionDecl.modifiers.contains(where: \.isStatic)
+            ),
             name: functionDecl.name,
             genericParameterClause: functionDecl.genericParameterClause,
             signature: functionDecl.signature,
@@ -411,12 +471,13 @@ extension MockableGenerator {
     /// For a variable `var value: Int { get }`, this will generate a computed property with a getter that calls the mock's `adapt` function.
     static func variableRequirement(
         _ variableDecl: VariableDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> VariableDeclSyntax {
         let isStatic = variableDecl.modifiers.contains(where: \.isStatic)
         return VariableDeclSyntax(
             attributes: variableDecl.attributes,
-            modifiers: variableDecl.modifiers.trimmed,
+            modifiers: shape.memberModifiers(variableDecl.modifiers.trimmed, isStatic: isStatic),
             // Trimmed so the `var` keyword does not carry the protocol's source
             // indentation: BasicFormat infers a block's indentation by *adding*
             // the first token's existing leading trivia to the enclosing level,
@@ -479,13 +540,14 @@ extension MockableGenerator {
     /// indices followed by `newValue` — on the `set` + capitalized-parameters spy.
     static func subscriptRequirement(
         _ subscriptDecl: SubscriptDeclSyntax,
-        spyAccess: SpyAccess = .inherited
+        spyAccess: SpyAccess = .inherited,
+        shape: MockShape = .classDecl
     ) -> SubscriptDeclSyntax {
         let parameterNames = subscriptDecl.parameterClause.parameters.map({ ExprSyntax(DeclReferenceExprSyntax(baseName: $0.secondName ?? $0.firstName)) })
         let isStatic = subscriptDecl.modifiers.contains(where: \.isStatic)
         return SubscriptDeclSyntax(
             attributes: subscriptDecl.attributes,
-            modifiers: subscriptDecl.modifiers,
+            modifiers: shape.memberModifiers(subscriptDecl.modifiers, isStatic: isStatic),
             genericParameterClause: subscriptDecl.genericParameterClause,
             parameterClause: subscriptDecl.parameterClause,
             returnClause: subscriptDecl.returnClause,

@@ -337,6 +337,102 @@ class MockMyService: SampleBase, MyService, MockProviding, @unchecked Sendable {
 ```
 </details>
 
+### Actor-inheriting protocols
+
+A protocol inheriting `Actor` is mocked as an `actor` — no option required. No class can conform to such a protocol (`non-actor type 'MockSession' cannot conform to the 'Actor' protocol`), and an actor cannot inherit `Mock`, so the composed strategy is used automatically.
+
+`Actor` is dropped from the restated inheritance clause and no `Sendable` conformance is emitted: an actor conforms to `Actor` by being one and is implicitly `Sendable`. `final` is absent because an actor cannot be `final`.
+
+Every instance member is `nonisolated`. Without it the witness is actor-isolated, which compiles at the declaration and then fails at every synchronous call site (`call to actor-isolated instance method 'ping' in a synchronous nonisolated context`), making `when`/`verify` `await`-only.
+
+```swift
+@Mockable()
+protocol Session: Actor {
+    func ping() -> Bool
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+actor MockSession: Session, MockProviding {
+    nonisolated let mock = Mock()
+
+    nonisolated func ping() -> Interaction<Void, None, Bool> {
+        Interaction(.any, spy: self.mock.ping)
+    }
+
+    nonisolated func ping() -> Bool {
+        return Mock.adapt(self.mock.ping, ())
+    }
+}
+```
+</details>
+
+#### Actor with static requirements
+
+Members of an actor's type are already nonisolated, so static members carry no added modifier — and neither does `staticMock`.
+
+```swift
+@Mockable()
+protocol Session: Actor {
+    static func reset()
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+actor MockSession: Session, MockProviding {
+    nonisolated let mock = Mock()
+
+    static let staticMock = Mock(scopedStorageKey: "MockSession")
+
+    static func reset() -> Interaction<Void, None, Void> {
+        Interaction(.any, spy: staticMock.reset)
+    }
+
+    static func reset() {
+        return Mock.adapt(staticMock.reset, ())
+    }
+}
+```
+</details>
+
+#### Actor with an initializer requirement
+
+Initializers omit `required` (`'required' initializer in non-class type`) and chain to no superclass, since an actor is a root type. The synthesized zero-argument `init()` is still emitted.
+
+```swift
+@Mockable()
+protocol Session: Actor {
+    init(value: Int)
+}
+```
+<details>
+<summary>Generated Code</summary>
+
+```swift
+actor MockSession: Session, MockProviding {
+    nonisolated let mock = Mock()
+
+    static let staticMock = Mock(scopedStorageKey: "MockSession")
+
+    static func `init`(value: ArgMatcher<Int>) -> Interaction<Int, None, Void> {
+        Interaction(value, spy: staticMock.`init`)
+    }
+
+    init(value: Int) {
+        let spy: Spy<Int, None, Void> = MockSession.staticMock.`init`
+        Mock.adapt(spy, value)
+    }
+
+    init() {
+    }
+}
+```
+</details>
+
 ## Advanced Protocol Features
 
 ### Protocol with Associated Type
