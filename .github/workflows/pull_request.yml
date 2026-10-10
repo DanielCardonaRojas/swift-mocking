@@ -79,6 +79,37 @@ jobs:
           -enableCodeCoverage NO \
           clean test
 
+  # Coverage runs as its own job rather than as a matrix flag on `build`. The matrix
+  # tests through xcodebuild with -enableCodeCoverage NO across three Xcode versions;
+  # turning it on for one entry would mean instrumenting a run whose purpose is
+  # toolchain compatibility, and xcodebuild's profdata lands in a derived-data layout
+  # that differs from the one SwiftPM uses. A single `swift test` job on the newest
+  # toolchain measures the same source for a fraction of the complexity.
+  #
+  # Coverage is a signal, not a gate: no minimum threshold is enforced here, so this
+  # job failing means the export broke, not that coverage dropped.
+  coverage:
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@v4
+    - name: Select Xcode
+      run: sudo xcode-select -s /Applications/Xcode_26.2.app
+    - name: Skip macro validation
+      run: defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+    - name: Generate coverage report
+      run: Scripts/coverage.sh --report
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: ./coverage.lcov
+        # Tokenless upload works for public repos but is rate-limited and drops
+        # reports on fork PRs; the token makes uploads deterministic. The action
+        # does not fail the build when it is unset.
+        token: ${{ secrets.CODECOV_TOKEN }}
+        # Without this a flaky upload silently reports success and the badge goes
+        # stale with no indication anything broke.
+        fail_ci_if_error: true
+
   # The build matrix above only exercises whichever swift-syntax resolution happens to
   # pick — the newest in range — so the rest of the supported range goes untested, and
   # the version under test changes on its own whenever swift-syntax ships a release.

@@ -1,0 +1,30 @@
+# Codecov configuration. See https://docs.codecov.com/docs/codecov-yaml
+#
+# Coverage here is informational: the CI job uploads a report, but a drop does not
+# block a PR. `informational: true` on both status checks is what makes that true —
+# Codecov still comments with the delta, it just never reports failure.
+coverage:
+  precision: 2
+  round: down
+  range: "60...90"
+
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+# Scripts/coverage.sh already scopes llvm-cov to Sources/, so these are a second
+# line of defense rather than the primary filter — they matter if the report is
+# ever generated some other way.
+ignore:
+  - "Tests/**"
+  - "Examples/**"
+  - "Scripts/**"
+  - "**/*.derived/**"
+
+comment:
+  layout: "condensed_header, diff, flags, components"
+  require_changes: true
