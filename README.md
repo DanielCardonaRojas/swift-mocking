@@ -5,6 +5,7 @@
 [![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FDanielCardonaRojas%2Fswift-mocking%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/DanielCardonaRojas/swift-mocking)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 [![CI Status](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml/badge.svg?branch=main)](https://github.com/DanielCardonaRojas/swift-mocking/actions/workflows/pull_request.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/DanielCardonaRojas/swift-mocking/branch/main/graph/badge.svg)](https://codecov.io/gh/DanielCardonaRojas/swift-mocking)
 
 
 `SwiftMocking` is a modern, type-safe mocking library for Swift that provides a clean, readable, and efficient mocking experience. It offers an elegant API that leverages the power of [parameter packs](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0393-parameter-packs.md) and `@dynamicMemberLookup`.
