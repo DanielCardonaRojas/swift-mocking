@@ -240,6 +240,56 @@ final class MacroOptionsTests: MacroTestCase {
         }
     }
 
+    /// A settable property is where composition diverges most visibly: the
+    /// setter interaction is built inside an escaping closure, so it reaches the
+    /// write spy through a captured `self.mock` rather than through `super`.
+    ///
+    /// The runtime accessors likewise call the static `Mock.adapt` for both
+    /// halves of the property, since a composing type inherits no instance
+    /// adapters.
+    func testCompositionOptionWithSettableProperty() {
+        assertMacro {
+            """
+            @Mockable([.composition])
+            protocol MyService: SampleBase {
+                var value: Int { get set }
+            }
+            """
+        } expansion: {
+            """
+            protocol MyService: SampleBase {
+                var value: Int { get set }
+            }
+
+            #if DEBUG
+            class MockMyService: SampleBase, MyService, MockProviding, @unchecked Sendable {
+                let mock = Mock()
+
+                func value(_ void: Void = ()) -> SettableInteraction<Void, None, Int > {
+                    SettableInteraction(
+                        get: Interaction(.any, spy: self.mock.value),
+                        setInteraction: { newValue in
+                            let writeSpy: Spy<Void, Int, None, Void> = self.mock.setValue
+                            let writeInteraction: Interaction<Void, Int, None, Void> = Interaction(.any, newValue, spy: writeSpy)
+                            return writeInteraction
+                        }
+                    )
+                }
+
+                var value: Int {
+                    set {
+                        return Mock.adapt(self.mock.setValue, (), newValue)
+                    }
+                    get {
+                        Mock.adapt(self.mock.value, ())
+                    }
+                }
+            }
+            #endif
+            """
+        }
+    }
+
     /// A protocol declaring both `init()` and a parameterized initializer gets
     /// exactly one zero-argument initializer — the requirement's, which records.
     ///
